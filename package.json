@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.0",
+    "@hono/node-server": "^1.19.13",
     "@langchain/core": "^0.3.0",
     "@langchain/langgraph": "^0.2.0",
     "@langchain/openai": "^0.3.0",
-    "hono": "^4.6.0",
+    "hono": "^4.12.12",
     "playwright": "^1.48.0",
     "uuid": "^10.0.0",
     "zod": "^3.23.0"
