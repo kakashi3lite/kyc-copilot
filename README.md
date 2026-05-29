@@ -1,190 +1,174 @@
-# 🛡 KYC Copilot
+# KYC-Copilot
 
-> **Compliance at the speed of intelligence.**
+KYC-Copilot is an agentic AML/KYC compliance platform for EU payments institutions. It replaces manual corporate onboarding dossiers with a 14-minute evidence-backed pipeline that ingests entity data, performs registry and screening lookups, drafts an AMLD6-aligned enhanced due diligence dossier, enforces mechanical citation guardrails, pauses for human approval when required, and emits immutable JSON/PDF compliance reports.
 
-An agentic AML/KYC Compliance Copilot that replaces 3.5-hour manual dossiers with a 14-minute, AMLD6-compliant, evidence-backed pipeline — built on LangGraph.js, GPT-4o, and Hono.
+## Product Contract
 
----
-
-## Why this exists
-
-EU payments institutions spend an average of **€380 and 3.5 hours** per corporate KYC case, manually. KYC Copilot automates 90% of that work while preserving a deterministic, auditor-ready evidence trail for every claim.
-
----
-
-## Features
-
-| Feature | Description |
-|---|---|
-| **6-node LangGraph pipeline** | Ingest → API Lookup → Browser Fallback → Draft Dossier → Guardrail → Human Review |
-| **Immutable Evidence Ledger** | Every factual claim maps to a source URL or screenshot path |
-| **AMLD6-aligned reports** | JSON/Markdown reports referencing the exact EU directive article |
-| **Human-in-the-Loop (HITL)** | High-risk cases pause the graph for senior compliance officer sign-off |
-| **Guardrail node** | A second LLM audits the draft, stripping any unsourced claims |
-| **Multi-tenant API** | Bearer-key auth, per-tenant usage metering, and plan limits |
-| **Outbound webhooks** | HMAC-signed event delivery with exponential-backoff retry |
-| **Marketing landing page** | ROI calculator, animated pipeline, pricing — all pure CSS/HTML |
-| **Product dashboard** | Metrics, case queue, drawer, reports, settings — with toast/skeleton/ceremony UX |
-
----
+- Accepts a corporate entity: legal name, registration number, and ISO-2 jurisdiction.
+- Fetches structured data from OpenCorporates and ComplyAdvantage through retrying HTTP clients with circuit breakers.
+- Falls back to a Playwright browser agent with proxy and user-agent rotation when API data is incomplete.
+- Requires every dossier claim to include a valid `[Source: KEY]` evidence citation.
+- Strips uncited or invalidly cited claims during guardrail review.
+- Pauses for human-in-the-loop approval when risk is high, UBO verification is missing, or browser fallback fails.
+- Generates branded compliance reports with AMLD6 article references, audit trail, evidence chain, and digital signature placeholder.
+- Dispatches HMAC-SHA256 signed webhooks with exponential backoff.
+- Tracks tenant usage for billing and ROI reporting.
 
 ## Architecture
 
-```
-GET  /          → public/landing.html   (marketing page)
-GET  /app       → public/app.html       (product dashboard)
-
-POST /cases     → run the LangGraph pipeline
-GET  /cases     → list cases (filterable)
-GET  /cases/:id → single case state snapshot
-POST /cases/:id/approve   → HITL approval
-POST /cases/:id/rescreen  → trigger re-screening
-GET  /cases/:id/report    → AMLD6 compliance report
-GET  /dashboard → aggregate metrics
-GET  /usage     → monthly usage + ROI metrics
-POST /webhooks  → register an outbound webhook endpoint
-GET  /webhooks  → list webhooks
-POST /provision → create a new tenant + API key
-GET  /health    → liveness probe
+```text
+Client/API
+  -> Hono middleware: request ID, secure headers, CORS, auth, rate limits, RFC 7807 errors
+  -> PostgreSQL: tenants, users, cases, evidence, audit logs, usage, webhooks, failures
+  -> BullMQ: async KYC graph jobs and webhook delivery jobs
+  -> Graph pipeline: ingest -> API lookup -> browser fallback -> dossier -> guardrail -> HITL/report
+  -> Reports: JSON + Puppeteer-rendered PDF
 ```
 
-### LangGraph pipeline
+Business state is persisted in PostgreSQL. Redis is used only for rate limiting and queues. PII fields are encrypted with AES-256-GCM before database writes and masked before logging or dashboard list output.
 
-```
-ingestDataNode
-  └─► apiLookupNode
-        ├─► (data complete) draftDossierNode
-        └─► (missing/stale) browserFallbackNode ──► draftDossierNode
-                                                         └─► guardrailNode
-                                                               ├─► (clean)     END
-                                                               └─► (flagged)   humanReviewNode ──► END
-```
+## Source Layout
 
-### Source layout
-
-```
-src/
-  state.ts       — AgentState interface + LangGraph Annotation channels
-  nodes.ts       — 6 pipeline nodes (Zod-validated, lazy LLM init)
-  graph.ts       — StateGraph assembly, conditional routing, MemorySaver
-  index.ts       — Hono HTTP server + all API endpoints
-  auth.ts        — API key management, tenant isolation, plan config
-  usage.ts       — Monthly usage metering + ROI metrics
-  cases.ts       — In-memory case registry (swap for Postgres in prod)
-  reports.ts     — AMLD6-aligned compliance report generator
-  webhooks.ts    — Outbound webhook delivery with HMAC-SHA256 signing
-
-public/
-  landing.html   — Marketing / brand page (7 sections, pure CSS)
-  app.html       — Product dashboard (upgraded with 5 UX layers)
-  index.html     — Legacy alias (kept for backward compatibility)
+```text
+src/config/                 environment validation and Pino logging
+src/db/                     Drizzle schema, database pool, migration, seed
+src/graph/                  typed agent state, lifecycle nodes, graph runner
+src/services/kyc-data/      OpenCorporates and ComplyAdvantage clients
+src/services/browser/       Playwright fallback, proxy rotation, registry map
+src/services/llm/           deterministic structured dossier drafting and fallback hooks
+src/services/billing/       Stripe adapter and usage metering
+src/services/reports/       JSON report generation and PDF rendering
+src/services/webhooks/      HMAC dispatcher and delivery worker
+src/services/audit/         immutable audit log writer
+src/services/encryption/    AES-256-GCM PII encryption
+src/api/                    Hono middleware, routes, app assembly
+src/workers/                BullMQ graph and webhook workers
+public/                     landing page and dashboard
+/tests/                     unit, integration, e2e, and fixtures
 ```
 
----
+## API Surface
 
-## Quick start
+Public routes:
+
+- `GET /health` — liveness with DB, Redis, and OpenAI checks.
+- `GET /ready` — readiness, returns `503` if a dependency is unavailable.
+- `GET /` — landing page.
+- `GET /app` — dashboard shell.
+- `POST /provision` — creates a tenant, admin user, and one API key. The raw API key is returned once.
+- `POST /auth/login` — returns 15-minute JWT access token and 7-day refresh token.
+- `POST /auth/refresh` — rotates refresh token.
+
+Authenticated routes:
+
+- `POST /cases` — creates a KYC case and queues graph execution.
+- `GET /cases` — lists masked tenant cases.
+- `GET /cases/stream` — server-sent snapshot for dashboard updates.
+- `GET /cases/export` — GDPR portability export.
+- `GET /cases/:id` — case detail, graph state, evidence, and audit trail.
+- `POST /cases/:id/approve` — completes HITL review.
+- `POST /cases/:id/rescreen` — triggers a new run for Growth and Enterprise tenants.
+- `GET /cases/:id/report?format=json|pdf` — downloads compliance report.
+- `DELETE /cases/:id/erase` — GDPR hard delete.
+- `GET /dashboard` — aggregate metrics and recent cases.
+- `GET /usage` — monthly usage and ROI metrics.
+- `POST /webhooks` — registers a tenant webhook endpoint.
+- `GET /webhooks` — lists webhook endpoints without secrets.
+- `POST /webhooks/:id/test` — queues a signed test event.
+
+Admin routes:
+
+- `GET /tenants`
+- `GET /tenants/:id/usage`
+- `POST /tenants/:id/plan`
+
+## Security Controls
+
+- API keys are bcrypt-hashed and never stored in plaintext.
+- JWT access tokens expire after 15 minutes; refresh tokens expire after 7 days and rotate on use.
+- `registrationNumber`, company names, webhook secrets, and evidence source URLs are encrypted at rest with AES-256-GCM.
+- Pino structured logging masks PII and redacts secrets.
+- Redis-backed rate limits enforce tenant API limits and stricter auth IP limits.
+- Secure headers include `X-Frame-Options`, HSTS, and CSP.
+- Inputs are normalized with Unicode NFKC and HTML/script injection patterns are stripped.
+- External clients use retries, timeouts, and circuit breakers.
+- Failed cases are persisted in `failed_cases` for manual review.
+
+## Local Development
 
 ### Prerequisites
 
-- Node.js ≥ 20
-- An OpenAI API key (for live mode; demo mode works without one)
+- Node.js 20+
+- Docker and Docker Compose
+- PostgreSQL 16 and Redis 7 when not using Docker Compose
 
-### Install
-
-```bash
-git clone https://github.com/kakashi3lite/kyc-copilot.git
-cd kyc-copilot
-npm install
-```
-
-### Run (demo mode — no API key required)
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) for the landing page.  
-Open [http://localhost:3000/app](http://localhost:3000/app) for the dashboard.
-
-### Run (live mode — real GPT-4o calls)
+### Configure
 
 ```bash
 cp .env.example .env
-# Add your OPENAI_API_KEY to .env
-npm run dev
 ```
 
-The demo API key pre-loaded in the dashboard is `kc_live_demo0000000000000000000000`.
+Set production-grade secrets before deployment:
 
----
+```text
+ENCRYPTION_KEY=<32-byte hex key>
+JWT_SECRET=<strong access-token secret>
+JWT_REFRESH_SECRET=<strong refresh-token secret>
+DATABASE_URL=postgres://...
+REDIS_URL=redis://...
+```
 
-## API usage
-
-### Submit a case
+### Install and verify
 
 ```bash
-curl -X POST http://localhost:3000/cases \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000" \
-  -H "Content-Type: application/json" \
-  -d '{"companyName":"Acme Payments BV","registrationNumber":"34289034","jurisdiction":"NL"}'
+npm install
+npm run typecheck
+npm run test
 ```
 
-### Download a compliance report
+### Run the full local stack
 
 ```bash
-curl http://localhost:3000/cases/<caseId>/report \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000"
+docker compose up --build
 ```
 
-### Approve a HITL case
+The app listens on `http://localhost:3000`. PostgreSQL, Redis, MinIO, and Mailpit are included in `docker-compose.yml` for local development.
+
+## Example Lifecycle
+
+Provision a tenant:
 
 ```bash
-curl -X POST http://localhost:3000/cases/<caseId>/approve \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000" \
-  -H "Content-Type: application/json" \
-  -d '{"riskOverride":"Medium","reviewerNotes":"UBO confirmed via passport."}'
+curl -X POST http://localhost:3000/provision \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Demo Payments BV","email":"admin@example.test","password":"ChangeMe-123456","plan":"growth"}'
 ```
 
----
+Create a case:
 
-## Tech stack
+```bash
+curl -X POST 'http://localhost:3000/cases?sync=true' \
+  -H 'Authorization: Bearer kc_live_REPLACE_WITH_RETURNED_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"companyName":"Test BV","registrationNumber":"12345678","jurisdiction":"NL"}'
+```
 
-| Layer | Technology |
-|---|---|
-| Orchestration | [LangGraph.js](https://github.com/langchain-ai/langgraphjs) (`@langchain/langgraph`) |
-| LLMs | OpenAI GPT-4o via `@langchain/openai` + `.withStructuredOutput()` |
-| Validation | [Zod](https://zod.dev) — all LLM outputs are schema-validated |
-| Browser agent | [Playwright](https://playwright.dev) + Vision LLM fallback |
-| HTTP server | [Hono](https://hono.dev) + `@hono/node-server` |
-| Language | TypeScript (strict mode, NodeNext modules) |
-| Frontend | Vanilla HTML/CSS/JS — zero runtime dependencies |
+Download a PDF report:
 
----
+```bash
+curl 'http://localhost:3000/cases/<caseId>/report?format=pdf' \
+  -H 'Authorization: Bearer kc_live_REPLACE_WITH_RETURNED_KEY' \
+  -o report.pdf
+```
 
-## Compliance
+## Compliance Model
 
-KYC Copilot is designed to support compliance with:
+Reports cite AMLD6 article records stored in PostgreSQL with effective dates. Every claim in the dossier must cite a key in the evidence ledger. The guardrail node mechanically removes claims without valid evidence. Audit logs are append-only and hash each event payload for chain-of-custody review.
 
-- **EU AMLD6** (Anti-Money Laundering Directive 6) — report generation cites the applicable article
-- **Art. 13** — Customer Due Diligence
-- **Art. 13–14** — Enhanced Due Diligence triggers
-- **Art. 18** — High-risk third countries
+## Validation Status
 
-> **Note:** This software is a compliance _tool_, not legal advice. Your institution's MLRO remains responsible for final determinations.
-
----
-
-## Roadmap
-
-- [ ] PostgreSQL checkpointer (replace in-memory case registry)
-- [ ] Stripe billing integration (plan enforcement + overage billing)
-- [ ] SSO / SAML support
-- [ ] PDF report generation
-- [ ] Scheduled re-screening cron jobs
-- [ ] Audit log export (CSV / SIEM)
-
----
+The codebase is designed for strict TypeScript with `noUncheckedIndexedAccess` and ESM `NodeNext` imports. In this environment, npm registry access is blocked by DNS resolution failures (`ENOTFOUND registry.npmjs.org`), so dependency installation, `npm run typecheck`, and `npm run test` could not be completed locally. Run the verification commands above from a network-enabled environment before release.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT. See `LICENSE` if present in the repository root.

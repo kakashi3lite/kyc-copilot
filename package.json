@@ -1,31 +1,58 @@
 {
-  "name": "aml-kyc-copilot",
-  "version": "0.1.0",
-  "description": "Agentic AML/KYC Compliance Copilot for EU payments institutions (AMLD6-aligned)",
+  "name": "kyc-copilot",
+  "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@hono/node-server": "^1.13.0",
-    "@langchain/core": "^0.3.0",
-    "@langchain/langgraph": "^0.2.0",
-    "@langchain/openai": "^0.3.0",
-    "hono": "^4.6.0",
-    "playwright": "^1.48.0",
-    "uuid": "^10.0.0",
-    "zod": "^3.23.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/uuid": "^10.0.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
-  },
+  "description": "Agentic AML/KYC compliance platform for EU payments institutions.",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.13.8",
+    "@langchain/core": "0.3.32",
+    "@langchain/langgraph": "0.2.39",
+    "@langchain/langgraph-checkpoint-postgres": "1.0.1",
+    "bcrypt": "5.1.1",
+    "bullmq": "5.34.7",
+    "date-fns-tz": "3.2.0",
+    "drizzle-orm": "0.38.4",
+    "envalid": "8.0.0",
+    "hono": "4.6.20",
+    "ioredis": "5.4.2",
+    "jsonwebtoken": "9.0.2",
+    "pg": "8.13.1",
+    "pg-pool": "3.7.0",
+    "pino": "9.6.0",
+    "playwright": "1.49.1",
+    "puppeteer": "23.11.1",
+    "resend": "4.1.2",
+    "stripe": "17.5.0",
+    "uuid": "11.0.5",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "5.0.2",
+    "@types/jsonwebtoken": "9.0.7",
+    "@types/node": "22.10.6",
+    "@types/pg": "8.11.10",
+    "@vitest/coverage-v8": "2.1.8",
+    "drizzle-kit": "0.30.2",
+    "jsdom": "25.0.1",
+    "msw": "2.7.0",
+    "supertest": "7.0.0",
+    "testcontainers": "10.17.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8"
   }
 }

@@ -1,38 +1,24 @@
 {
   "compilerOptions": {
-    // Target modern Node.js — ES2022 gives us top-level await, structuredClone, etc.
     "target": "ES2022",
-
-    // NodeNext: correct ESM interop for Node.js >= 16
+    "lib": ["ES2022", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-
-    // Strict mode — catches null/undefined issues at compile time (critical for compliance code)
+    "rootDir": ".",
+    "outDir": "dist",
     "strict": true,
-    "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
-
-    // Output
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-
-    // Interop helpers — needed for mixing CJS/ESM packages
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-
-    // Keep imports clean
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-
-    // Make unused variables a hard error — prevents dead evidence-ledger code
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "drizzle.config.ts", "vitest.config.ts"],
+  "exclude": ["dist", "node_modules"]
 }
