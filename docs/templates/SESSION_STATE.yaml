@@ -1,0 +1,47 @@
+# SESSION_STATE — handoff artifact
+# Copy to project root as .session-state.yaml at session end (gitignored).
+schema_version: "1.0"
+repo: /Users/kakashi3lite/kyc-copilot
+branch: main
+timestamp: ""           # ISO-8601
+
+role: ""                # ARCHITECT | IMPLEMENTER | REVIEWER | COMPLIANCE_OFFICER | CONTEXT_WRITER
+instruction_set: ""     # IS-001 .. IS-006
+
+task:
+  summary: ""           # max 120 chars
+  status: ""            # in_progress | blocked | complete
+  blocker: false
+  blocker_reason: ""
+
+scope:
+  files_touched:        # path → one-line reason
+    - path: ""
+      reason: ""
+  files_to_read_next:   # ordered load list for next agent
+    - ""
+
+invariants:
+  INV-001: n/a          # pass | fail | n/a
+  INV-002: n/a
+  INV-003: n/a
+  INV-004: n/a
+  INV-005: n/a
+  INV-006: n/a
+  INV-007: n/a
+
+decisions:
+  adrs_considered: []   # e.g. [ADR-001, ADR-002]
+  adrs_created: []      # e.g. [ADR-009]
+  do_not_undo: []       # explicit warnings for next agent
+
+verification:
+  typecheck: n/a        # pass | fail | n/a
+  tests: n/a            # pass | fail | n/a
+  commands_run: []
+
+handoff:
+  next_role: ""
+  next_instruction_set: ""
+  next_task: ""         # max 200 chars
+  context_to_load: []   # paths from CONTEXT_INDEX matrix

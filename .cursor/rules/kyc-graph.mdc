@@ -1,0 +1,25 @@
+---
+description: KYC Copilot graph pipeline — nodes, routing, state
+globs: src/graph/**
+alwaysApply: false
+---
+
+# Graph Pipeline Rule
+
+Imperative `KycGraph` — NOT compiled LangGraph StateGraph (ADR-001).
+
+## Node order (`src/graph/graph.ts`)
+ingest → apiLookup → [browserFallback?] → draftDossier → guardrail
+
+## Routing (`src/graph/edges.ts`)
+- `afterApiLookup`: skip browser if `completeness === "complete" && uboVerified`
+- guardrail sets `pending_hitl` or `completed` — HITL is external (ADR-002)
+
+## Constraints
+- Zod schemas in `src/graph/schemas.ts` — all LLM outputs validated (ADR-007)
+- Per-node timeouts via `withTimeout()` in `graph.ts`
+- State merge via `mergeState()` — evidence ledger is shallow-merged
+- HITL: `POST /cases/:id/approve` — never auto-approve (INV-007)
+
+## On change
+Run `docs/instructions/IS-002-graph-node-change.md`

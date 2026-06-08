@@ -1,0 +1,29 @@
+---
+description: KYC Copilot core — context router, invariants, session protocol
+alwaysApply: true
+---
+
+# KYC Copilot — Core Rule
+
+## Session start
+1. Read `docs/CONTEXT_INDEX.md`
+2. Adopt role from matrix → `docs/roles/<ROLE>.md`
+3. Run `docs/instructions/IS-001-session-bootstrap.md`
+4. Load only files listed in CONTEXT_INDEX matrix for your task type
+
+## Session end
+Run `docs/instructions/IS-006-session-exit.md` → write `.session-state.yaml`
+
+## Cite, don't explain
+- Invariants: `INV-001`..`INV-007` (see `docs/ARCHITECTURE_CONTEXT.md` §8)
+- Decisions: `ADR-001`..`ADR-009` (see `docs/DECISIONS.md`)
+
+## Entry points
+- Process: `src/index.ts`
+- API: `src/api/index.ts`
+- Graph: `src/graph/graph.ts`
+- Worker: `src/workers/graph-runner.ts`
+- Schema: `src/db/schema.ts`
+
+## Verify before claiming done
+`npm run typecheck && npm run test`

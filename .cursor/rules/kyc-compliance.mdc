@@ -1,0 +1,27 @@
+---
+description: KYC Copilot compliance — evidence, guardrail, audit, reports
+globs: "{src/graph/nodes/guardrail.ts,src/services/reports/**,src/services/audit/**,src/db/schema.ts}"
+alwaysApply: false
+---
+
+# Compliance Rule
+
+## Invariants (never violate)
+- INV-001: Every dossier claim has `[Source: KEY]` in evidence ledger
+- INV-002: Guardrail strips uncited/invalid claims — never bypass
+- INV-004: Audit logs append-only with hashed payloads
+- INV-007: HITL cases require `POST /cases/:id/approve`
+
+## Key files
+- Guardrail: `src/graph/nodes/guardrail.ts`
+- Reports: `src/services/reports/generator.ts`
+- Audit: `src/services/audit/logger.ts`
+- Evidence schema: `src/db/schema.ts` → `evidence` table
+
+## ADRs
+- ADR-002: HITL as API pause
+- ADR-005: Evidence hash chain
+- ADR-007: Zod for all LLM outputs
+
+## On review
+Adopt COMPLIANCE_OFFICER role. Fill all invariant checks in SESSION_STATE.

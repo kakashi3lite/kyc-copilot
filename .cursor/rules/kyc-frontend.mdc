@@ -1,0 +1,26 @@
+---
+description: KYC Copilot frontend — landing page, dashboard, brand
+globs: public/**
+alwaysApply: false
+---
+
+# Frontend Rule
+
+## Routes
+- `GET /` → `public/landing.html` (marketing)
+- `GET /app` → `public/app.html` (dashboard)
+
+## Constraints
+- No build step, no external JS/CSS dependencies (ADR-006)
+- Brand: cinematic dark, electric blue trust, emerald approvals
+- Tagline: "Compliance at the speed of intelligence"
+
+## Preserve in app.html (all 5 UX upgrades)
+1. Toast notifications
+2. Skeleton loaders
+3. Case completion ceremony
+4. Animated view transitions
+5. Rich empty states
+
+## On change
+Run `docs/instructions/IS-005-frontend-change.md`

@@ -1,0 +1,25 @@
+---
+description: KYC Copilot API — routes, middleware, auth, validation
+globs: src/api/**
+alwaysApply: false
+---
+
+# API Rule
+
+## Middleware order (`src/api/index.ts`)
+onError → requestId → security headers → cors → auth → rateLimit
+
+## Auth (`src/api/middleware/auth.ts`)
+- API key: `Bearer kc_live_*` → bcrypt compare
+- JWT access: 15m expiry
+- JWT refresh: 7d, rotates on use
+
+## Patterns
+- Validate: `validateJson()` + Zod schema
+- Errors: `problem()` RFC 7807
+- PII: encrypt before write, mask in lists (INV-003)
+- Audit: `writeAuditLog()` on state changes
+- Plan gates: webhooks + rescreen require growth+ (ADR-009)
+
+## On change
+Run `docs/instructions/IS-003-api-route-change.md`
