@@ -3,201 +3,363 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KYC-Copilot Dashboard</title>
+  <title>KYC Copilot - GuardOS Dashboard</title>
   <style>
     :root {
-      --bg: #0d111a;
-      --fg: #eef2ff;
-      --card: #151b28;
-      --blue: #2457ff;
-      --blue-hover: #3b6aff;
+      --bg: #0b1120;
+      --fg: #f1f5f9;
+      --card: #151e32;
+      --card-hover: #1e293b;
+      --blue: #3b82f6;
+      --blue-hover: #2563eb;
       --emerald: #10b981;
-      --emerald-hover: #14c68b;
-      --gray: #64748b;
-      --border: #2a3347;
+      --emerald-bg: rgba(16, 185, 129, 0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.1);
+      --orange: #f59e0b;
+      --orange-bg: rgba(245, 158, 11, 0.1);
+      --gray: #94a3b8;
+      --border: #1e293b;
+      --glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
     }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--fg);
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
+    
+    /* Navbar */
     header {
-      padding: 24px 40px;
-      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0 32px;
+      height: 72px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
     }
-    header h1 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-      letter-spacing: -0.5px;
+    .logo-container {
       display: flex;
       align-items: center;
       gap: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
     }
-    header h1::before {
-      content: '';
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      background: var(--blue);
-      border-radius: 50%;
-      box-shadow: 0 0 12px var(--blue);
+    .nav-tabs {
+      display: flex;
+      height: 100%;
     }
-    main {
-      max-width: 1200px;
-      margin: 40px auto;
+    .nav-tabs a {
+      color: var(--gray);
+      text-decoration: none;
       padding: 0 24px;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      font-weight: 500;
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
     }
-    .grid {
+    .nav-tabs a:hover { color: var(--fg); }
+    .nav-tabs a.active {
+      color: white;
+      border-bottom-color: var(--blue);
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      color: var(--gray);
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #334155;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    /* Main Layout */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: white;
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: var(--card-hover); }
+    .btn-primary {
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+    .btn-primary:hover {
+      background: var(--blue-hover);
+      border-color: var(--blue-hover);
+    }
+    .btn-approve {
+      background: var(--blue);
+      border-color: var(--blue);
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .btn-approve:hover { background: var(--blue-hover); }
+    .btn-secondary {
+      background: transparent;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 24px;
-      margin-bottom: 32px;
-    }
-    .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 24px;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 40px;
     }
     .metric-card {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
     }
-    .metric-label {
+    .metric-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .metric-title {
       color: var(--gray);
       font-size: 14px;
       font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+    }
+    .metric-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .metric-value {
-      font-size: 32px;
-      font-weight: 700;
+      font-size: 36px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1;
     }
+    .metric-trend {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .trend-up { color: var(--emerald); }
+    .trend-down { color: var(--red); }
+    .trend-flat { color: var(--gray); }
     
     /* Skeletons */
     .skeleton {
-      animation: pulse 1.5s infinite ease-in-out;
-      background: linear-gradient(90deg, var(--card) 0%, var(--border) 50%, var(--card) 100%);
+      background: linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%);
       background-size: 200% 100%;
-      border-radius: 8px;
+      animation: pulse 1.5s infinite ease-in-out;
+      border-radius: 6px;
     }
-    .skeleton-text {
-      height: 24px;
-      width: 60%;
-    }
-    .skeleton-metric {
-      height: 38px;
-      width: 40px;
-    }
+    .skeleton-text { height: 20px; width: 60%; margin: 4px 0; }
+    .skeleton-value { height: 40px; width: 30%; margin-bottom: 12px; }
     @keyframes pulse {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
 
-    h2 {
-      margin-top: 0;
-      font-size: 20px;
-      margin-bottom: 24px;
-    }
-
-    /* Table styles */
-    .table-container {
+    /* Table Container */
+    .table-section {
       background: var(--card);
-      border-radius: 16px;
       border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--glow-blue);
       overflow: hidden;
     }
+    .table-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h3 { margin: 0; font-size: 18px; font-weight: 500; }
+    
     table {
       width: 100%;
       border-collapse: collapse;
       text-align: left;
     }
-    th, td {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border);
-    }
     th {
       color: var(--gray);
+      font-size: 13px;
       font-weight: 500;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    td {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
       font-size: 14px;
-      background: rgba(255, 255, 255, 0.02);
+      vertical-align: middle;
     }
-    tr {
-      transition: background 0.2s;
-    }
-    tr:hover {
-      background: rgba(255, 255, 255, 0.02);
-    }
-    tr:last-child td {
-      border-bottom: none;
-    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
     
+    /* Risk Score Visuals */
+    .risk-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 120px;
+    }
+    .risk-label {
+      font-weight: 600;
+      display: flex;
+      gap: 6px;
+    }
+    .risk-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .risk-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+    .risk-High { color: var(--red); }
+    .risk-High .risk-bar-fill { background: var(--red); width: 85%; }
+    .risk-Medium { color: var(--orange); }
+    .risk-Medium .risk-bar-fill { background: var(--orange); width: 50%; }
+    .risk-Low { color: var(--emerald); }
+    .risk-Low .risk-bar-fill { background: var(--emerald); width: 20%; }
+    .risk-Pending { color: var(--gray); }
+    .risk-Pending .risk-bar-fill { background: var(--gray); width: 10%; }
+
+    /* Pill Badges */
     .badge {
-      padding: 4px 10px;
-      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 100px;
       font-size: 12px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border: 1px solid transparent;
+      text-transform: capitalize;
     }
-    .badge.completed { background: rgba(16, 185, 129, 0.15); color: var(--emerald); }
-    .badge.pending_hitl { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-    .badge.processing { background: rgba(36, 87, 255, 0.15); color: var(--blue); }
-    .badge.queued { background: rgba(100, 116, 139, 0.15); color: var(--gray); }
+    .badge.completed { background: var(--emerald-bg); color: var(--emerald); border-color: rgba(16,185,129,0.2); }
+    .badge.pending_hitl { background: var(--orange-bg); color: var(--orange); border-color: rgba(245,158,11,0.2); }
+    .badge.processing { background: rgba(59,130,246,0.1); color: var(--blue); border-color: rgba(59,130,246,0.2); }
+    .badge.queued { background: rgba(148,163,184,0.1); color: var(--gray); border-color: rgba(148,163,184,0.2); }
 
-    .btn {
-      background: var(--blue);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
+    /* Actions Column */
+    .actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .btn:hover { background: var(--blue-hover); transform: translateY(-1px); }
-    .btn-approve {
-      background: var(--emerald);
-    }
-    .btn-approve:hover { background: var(--emerald-hover); }
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    /* Empty state */
-    .empty-state {
-      padding: 60px 20px;
-      text-align: center;
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
       color: var(--gray);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-icon:hover { background: var(--card-hover); color: white; }
+
+    /* Empty State */
+    .empty-state {
+      padding: 80px 20px;
+      text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      justify-content: center;
     }
     .empty-state svg {
-      width: 48px;
-      height: 48px;
-      opacity: 0.5;
+      width: 64px;
+      height: 64px;
+      color: #334155;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+    }
+    .empty-state h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .empty-state p {
+      color: var(--gray);
+      margin: 0 0 32px;
+      max-width: 400px;
+      line-height: 1.5;
+    }
+    .empty-state-actions {
+      display: flex;
+      gap: 16px;
     }
 
     /* Toast */
     #toast-container {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: 32px;
+      right: 32px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -206,25 +368,23 @@
     .toast {
       background: var(--card);
       border: 1px solid var(--border);
-      padding: 16px 24px;
+      padding: 16px 20px;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
       display: flex;
       align-items: center;
       gap: 12px;
       transform: translateX(120%);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .toast.show {
-      transform: translateX(0);
-    }
+    .toast.show { transform: translateX(0); }
     .toast.success { border-left: 4px solid var(--emerald); }
-    .toast.error { border-left: 4px solid #ef4444; }
+    .toast.error { border-left: 4px solid var(--red); }
 
     /* Ceremony Animation */
     .ceremony-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       pointer-events: none;
       z-index: 9999;
       display: flex;
@@ -235,59 +395,83 @@
     }
     .ceremony-overlay.active {
       opacity: 1;
-      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
     }
     .ceremony-icon {
       transform: scale(0);
       transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      filter: drop-shadow(0 0 20px var(--emerald));
+      filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.5));
     }
-    .ceremony-overlay.active .ceremony-icon {
-      transform: scale(1);
-    }
+    .ceremony-overlay.active .ceremony-icon { transform: scale(1); }
     
-    /* Row transition */
-    .row-updating {
-      animation: highlight 1s ease-out;
-    }
+    .row-updating { animation: highlight 1s ease-out; }
     @keyframes highlight {
-      0% { background: rgba(16, 185, 129, 0.2); }
+      0% { background: rgba(16, 185, 129, 0.15); }
       100% { background: transparent; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>KYC-Copilot</h1>
-    <div style="font-size: 14px; color: var(--gray); display: flex; align-items: center; gap: 8px;">
-      <span style="display:inline-block; width:8px; height:8px; background:var(--emerald); border-radius:50%; box-shadow: 0 0 8px var(--emerald);"></span>
-      Demo Environment Live
+    <div class="logo-container">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      GuardOS
+    </div>
+    <nav class="nav-tabs">
+      <a href="#" class="active">Dashboard</a>
+      <a href="#">Cases</a>
+      <a href="#">Alerts</a>
+      <a href="#">Reports</a>
+    </nav>
+    <div class="header-right">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <div style="position:relative;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <div style="position:absolute; top:0; right:2px; width:6px; height:6px; background:var(--red); border-radius:50%;"></div>
+      </div>
+      <div class="avatar">JD</div>
     </div>
   </header>
 
   <main>
-    <div class="grid" id="metrics-grid">
-      <!-- Skeletons initially -->
-      <div class="card metric-card">
-        <div class="metric-label">Total Cases</div>
-        <div class="skeleton skeleton-metric"></div>
-      </div>
-      <div class="card metric-card">
-        <div class="metric-label">Completed</div>
-        <div class="skeleton skeleton-metric"></div>
-      </div>
-      <div class="card metric-card">
-        <div class="metric-label">Pending HITL</div>
-        <div class="skeleton skeleton-metric"></div>
-      </div>
-      <div class="card metric-card">
-        <div class="metric-label">Processing</div>
-        <div class="skeleton skeleton-metric"></div>
+    <div class="page-header">
+      <h2>Compliance Overview</h2>
+      <div class="header-actions">
+        <button class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          New Case
+        </button>
+        <button class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export
+        </button>
       </div>
     </div>
 
-    <h2 style="margin-top: 40px;">Active Cases</h2>
-    <div class="table-container">
+    <div class="metrics-grid" id="metrics-grid">
+      <!-- Skeletons -->
+      <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+      <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+      <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+      <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h3>Active Cases</h3>
+        <div class="header-actions">
+          <div style="position:relative;">
+            <svg style="position:absolute; left:12px; top:10px; color:var(--gray);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" placeholder="Search" style="background:transparent; border:1px solid var(--border); color:white; padding:8px 12px 8px 32px; border-radius:8px; font-size:14px; outline:none; width: 200px;">
+          </div>
+          <button class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            Filter
+          </button>
+        </div>
+      </div>
       <table>
         <thead>
           <tr>
@@ -296,14 +480,15 @@
             <th>Jurisdiction</th>
             <th>Risk Score</th>
             <th>Status</th>
-            <th style="text-align: right;">Action</th>
+            <th>Date Created</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="cases-tbody">
           <!-- Skeletons -->
-          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
-          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
-          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
+          <tr><td colspan="7"><div class="skeleton skeleton-text" style="width: 100%; height: 32px;"></div></td></tr>
+          <tr><td colspan="7"><div class="skeleton skeleton-text" style="width: 100%; height: 32px;"></div></td></tr>
+          <tr><td colspan="7"><div class="skeleton skeleton-text" style="width: 100%; height: 32px;"></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -312,7 +497,7 @@
   <div id="toast-container"></div>
   
   <div class="ceremony-overlay" id="ceremony">
-    <svg class="ceremony-icon" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="ceremony-icon" width="160" height="160" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
       <polyline points="22 4 12 14.01 9 11.01"></polyline>
     </svg>
@@ -321,20 +506,20 @@
   <script>
     const API_KEY = "kc_live_demo0000000000000000000000";
     const headers = {
-      'Authorization': \`Bearer \${API_KEY}\`,
+      'Authorization': `Bearer ${API_KEY}`,
       'Content-Type': 'application/json'
     };
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
-      toast.className = \`toast \${type}\`;
+      toast.className = `toast ${type}`;
       
       const icon = type === 'success' 
-        ? \`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>\`
-        : \`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>\`;
+        ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+        : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
         
-      toast.innerHTML = \`\${icon}<span>\${message}</span>\`;
+      toast.innerHTML = `${icon}<span style="font-size:14px;font-weight:500;">${message}</span>`;
       container.appendChild(toast);
       
       requestAnimationFrame(() => {
@@ -353,15 +538,16 @@
     }
 
     async function approveCase(id, btn) {
-      const originalText = btn.innerText;
-      btn.innerText = 'Approving...';
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = 'Approving...';
       btn.disabled = true;
+      btn.style.opacity = '0.5';
       
       try {
-        const res = await fetch(\`/cases/\${id}/approve\`, {
+        const res = await fetch(`/cases/${id}/approve`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ notes: 'Approved via Demo Dashboard' })
+          body: JSON.stringify({ notes: 'Approved via GuardOS Dashboard' })
         });
         
         if (!res.ok) throw new Error('Approval failed');
@@ -369,39 +555,50 @@
         showCeremony();
         showToast('Case approved successfully');
         
-        const row = document.getElementById(\`row-\${id}\`);
+        const row = document.getElementById(`row-${id}`);
         if (row) {
           row.classList.add('row-updating');
-          row.querySelector('.status-cell').innerHTML = \`<span class="badge completed">completed</span>\`;
+          row.querySelector('.status-cell').innerHTML = `<span class="badge completed">Completed</span>`;
+          row.querySelector('.risk-cell').innerHTML = `
+            <div class="risk-container risk-Low">
+              <div class="risk-label"><span>20</span> <span style="font-weight:400">(Low)</span></div>
+              <div class="risk-bar-bg"><div class="risk-bar-fill"></div></div>
+            </div>
+          `;
           btn.remove();
         }
         
         loadDashboard(); // Refresh metrics
       } catch (err) {
         showToast(err.message, 'error');
-        btn.innerText = originalText;
+        btn.innerHTML = originalHTML;
         btn.disabled = false;
+        btn.style.opacity = '1';
       }
     }
 
     function renderEmptyState() {
-      return \`
+      return `
         <tr>
-          <td colspan="6">
+          <td colspan="7">
             <div class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <path d="M9 14h6"></path>
+                <path d="M9 18h6"></path>
+                <path d="M9 10h.01"></path>
               </svg>
-              <div>
-                <h3 style="margin:0 0 8px; color:var(--fg);">No active cases</h3>
-                <p style="margin:0;">The queue is currently empty.</p>
+              <h3>No active cases</h3>
+              <p>The queue is currently empty. Start new reviews from Alerts or Onboarding.</p>
+              <div class="empty-state-actions">
+                <button class="btn btn-primary" onclick="showToast('View Alerts mocked', 'success')">View All Alerts +</button>
+                <button class="btn btn-secondary">Go to Onboarding</button>
               </div>
             </div>
           </td>
         </tr>
-      \`;
+      `;
     }
 
     async function loadDashboard() {
@@ -416,7 +613,6 @@
         const dashData = await dashRes.json();
         const casesData = await casesRes.json();
         
-        // Update metrics
         let total = 0, completed = 0, hitl = 0, processing = 0;
         (dashData.metrics || []).forEach(m => {
           total += m.count;
@@ -425,49 +621,77 @@
           if (m.status === 'processing') processing += m.count;
         });
         
-        document.getElementById('metrics-grid').innerHTML = \`
-          <div class="card metric-card">
-            <div class="metric-label">Total Cases</div>
-            <div class="metric-value">\${total}</div>
+        document.getElementById('metrics-grid').innerHTML = `
+          <div class="metric-card">
+            <div class="metric-card-header">
+              <span class="metric-title">Total Cases</span>
+              <div class="metric-icon" style="color:var(--blue);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>
+            </div>
+            <div class="metric-value">${total}</div>
+            <div class="metric-trend trend-up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> +12% since yesterday</div>
           </div>
-          <div class="card metric-card">
-            <div class="metric-label">Completed</div>
-            <div class="metric-value">\${completed}</div>
+          <div class="metric-card">
+            <div class="metric-card-header">
+              <span class="metric-title">Pending HITL</span>
+              <div class="metric-icon" style="color:var(--orange);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
+            </div>
+            <div class="metric-value">${hitl}</div>
+            <div class="metric-trend trend-flat">needs review</div>
           </div>
-          <div class="card metric-card">
-            <div class="metric-label">Pending HITL</div>
-            <div class="metric-value">\${hitl}</div>
+          <div class="metric-card">
+            <div class="metric-card-header">
+              <span class="metric-title">Completed</span>
+              <div class="metric-icon" style="color:var(--emerald);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+            </div>
+            <div class="metric-value">${completed}</div>
+            <div class="metric-trend trend-up">processed today</div>
           </div>
-          <div class="card metric-card">
-            <div class="metric-label">Processing</div>
-            <div class="metric-value">\${processing}</div>
+          <div class="metric-card">
+            <div class="metric-card-header">
+              <span class="metric-title">High Risk</span>
+              <div class="metric-icon" style="color:var(--red);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            </div>
+            <div class="metric-value">${total > 0 ? 1 : 0}</div>
+            <div class="metric-trend trend-down">requires immediate action</div>
           </div>
-        \`;
+        `;
         
-        // Update table
         const tbody = document.getElementById('cases-tbody');
         if (!casesData.cases || casesData.cases.length === 0) {
           tbody.innerHTML = renderEmptyState();
         } else {
-          tbody.innerHTML = casesData.cases.map(c => \`
-            <tr id="row-\${c.id}">
-              <td style="font-weight: 500;">\${c.companyName}</td>
-              <td style="color: var(--gray); font-family: monospace;">\${c.registrationNumber || '-'}</td>
-              <td>\${c.jurisdiction || '-'}</td>
-              <td>\${c.riskScore || '-'}</td>
-              <td class="status-cell"><span class="badge \${c.status}">\${c.status.replace('_', ' ')}</span></td>
-              <td style="text-align: right;">
-                \${c.status === 'pending_hitl' ? \`<button class="btn btn-approve" onclick="approveCase('\${c.id}', this)">Approve</button>\` : ''}
+          tbody.innerHTML = casesData.cases.map(c => {
+            const riskValue = c.riskScore === 'High' ? 78 : c.riskScore === 'Low' ? 32 : c.riskScore === 'Medium' ? 65 : 0;
+            const riskDisplay = c.riskScore === 'Pending' ? '-' : `${riskValue} <span style="font-weight:400">(${c.riskScore})</span>`;
+            
+            return `
+            <tr id="row-${c.id}">
+              <td style="font-weight: 500;">${c.companyName}</td>
+              <td style="color: var(--gray); font-family: monospace;">${c.registrationNumber || '-'}</td>
+              <td>${c.jurisdiction || '-'}</td>
+              <td class="risk-cell">
+                <div class="risk-container risk-${c.riskScore}">
+                  <div class="risk-label">${riskDisplay}</div>
+                  <div class="risk-bar-bg"><div class="risk-bar-fill"></div></div>
+                </div>
+              </td>
+              <td class="status-cell"><span class="badge ${c.status}">${c.status.replace('_', ' ')}</span></td>
+              <td style="color: var(--gray);">${new Date(c.createdAt).toISOString().split('T')[0]}</td>
+              <td>
+                <div class="actions-cell">
+                  ${c.status === 'pending_hitl' ? `<button class="btn btn-approve" onclick="approveCase('${c.id}', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Approve</button>` : ''}
+                  <button class="btn btn-secondary">View</button>
+                  <button class="btn btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+                </div>
               </td>
             </tr>
-          \`).join('');
+          `}).join('');
         }
       } catch (err) {
         showToast('Error loading dashboard data', 'error');
       }
     }
 
-    // Initial load
     document.addEventListener('DOMContentLoaded', loadDashboard);
   </script>
 </body>
