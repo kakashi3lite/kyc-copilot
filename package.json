@@ -15,7 +15,9 @@
     "test": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
     "db:migrate": "drizzle-kit migrate",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:seed": "tsx src/db/seed.ts",
+    "demo": "docker compose up -d db redis && npm run db:migrate && npm run db:seed && npm run dev"
   },
   "dependencies": {
     "@hono/node-server": "1.13.8",

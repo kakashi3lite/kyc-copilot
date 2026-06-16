@@ -1,1 +1,474 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KYC-Copilot Dashboard</title><style>:root{--bg:#f7f9fc;--fg:#121826;--card:#fff;--b:#2457ff}body.dark{--bg:#0d111a;--fg:#eef2ff;--card:#151b28}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif}header,main{max-width:1180px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:320px 1fr;gap:18px}.card{background:var(--card);border-radius:18px;padding:18px;box-shadow:0 12px 40px #17203314}input,button,select{padding:10px;border-radius:10px;border:1px solid #ccd4e0}button{background:var(--b);color:white;border:0;cursor:pointer}table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #d8deea;text-align:left}.drawer{position:fixed;right:0;top:0;bottom:0;width:min(560px,92vw);background:var(--card);padding:24px;box-shadow:-20px 0 60px #0002;overflow:auto;display:none}.drawer.open{display:block}@media(max-width:850px){.grid{grid-template-columns:1fr}}</style></head><body><header><h1>KYC-Copilot</h1><button id="theme">Toggle dark mode</button></header><main class="grid"><section class="card"><h2>New case</h2><input id="key" placeholder="Bearer API key"><input id="name" placeholder="Company name" value="Test BV"><input id="reg" placeholder="Registration number" value="12345678"><select id="jur"><option>NL</option><option>DE</option><option>GB</option></select><button id="create">Start KYC</button><h2>Bulk actions</h2><button id="approve">Bulk approve selected</button></section><section class="card"><h2>Case queue</h2><table><thead><tr><th></th><th>Case</th><th>Status</th><th>Risk</th></tr></thead><tbody id="rows"></tbody></table></section></main><aside id="drawer" class="drawer"><button id="close">Close</button><pre id="detail"></pre></aside><script>const b=document.body,k=localStorage.theme;if(k==='dark'||(!k&&matchMedia('(prefers-color-scheme:dark)').matches))b.classList.add('dark');theme.onclick=()=>{b.classList.toggle('dark');localStorage.theme=b.classList.contains('dark')?'dark':'light'};const auth=()=>({Authorization:`Bearer ${document.getElementById('key').value}`});async function load(){const r=await fetch('/cases',{headers:auth()});if(!r.ok)return;const j=await r.json();rows.innerHTML=j.cases.map(c=>`<tr><td><input type=checkbox value="${c.id}"></td><td><button data-id="${c.id}">${c.companyName}</button></td><td>${c.status}</td><td>${c.riskScore}</td></tr>`).join('')}create.onclick=async()=>{await fetch('/cases',{method:'POST',headers:{...auth(),'content-type':'application/json'},body:JSON.stringify({companyName:name.value,registrationNumber:reg.value,jurisdiction:jur.value})});await load()};rows.onclick=async e=>{const id=e.target.dataset?.id;if(!id)return;const r=await fetch(`/cases/${id}`,{headers:auth()});detail.textContent=JSON.stringify(await r.json(),null,2);drawer.classList.add('open')};close.onclick=()=>drawer.classList.remove('open');approve.onclick=async()=>{for(const c of document.querySelectorAll('tbody input:checked'))await fetch(`/cases/${c.value}/approve`,{method:'POST',headers:{...auth(),'content-type':'application/json'},body:JSON.stringify({notes:'bulk approved'})});await load()};new EventSource('/cases/stream').onmessage=load;</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KYC-Copilot Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d111a;
+      --fg: #eef2ff;
+      --card: #151b28;
+      --blue: #2457ff;
+      --blue-hover: #3b6aff;
+      --emerald: #10b981;
+      --emerald-hover: #14c68b;
+      --gray: #64748b;
+      --border: #2a3347;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--blue);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--blue);
+    }
+    main {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .metric-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .metric-label {
+      color: var(--gray);
+      font-size: 14px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+    
+    /* Skeletons */
+    .skeleton {
+      animation: pulse 1.5s infinite ease-in-out;
+      background: linear-gradient(90deg, var(--card) 0%, var(--border) 50%, var(--card) 100%);
+      background-size: 200% 100%;
+      border-radius: 8px;
+    }
+    .skeleton-text {
+      height: 24px;
+      width: 60%;
+    }
+    .skeleton-metric {
+      height: 38px;
+      width: 40px;
+    }
+    @keyframes pulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    /* Table styles */
+    .table-container {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th, td {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--gray);
+      font-weight: 500;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    tr {
+      transition: background 0.2s;
+    }
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge.completed { background: rgba(16, 185, 129, 0.15); color: var(--emerald); }
+    .badge.pending_hitl { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .badge.processing { background: rgba(36, 87, 255, 0.15); color: var(--blue); }
+    .badge.queued { background: rgba(100, 116, 139, 0.15); color: var(--gray); }
+
+    .btn {
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: var(--blue-hover); transform: translateY(-1px); }
+    .btn-approve {
+      background: var(--emerald);
+    }
+    .btn-approve:hover { background: var(--emerald-hover); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--gray);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      opacity: 0.5;
+    }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 1000;
+    }
+    .toast {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .toast.show {
+      transform: translateX(0);
+    }
+    .toast.success { border-left: 4px solid var(--emerald); }
+    .toast.error { border-left: 4px solid #ef4444; }
+
+    /* Ceremony Animation */
+    .ceremony-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .ceremony-overlay.active {
+      opacity: 1;
+      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+    }
+    .ceremony-icon {
+      transform: scale(0);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      filter: drop-shadow(0 0 20px var(--emerald));
+    }
+    .ceremony-overlay.active .ceremony-icon {
+      transform: scale(1);
+    }
+    
+    /* Row transition */
+    .row-updating {
+      animation: highlight 1s ease-out;
+    }
+    @keyframes highlight {
+      0% { background: rgba(16, 185, 129, 0.2); }
+      100% { background: transparent; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>KYC-Copilot</h1>
+    <div style="font-size: 14px; color: var(--gray); display: flex; align-items: center; gap: 8px;">
+      <span style="display:inline-block; width:8px; height:8px; background:var(--emerald); border-radius:50%; box-shadow: 0 0 8px var(--emerald);"></span>
+      Demo Environment Live
+    </div>
+  </header>
+
+  <main>
+    <div class="grid" id="metrics-grid">
+      <!-- Skeletons initially -->
+      <div class="card metric-card">
+        <div class="metric-label">Total Cases</div>
+        <div class="skeleton skeleton-metric"></div>
+      </div>
+      <div class="card metric-card">
+        <div class="metric-label">Completed</div>
+        <div class="skeleton skeleton-metric"></div>
+      </div>
+      <div class="card metric-card">
+        <div class="metric-label">Pending HITL</div>
+        <div class="skeleton skeleton-metric"></div>
+      </div>
+      <div class="card metric-card">
+        <div class="metric-label">Processing</div>
+        <div class="skeleton skeleton-metric"></div>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 40px;">Active Cases</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Registration</th>
+            <th>Jurisdiction</th>
+            <th>Risk Score</th>
+            <th>Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="cases-tbody">
+          <!-- Skeletons -->
+          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
+          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
+          <tr><td colspan="6"><div class="skeleton skeleton-text" style="width: 100%; height: 40px; margin: 8px 0;"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+  
+  <div class="ceremony-overlay" id="ceremony">
+    <svg class="ceremony-icon" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+  </div>
+
+  <script>
+    const API_KEY = "kc_live_demo0000000000000000000000";
+    const headers = {
+      'Authorization': \`Bearer \${API_KEY}\`,
+      'Content-Type': 'application/json'
+    };
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = \`toast \${type}\`;
+      
+      const icon = type === 'success' 
+        ? \`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>\`
+        : \`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>\`;
+        
+      toast.innerHTML = \`\${icon}<span>\${message}</span>\`;
+      container.appendChild(toast);
+      
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      });
+    }
+
+    function showCeremony() {
+      const el = document.getElementById('ceremony');
+      el.classList.add('active');
+      setTimeout(() => el.classList.remove('active'), 1500);
+    }
+
+    async function approveCase(id, btn) {
+      const originalText = btn.innerText;
+      btn.innerText = 'Approving...';
+      btn.disabled = true;
+      
+      try {
+        const res = await fetch(\`/cases/\${id}/approve\`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ notes: 'Approved via Demo Dashboard' })
+        });
+        
+        if (!res.ok) throw new Error('Approval failed');
+        
+        showCeremony();
+        showToast('Case approved successfully');
+        
+        const row = document.getElementById(\`row-\${id}\`);
+        if (row) {
+          row.classList.add('row-updating');
+          row.querySelector('.status-cell').innerHTML = \`<span class="badge completed">completed</span>\`;
+          btn.remove();
+        }
+        
+        loadDashboard(); // Refresh metrics
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.innerText = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function renderEmptyState() {
+      return \`
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              <div>
+                <h3 style="margin:0 0 8px; color:var(--fg);">No active cases</h3>
+                <p style="margin:0;">The queue is currently empty.</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      \`;
+    }
+
+    async function loadDashboard() {
+      try {
+        const [dashRes, casesRes] = await Promise.all([
+          fetch('/dashboard', { headers }),
+          fetch('/cases', { headers })
+        ]);
+        
+        if (!dashRes.ok || !casesRes.ok) throw new Error('Failed to load data');
+        
+        const dashData = await dashRes.json();
+        const casesData = await casesRes.json();
+        
+        // Update metrics
+        let total = 0, completed = 0, hitl = 0, processing = 0;
+        (dashData.metrics || []).forEach(m => {
+          total += m.count;
+          if (m.status === 'completed') completed += m.count;
+          if (m.status === 'pending_hitl') hitl += m.count;
+          if (m.status === 'processing') processing += m.count;
+        });
+        
+        document.getElementById('metrics-grid').innerHTML = \`
+          <div class="card metric-card">
+            <div class="metric-label">Total Cases</div>
+            <div class="metric-value">\${total}</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Completed</div>
+            <div class="metric-value">\${completed}</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Pending HITL</div>
+            <div class="metric-value">\${hitl}</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-label">Processing</div>
+            <div class="metric-value">\${processing}</div>
+          </div>
+        \`;
+        
+        // Update table
+        const tbody = document.getElementById('cases-tbody');
+        if (!casesData.cases || casesData.cases.length === 0) {
+          tbody.innerHTML = renderEmptyState();
+        } else {
+          tbody.innerHTML = casesData.cases.map(c => \`
+            <tr id="row-\${c.id}">
+              <td style="font-weight: 500;">\${c.companyName}</td>
+              <td style="color: var(--gray); font-family: monospace;">\${c.registrationNumber || '-'}</td>
+              <td>\${c.jurisdiction || '-'}</td>
+              <td>\${c.riskScore || '-'}</td>
+              <td class="status-cell"><span class="badge \${c.status}">\${c.status.replace('_', ' ')}</span></td>
+              <td style="text-align: right;">
+                \${c.status === 'pending_hitl' ? \`<button class="btn btn-approve" onclick="approveCase('\${c.id}', this)">Approve</button>\` : ''}
+              </td>
+            </tr>
+          \`).join('');
+        }
+      } catch (err) {
+        showToast('Error loading dashboard data', 'error');
+      }
+    }
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+  </script>
+</body>
+</html>
