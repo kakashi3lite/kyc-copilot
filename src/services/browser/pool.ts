@@ -126,7 +126,7 @@ export class PlaywrightBrowserPool implements BrowserFallbackService {
   }
 
   public async lookup(input: EntityInput): Promise<BrowserResult> {
-    await this.browserFallbackSemaphore.acquire();
+    await this.acquireBrowserFallbackPermit();
     try {
       const proxy = this.rotator.next(input.jurisdiction);
       const launchOptions = proxy === null
@@ -157,8 +157,24 @@ export class PlaywrightBrowserPool implements BrowserFallbackService {
       const message = error instanceof Error ? error.message : String(error);
       return { data: null, evidence: null, requiresHuman: true, reason: message };
     } finally {
-      this.browserFallbackSemaphore.release();
+      this.releaseBrowserFallbackPermit();
     }
+  }
+
+  /**
+   * Acquire a browser-fallback permit from the dedicated semaphore. Throws
+   * `PoolTimeoutError` if a permit cannot be obtained within the configured
+   * timeout. The caller MUST eventually call `releaseBrowserFallbackPermit()`.
+   *
+   * Exposed publicly so test code and advanced graph nodes can exercise the
+   * semaphore directly without spinning up Chromium.
+   */
+  public async acquireBrowserFallbackPermit(): Promise<void> {
+    await this.browserFallbackSemaphore.acquire();
+  }
+
+  public releaseBrowserFallbackPermit(): void {
+    this.browserFallbackSemaphore.release();
   }
 
   /**

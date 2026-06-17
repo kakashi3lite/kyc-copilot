@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import pino from "pino";
+import { pino } from "pino";
 import { env } from "./env.js";
 import { maskPiiInText, maskRecord } from "../utils/mask.js";
 
@@ -21,8 +21,8 @@ export const logger = pino({
   },
   hooks: {
     logMethod(inputArgs, method) {
-      const maskedArgs = inputArgs.map((arg) => typeof arg === "string" ? maskPiiInText(arg) : arg);
-      return method.apply(this, maskedArgs);
+      const maskedArgs: unknown[] = inputArgs.map((arg: unknown) => typeof arg === "string" ? maskPiiInText(arg) : arg);
+      return (method as (...args: unknown[]) => unknown).apply(this, maskedArgs) as never;
     }
   },
   redact: {

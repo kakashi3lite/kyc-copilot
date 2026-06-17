@@ -1,4 +1,3 @@
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import type { AgentState, AgentStatePatch } from "./state.js";
 import { initialState, mergeState } from "./state.js";
 import { afterApiLookup } from "./edges.js";
@@ -9,7 +8,6 @@ import { draftDossierNode, type DraftDossierDependencies } from "./nodes/draft-d
 import { guardrailNode } from "./nodes/guardrail.js";
 import type { EntityInput } from "../types/index.js";
 import { withTimeout } from "../utils/retry.js";
-import { env } from "../config/env.js";
 
 export type GraphDependencies = ApiLookupDependencies & BrowserFallbackDependencies & DraftDossierDependencies;
 
@@ -31,8 +29,4 @@ export class KycGraph {
   public applyPatch(state: AgentState, patch: AgentStatePatch): AgentState {
     return mergeState(state, patch);
   }
-}
-
-export function createPostgresCheckpointer(): PostgresSaver {
-  return PostgresSaver.fromConnString(env.DATABASE_URL);
 }

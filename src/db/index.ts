@@ -1,6 +1,6 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { env } from "../config/env.js";
 import { childLogger } from "../config/logger.js";
 import * as schema from "./schema.js";
