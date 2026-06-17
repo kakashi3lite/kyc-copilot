@@ -36,7 +36,6 @@
     "pg-pool": "3.7.0",
     "pino": "9.6.0",
     "playwright": "1.49.1",
-    "puppeteer": "23.11.1",
     "resend": "4.1.2",
     "stripe": "17.5.0",
     "uuid": "11.0.5",
