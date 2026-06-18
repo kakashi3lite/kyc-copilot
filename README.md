@@ -14,6 +14,26 @@ KYC-Copilot is an agentic AML/KYC compliance platform built for EU payments inst
 
 ---
 
+## ⚙️ Tech Stack
+
+| Layer | Tool | Notes |
+|---|---|---|
+| Runtime | Node.js 20+, TypeScript 5.7 | `strict` + `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`; **Typecheck-Zero** on `npm run typecheck` |
+| API | Hono 4.6 | Async-first, RFC 7807 problem responses |
+| ORM | Drizzle 0.38 | Type-safe Postgres access, no codegen runtime |
+| Database | PostgreSQL 16 | Encrypted PII, evidence ledger, audit chain |
+| Queue | BullMQ 5 on Redis 7 | `kyc-graph` worker, 3-attempt exponential backoff |
+| Browser | **Playwright 1.49 (Unified Dual-Semaphore Pool)** for both Browser Fallback and PDF Rendering (ADR-012) | Single Chromium process partitioned into two independent semaphores (8 browser + 2 PDF) |
+| PDF | Playwright `page.pdf()` + Redis content-hash cache | 5-min TTL, ~80% dashboard hit rate; `pdf:{caseId}:{sha256(semantic)}` |
+| Validation | Zod 3.24 | Every LLM output and HTTP body passes through Zod (ADR-007) |
+| LLM | `@langchain/core` 0.3 (provider-agnostic) | Tier routing layer ships in Phase 2 |
+| Logging | Pino 9 | `AsyncLocalStorage`-bound request context, PII redaction in log lines |
+| Infra | MinIO (S3), Stripe, Resend | Self-hostable; no external PII egress |
+
+> **Puppeteer removed (Phase 3, 2026-06-17).** A single Playwright Chromium now serves both scraping and PDF generation, partitioned by two independent semaphores (8 + 2) so a flood of dashboard refreshes cannot starve the dossier pipeline. PDF results are content-hash-cached in Redis with a 5-minute TTL.
+
+---
+
 ## 🧩 The Core Pipeline
 
 The pipeline ingests entity data, performs registry and screening lookups, drafts an AMLD6-aligned enhanced due diligence dossier, enforces mechanical citation guardrails, pauses for human approval when required, and emits immutable JSON/PDF compliance reports.
@@ -37,7 +57,7 @@ graph TD
 
 ## 🏛 System Architecture
 
-The technical foundation leverages a scalable, async-first architecture.
+The technical foundation leverages a scalable, async-first architecture, written in **Typecheck-Zero** strict TypeScript (`strict` + `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`). Every commit must pass `npm run typecheck` clean before merge.
 
 ```mermaid
 flowchart TD
@@ -74,6 +94,30 @@ npm install
 npm run demo
 ```
 Navigate to `http://localhost:3000` to see the live demo environment.
+
+---
+
+## 🗺 Roadmap
+
+### Shipped (v1.0.0 + Phase 0.5 + Phase 3)
+- [x] AMLD6-aligned EDD dossier pipeline (14-min end-to-end)
+- [x] Zod-everywhere structured output (ADR-007)
+- [x] Evidence hash chain in PostgreSQL (ADR-005)
+- [x] Playwright Unified Dual-Semaphore Pool — browser fallback + PDF rendering on a single Chromium (ADR-012)
+- [x] Redis-cached PDF reports (5-min TTL, content-hash keyed)
+- [x] `PoolTimeoutError` with `requiresHuman: true` escalation (INV-007 strict)
+- [x] Typecheck-Zero strict TypeScript (`npm run typecheck` exits 0)
+
+### In progress
+- [ ] **Phase 2 — Dynamic Multi-Provider LLM Routing** (Gemini 1.5 Flash, GPT-4o-mini, Ollama 8B) via `DynamicLlmRouter` — see `docs/PLAN_cost_optimization.md`
+- [ ] Coverage gate at 70% (currently 22.7%; 8 new vitest cases shipped, more needed)
+
+### Backlog (ADR-001 / §15 Open Gaps)
+- [ ] Migrate imperative `KycGraph` to compiled LangGraph `StateGraph`
+- [ ] Stripe billing enforcement in production
+- [ ] SAML/SSO
+- [ ] Scheduled re-screening cron
+- [ ] `GET /tenants/:id/usage` returns empty array (stub)
 
 ---
 
