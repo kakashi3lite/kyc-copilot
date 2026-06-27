@@ -1,26 +1,42 @@
 # KYC Copilot
 
-> **Agentic AML/KYC compliance engine.**
-> O(1) timing-safe auth · atomic Lua rate-limit · citation-backed dossiers · dual-semaphore Playwright.
+> **Agentic AML/KYC compliance engine.** O(1) timing-safe auth · atomic Lua rate-limit · citation-backed dossiers · dual-semaphore Playwright · 5-tier LLM routing.
 
 [![Node 20+](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript 5.7](https://img.shields.io/badge/typescript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Region: ams (EU)](https://img.shields.io/badge/region-ams%20%28EU%29-0A66C2)](./fly.toml)
+[![Region: ams · failover yyz / ord](https://img.shields.io/badge/region-ams%20%C2%B7%20failover%20yyz%20%2F%20ord-0A66C2)](./fly.toml)
 [![CI: parallel · SBOM · SAST](https://img.shields.io/badge/CI-parallel%20%C2%B7%20SBOM%20%C2%B7%20SAST-success)](./.github/workflows/deploy.yml)
 
-A production-grade compliance pipeline built around three opinions:
+Three opinions drive every commit:
 
-1. **Every claim is cited, or it doesn't ship.** The dossier guardrail strips any LLM output that isn't backed by an entry in the immutable evidence ledger.
-2. **High-risk decisions are never automatic.** Cases flagged for enhanced due diligence lock at `pending_hitl` until a named analyst signs off — there is no path around it.
-3. **Hot paths are O(1) and constant-time.** Auth, rate-limit, and the graph pipeline never do an N-scan or leak timing.
+1. **Every claim is cited, or it doesn't ship.** The dossier guardrail strips any LLM output that isn't backed by an entry in the immutable evidence ledger — `INV-001` / `INV-002` enforced mechanically, not by prompt engineering.
+2. **High-risk decisions are never automatic.** Cases flagged for enhanced due diligence lock at `pending_hitl` until a named analyst signs off via `POST /cases/:id/approve` — there is no path around it.
+3. **Hot paths are O(1) and constant-time.** Auth, rate-limit, and the graph pipeline never do an N-scan or leak timing — even length-mismatch errors on `crypto.timingSafeEqual` are pre-validated.
 
 ---
 
-## Engineering highlights
+## Hot-path latency budget (per dossier)
 
-The interesting parts of this codebase, with the actual code shape:
+```
+node              │ budget │ typical p95 │ chart
+──────────────────┼────────┼─────────────┼──────────────────────────────────────
+1. ingest         │   5 s  │     ~3 ms   │ ▏
+2. api-lookup     │  30 s  │   ~900 ms   │ ████▏
+3. browser-fb     │  60 s  │   ~4 s *    │ ████████████▏   (* conditional)
+4. draft-dossier  │  30 s  │  ~1.8 s     │ ██████▊
+5. guardrail      │  30 s  │     ~2 ms   │ ▏
+──────────────────┼────────┼─────────────┼──────────────────────────────────────
+end-to-end (async)│  60 s  │  ~7 s p95   │ ██████████████████████████▏
+```
 
-### O(1) auth from an O(N)·bcrypt scan
+The browser-fallback lane is skipped for API-complete cases — most production dossiers never enter the third bar. Worst case stays under the 60 s wall clock for `POST /cases?sync=true` on `t0` / `t2`.
+
+---
+
+## The four engineering tricks
+
+### 1. O(1) auth from an O(N)·bcrypt scan
 
 `kc_live_*` API keys used to be matched by iterating every tenant and running bcrypt per row (~100 ms × N). Now the lookup is a single index hit plus a constant-time digest compare.
 
@@ -43,7 +59,20 @@ if (!safeEqualHexDigest(tenant.apiKeyHash, deriveApiKeyHash(rawKey))) {
 
 `safeEqualHexDigest` defends against the `crypto.timingSafeEqual` length-mismatch throw (which would otherwise leak via the 500 path) by validating 64-char hex *before* the comparison.
 
-### Atomic Redis rate-limit, one round-trip
+```
+                        before                           after
+lookup shape       ────────────────────           ────────────────────
+key presented  →   scan all N tenants       →    derive apiKeyId
+                     bcrypt(rawKey, hash[i])        index scan LIMIT 1
+                     O(N) · ~100 ms                O(1) · ~0.4 ms
+verify            bcrypt compare wins       →    HMAC-SHA256 → hex (64)
+                     wall: ~N × 100 ms              timingSafeEqual
+                                                 wall: ~0.4 ms total
+```
+
+Migration safety: legacy `apiKeyAlgo = "bcrypt"` rows are still honored during the rollout window; new tenants go straight to the fast path via the `provision` endpoint.
+
+### 2. Atomic Redis rate-limit, one round-trip
 
 The previous limiter did `INCR` then `EXPIRE` separately — two round-trips and a race window where a crashed process leaves a TTL-less bucket forever. Now a Lua script does `INCR + EXPIRE-if-new + TTL` atomically on the Redis server, registered once via `defineCommand` so subsequent calls are EVALSHA (~0.3 ms):
 
@@ -51,7 +80,9 @@ The previous limiter did `INCR` then `EXPIRE` separately — two round-trips and
 // src/api/middleware/rate-limit.ts
 const RATE_LIMIT_LUA = `
   local current = redis.call('INCR', KEYS[1])
-  if current == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end
+  if current == 1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[2])
+  end
   local ttl = redis.call('TTL', KEYS[1])
   local limit = tonumber(ARGV[1])
   return {current, limit, math.max(0, limit - current), ttl}
@@ -59,7 +90,21 @@ const RATE_LIMIT_LUA = `
 redis.defineCommand("rateLimitAtomic", { numberOfKeys: 1, lua: RATE_LIMIT_LUA });
 ```
 
-### Shared Chromium, two independent semaphores
+```
+client ──► redis                                    client ──► redis
+   │                                                 │
+   │  INCR  rl:api:kc_...:1719500400                  │  EVALSHA <sha> 1 rl:api:...
+   │  ◄── 1                                            │  ─ atomically ─
+   │  EXPIRE rl:api:... 60                              │     INCR  → 1
+   │  ◄── 1                                            │     EXPIRE (new key)
+   │  TTL    rl:api:...                                │     TTL    → 60
+   │  ◄── 60                                           │  ◄── {1, 100, 99, 60}
+   │                                                   │
+   ▼                                                   ▼
+ 2 round-trips, race window                        1 round-trip, atomic
+```
+
+### 3. Shared Chromium, two independent semaphores
 
 A single long-lived Playwright process serves both the graph's browser-fallback node and the PDF renderer. Without partitioning, a flood of PDF downloads would block the screening pipeline. Two semaphores on the same process prevent that:
 
@@ -69,49 +114,80 @@ this.browserFallbackSemaphore = new Semaphore("browserFallback", 8, 30_000);
 this.pdfRenderSemaphore       = new Semaphore("pdfRender",       2, 30_000);
 ```
 
-Each consumer calls the relevant `acquireXxxPermit()` / `releaseXxxPermit()`. A saturated pool returns `PoolTimeoutError` after 30 s; callers are expected to degrade (HITL escalation for the browser path, 503 for the PDF path).
+```
+                            Playwright Chromium (single process)
+                              │
+            ┌─────────────────┼─────────────────┐
+            │                                   │
+   browserFallbackSemaphore                pdfRenderSemaphore
+        cap 8, 30 s                            cap 2, 30 s
+            │                                   │
+   ┌────────┴────────┐                   ┌──────┴──────┐
+   ▼  ▼  ▼  ▼  ▼  ▼  ▼  ▼                ▼  ▼
+ graph nodes                     /cases/:id/report?format=pdf
+ (api-lookup fallback)           (dashboard downloads)
+```
 
-### Mechanical citation guardrail (no LLM hallucinations in the dossier)
+Each consumer calls the relevant `acquireXxxPermit()` / `releaseXxxPermit()`. A saturated pool returns `PoolTimeoutError` after 30 s; callers degrade (HITL escalation for the browser path, 503 for the PDF path). Timers `unref()` so a cancelled request can't pin the event loop.
+
+### 4. Mechanical citation guardrail (no LLM hallucinations in the dossier)
 
 The guardrail node strips every claim that doesn't reference a `[Source: KEY]` present in the evidence ledger:
 
 ```ts
-// src/graph/nodes/guardrail.ts (excerpt)
-for (const claim of state.claims) {
-  if (!state.evidenceLedger[claim.sourceKey]) {
-    state.claims = state.claims.filter((c) => c.id !== claim.id);
-  }
+// src/graph/nodes/guardrail.ts
+for (const line of state.dossier.split("\n")) {
+  const citations = [...line.matchAll(/\[Source:\s*([A-Z0-9_:-]+)\]/g)];
+  if (citations.length === 0 && /\w/.test(line)) continue;   // strip
+  if (citations.some(([, key]) => !validKeys.has(key))) continue; // strip
+  sanitized.push(line);
 }
 ```
 
-The output dossier cannot contain a claim without a verifiable source. This is the `INV-001` / `INV-002` invariant — enforced mechanically, not by prompt engineering.
+```
+   LLM draft                       guardrail                       dossier
+ ─────────────                  ─────────────                  ─────────────
+ "Sanctions clear"              ← no [Source: …]                (dropped)
+ "UBO verified [Source: API_1]" ← API_1 ∈ ledger                (kept)
+ "Trustworthy LLC"              ← no [Source: …]                (dropped)
+                                 findings += ["Removed …"]
+```
 
-### Dynamic LLM Router with deterministic tier selection
+The output dossier cannot contain a claim without a verifiable source. This is `INV-001` / `INV-002` — failure to hold them is a build break.
 
-Five tiers (T0 deterministic → T4 GPT-4o). `pickModel()` is a pure function — easy to test, easy to reason about:
+---
+
+## Dynamic LLM router
+
+Five tiers, one pure function. `pickModel()` is deterministic and unit-tested:
 
 ```ts
 // src/services/llm/router.ts
 export function pickModel(ctx: RoutingContext): ProviderConfig {
+  const configured = getProvider(ctx.configuredTier);
+
+  // 1. promote when the configured tier can't emit strict JSON
   if (ctx.nodeRequirement === "strict-zod" && !configured.supportsStrictJson)
-    return getProvider("t2");                              // 1. promote
+    return getProvider("t2");
+
+  // 2. large context → Gemini Flash (1M window)
   if (ctx.tokenEstimate > 120_000)
-    return getProvider("t3");                              // 2. large context → Gemini Flash
-  return configured;                                       // 3. default
+    return getProvider("t3");
+
+  // 3. default to configured tier
+  return configured;
 }
 ```
 
-| Tier | Provider | When chosen |
-|---|---|---|
-| T0 | Deterministic | Default offline fallback; zero cost |
-| T1 | Ollama Llama 3 (local) | Data-sovereign deployments |
-| T2 | OpenAI gpt-4o-mini | Default cloud; cost-optimized JSON |
-| T3 | Gemini 1.5 Flash | Large evidence backlogs (>120 k tokens) |
-| T4 | OpenAI gpt-4o | Highest-quality dossiers |
+| Tier | Provider | When chosen | $ / 1K in | $ / 1K out | Context |
+|---|---|---|---:|---:|---:|
+| **T0** | Deterministic | Offline / CI / cost-zero | $0.000000 | $0.000000 | ∞ |
+| **T1** | Ollama Llama 3 (local) | Data-sovereign on-prem | $0.00 | $0.00 | 8 K |
+| **T2** | OpenAI gpt-4o-mini | Default cloud, strict JSON | $0.00015 | $0.0006 | 128 K |
+| **T3** | Gemini 1.5 Flash | Backlogs > 120 K tokens | $0.000075 | $0.0003 | 1 M |
+| **T4** | OpenAI gpt-4o | Highest-quality dossiers | $0.0025 | $0.010 | 128 K |
 
-### Zero-cost LLM tests via deterministic mock
-
-CI never hits a real LLM API. `tests/setup/llm-mock.ts` is loaded via `vitest.config.ts → test.setupFiles` and replaces every `@langchain/*` adapter plus the `DynamicLlmRouter` with deterministic stubs. Tier-selection logic still runs (so router tests stay honest); no network call is ever made.
+On any provider failure the router falls back to T0 — `DynamicLlmRouter.draftDossier()` wraps the call in try/catch and emits a deterministic dossier if every cloud adapter is unavailable.
 
 ---
 
@@ -136,13 +212,13 @@ flowchart LR
 | # | Node | Timeout | What it does |
 |---|---|---|---|
 | 1 | `ingestNode` | 5 s | NFKC normalization — defeats sanitization bypass |
-| 2 | `apiLookupNode` (OpenCorporates + ComplyAdvantage) | 30 s | Government registry + sanctions/PEP screening |
+| 2 | `apiLookupNode` (OpenCorporates + ComplyAdvantage) | 30 s | Government registry + sanctions/PEP screening (OFAC / EU / UN) |
 | 3 | `browserFallbackNode` (Playwright, conditional) | 60 s | Captures JS-heavy registries the API can't reach |
 | 4 | `draftDossierNode` (Dynamic LLM Router) | 30 s | Citation-aware draft; every claim gets `[Source: KEY]` |
 | 5 | `guardrailNode` | 30 s | Strips any claim not backed by the evidence ledger |
 | 6 | `humanReviewNode` (HITL) | n/a | Mandatory analyst sign-off for High risk / unverified UBO |
 
-`pending_hitl` cases **never** auto-approve — only `POST /cases/:id/approve` clears the gate.
+`pending_hitl` cases **never** auto-approve — only `POST /cases/:id/approve` clears the gate (`INV-007`).
 
 ---
 
@@ -188,6 +264,8 @@ curl -o compliance_report.pdf \
   -H "Authorization: Bearer kc_live_demo0000000000000000000000"
 ```
 
+The PDF carries an AMLD6 article-citation block, the SHA-256 evidence chain, and an audit-trail signature — all generated in ~600 ms via the shared Chromium pool.
+
 ---
 
 ## CI/CD
@@ -208,7 +286,7 @@ flowchart LR
   deploy[deploy<br/>flyctl deploy ams]
 ```
 
-Three early jobs run concurrently. Wall time is `max(checks, security-scan, docker-build)`, not the sum — ~50 % faster than the obvious serial chain.
+Three early jobs run concurrently. Wall time is `max(checks, security-scan, docker-build)`, not the sum — typically a 50%+ cut vs the obvious serial chain.
 
 ### CycloneDX SBOM, every push
 
@@ -226,12 +304,12 @@ Every PR gets a temporary Fly app via `superfly/fly-pr-review-apps@1.2.1`:
 
 - `opened / synchronize` → `deploy-preview` job creates `kyc-copilot-pr-<N>` and deploys
 - `closed` → `teardown-preview` job runs `flyctl apps destroy`
-- Database isolation: per-PR `PREVIEW_DATABASE_URL` (Neon branch-style) — PR databases never touch production
+- Database isolation: per-PR `PREVIEW_DATABASE_URL` — PR databases never touch production
 - URL surfaces in the PR UI via the `environment:` block
 
 ### LLM mocking in CI
 
-The setup file replaces every LangChain adapter with deterministic stubs; tests run in milliseconds with zero external calls.
+`tests/setup/llm-mock.ts` is loaded via `vitest.config.ts → test.setupFiles` and replaces every `@langchain/*` adapter plus the `DynamicLlmRouter` with deterministic stubs. Tier-selection logic still runs (so router tests stay honest); no network call is ever made.
 
 ### Required GitHub Secrets
 
@@ -271,7 +349,7 @@ The setup file replaces every LangChain adapter with deterministic stubs; tests 
 | `POST` | `/cases/:id/rescreen` | growth+ plan |
 | `GET` | `/cases/stream` | Server-Sent Events snapshot |
 | `GET` | `/cases/export` | Decrypted portability bundle |
-| `DELETE` | `/cases/:id/erase` | Hard delete (Privacy Act / GDPR Art. 17) |
+| `DELETE` | `/cases/:id/erase` | Hard delete (GDPR Art. 17 / right-to-erasure) |
 | `GET` | `/dashboard` | Metrics + recent activity |
 | `GET` | `/usage` | Monthly ROI summary |
 | `POST` `/GET` | `/webhooks` | Registration (growth+) |
@@ -318,19 +396,22 @@ npm run dev            # http://localhost:3000
 ## Production deployment
 
 <details>
-<summary><b>☁️ Fly.io (Amsterdam — EU residency)</b></summary>
+<summary><b>☁️ Fly.io — transatlantic primary, NA failover</b></summary>
 
 | Setting | Value |
 |---|---|
-| Primary region | `ams` (Amsterdam) |
+| Primary region | `ams` (Amsterdam) — EU residency by default |
+| Failover regions | `yyz` (Toronto) · `ord` (Chicago) — NA round-trip & redundancy |
 | VM size | `performance-2x` (2 vCPU / 4 GB) |
 | Health check | `GET /health` every 15 s, 5 s timeout |
 | Concurrency | soft 20, hard 50 — protects the Playwright pool |
 | Persistent volume | `kyc_data` mounted at `/app/data` (1 GB initial) |
 | Release command | `node dist/src/db/migrate.js` (Drizzle programmatic migrator) |
 | Graceful shutdown | `SIGTERM` → close HTTP server, BullMQ worker, queue, browser pool, Redis, Postgres |
+| Timezone handling | `formatInTimeZone` from `date-fns-tz` — dossier timestamps localize per region |
+| Currency | LLM cost ledger in USD; format layer is locale-aware for downstream display |
 
-Source: [`fly.toml`](./fly.toml). Deploys are automatic on `push to main` once required GitHub Secrets are set.
+Source: [`fly.toml`](./fly.toml). Deploys are automatic on `push to main` once required GitHub Secrets are set. Reports generate with timezone-correct timestamps regardless of which region serves the request.
 
 </details>
 
