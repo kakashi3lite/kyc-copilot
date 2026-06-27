@@ -55,11 +55,33 @@ jobs:
           DATABASE_URL: postgres://kyc:kyc@localhost:5432/kyc
           REDIS_URL: redis://localhost:6379
 
-  # ── Job 2: Deploy to Fly.io ─────────────────────────────────────────────
+  # ── Job 2: Security Scan (SAST) ──────────────────────────────────────────
+  security-scan:
+    name: Security Scan (SAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Run NPM Audit
+        # Run audit. If audit fails due to high/critical vuln, block deploy.
+        run: npm audit --audit-level=high
+
+  # ── Job 3: Deploy to Fly.io ─────────────────────────────────────────────
   deploy:
     name: Deploy to Fly.io (ams)
     runs-on: ubuntu-latest
-    needs: checks
+    needs: [checks, security-scan]
     timeout-minutes: 20
     # Only deploy from main, never from forks
     if: github.ref == 'refs/heads/main' && github.repository == 'kakashi3lite/kyc-copilot'

@@ -8,4 +8,6 @@ declare module "vitest" {
     toMatchObject(expected: Record<string, unknown>): void;
     not: { toContain(expected: unknown): void };
   };
+  export const vi: any;
+  export function beforeEach(fn: () => void | Promise<void>): void;
 }
