@@ -34,7 +34,7 @@ caseRoutes.post("/cases", validateJson(createCaseSchema), async (c) => {
     }
     await runCase(caseId, auth.tenantId);
   } else {
-    await graphQueue.add("run", { caseId, tenantId: auth.tenantId });
+    await graphQueue.add("run" as const, { caseId, tenantId: auth.tenantId });
   }
   return c.json({ caseId, status: "queued" }, 201);
 });
@@ -102,7 +102,7 @@ caseRoutes.get("/cases/:id", async (c) => {
 
 caseRoutes.post("/cases/:id/approve", validateJson(approveSchema), async (c) => {
   const auth = getAuth(c);
-  const caseId = c.req.param("id");
+  const caseId = c.req.param("id") ?? "";
   const body = getValidated<z.infer<typeof approveSchema>>(c);
   const updateValues = body.riskOverride === undefined
     ? { status: "completed" as const, requiresHuman: false, completedAt: new Date(), updatedAt: new Date() }
@@ -117,7 +117,7 @@ caseRoutes.post("/cases/:id/rescreen", async (c) => {
   const auth = getAuth(c);
   if (auth.plan === "starter") return problem(c, 403, "Forbidden", "Rescreening requires Growth plan");
   const caseId = c.req.param("id");
-  await graphQueue.add("rescreen", { caseId, tenantId: auth.tenantId });
+  await graphQueue.add("rescreen" as const, { caseId, tenantId: auth.tenantId });
   return c.json({ caseId, status: "queued" });
 });
 

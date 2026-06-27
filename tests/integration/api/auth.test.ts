@@ -19,13 +19,13 @@ vi.mock("bcrypt", () => {
 });
 
 vi.mock("bullmq", () => {
-  const Queue = vi.fn().mockImplementation(() => {
+  const Queue = vi.fn().mockImplementation(function () {
     return {
       add: vi.fn(),
       close: vi.fn(),
     };
   });
-  const Worker = vi.fn().mockImplementation(() => {
+  const Worker = vi.fn().mockImplementation(function () {
     return {
       close: vi.fn(),
       on: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock("bullmq", () => {
 });
 
 vi.mock("ioredis", () => {
-  const Redis = vi.fn().mockImplementation(() => {
+  const Redis = vi.fn().mockImplementation(function () {
     return {
       incr: vi.fn(async () => {
         if (mockRedisIncrValue > 0) {
@@ -153,7 +153,7 @@ vi.mock("pg", () => {
     release: vi.fn(),
   };
 
-  const Pool = vi.fn().mockImplementation(() => {
+  const Pool = vi.fn().mockImplementation(function () {
     return {
       connect: vi.fn(async () => clientMock),
       query: queryMock,

@@ -1,4 +1,4 @@
-import { Queue, Worker, type Job } from "bullmq";
+import { Queue, Worker, type ConnectionOptions, type Job } from "bullmq";
 import { eq } from "drizzle-orm";
 import { redis, db } from "../db/index.js";
 import { cases, evidence, failedCases } from "../db/schema.js";
@@ -22,7 +22,7 @@ export interface GraphJobData { caseId: string; tenantId: string; }
 
 export type GraphJobName = "run" | "rescreen";
 
-export const graphQueue = new Queue<GraphJobData, unknown, GraphJobName>("kyc-graph", { connection: redis, defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 }, removeOnComplete: 1000, removeOnFail: false } });
+export const graphQueue = new Queue<GraphJobData, unknown, GraphJobName>("kyc-graph", { connection: redis as unknown as ConnectionOptions, defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 }, removeOnComplete: 1000, removeOnFail: false } });
 
 export function createGraph(): KycGraph {
   return new KycGraph({ adapter: new CompositeKycDataAdapter(new OpenCorporatesClient(), new ComplyAdvantageClient()), browser: new PlaywrightBrowserPool(), llm: new FallbackLlmClient() });
@@ -53,7 +53,7 @@ export async function runCase(caseId: string, tenantId: string, graph = createGr
 }
 
 export function startGraphWorker(): Worker<GraphJobData> {
-  return new Worker<GraphJobData>("kyc-graph", async (job: Job<GraphJobData>) => runCase(job.data.caseId, job.data.tenantId), { connection: redis, concurrency: 10 });
+  return new Worker<GraphJobData>("kyc-graph", async (job: Job<GraphJobData>) => runCase(job.data.caseId, job.data.tenantId), { connection: redis as unknown as ConnectionOptions, concurrency: 10 });
 }
 
 /**

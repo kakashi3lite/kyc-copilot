@@ -27,6 +27,7 @@ tenantRoutes.post("/tenants/:id/plan", validateJson(planSchema), async (c) => {
   const denied = requireAdmin(c);
   if (denied !== null) return denied;
   const body = getValidated<z.infer<typeof planSchema>>(c);
-  await db.update(tenants).set({ plan: body.plan, updatedAt: new Date() }).where(eq(tenants.id, c.req.param("id")));
-  return c.json({ tenantId: c.req.param("id"), plan: body.plan });
+  const tenantId = c.req.param("id") ?? "";
+  await db.update(tenants).set({ plan: body.plan, updatedAt: new Date() }).where(eq(tenants.id, tenantId));
+  return c.json({ tenantId, plan: body.plan });
 });
