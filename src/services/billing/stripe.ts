@@ -12,7 +12,7 @@ export class StripeBillingClient {
   public async createCustomer(name: string, email?: string): Promise<string | null> {
     const stripe = this.stripe;
     if (stripe === null) return null;
-    const customer = await stripe.customers.create({ name, email });
+    const customer = await stripe.customers.create(email !== undefined ? { name, email } : { name });
     return customer.id;
   }
 

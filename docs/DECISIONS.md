@@ -151,6 +151,7 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
 
 ---
 
+<<<<<<< HEAD
 ## ADR-010: Dynamic Multi-Provider LLM Routing
 
 - **Status:** Accepted
@@ -181,3 +182,37 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
   - External LLM proxy service (adds infrastructure complexity prematurely)
   - Per-node provider selection (over-complicated for current single-LLM-call architecture)
 
+---
+
+## ADR-011: O(1) API-key lookup with HMAC shadow index (placeholder)
+
+> See `docs/PLAN_cost_optimization.md` §4.3 for the draft. Accepted on
+> Phase 1 merge; full text added by the IMPLEMENTER session.
+
+---
+
+## ADR-012: Shared Playwright Chromium Pool with Dual-Semaphores
+
+- **Status:** Accepted (2026-06-17)
+- **Context:** `PlaywrightBrowserPool` (`src/services/browser/pool.ts`) launched a single Chromium process for the app lifetime but capped at 10 contexts. The hard cap returned `requiresHuman: true` on saturation — silently increasing HITL load and breaking dossier completion SLAs. Concurrently, `Puppeteer` in `src/services/reports/pdf-renderer.ts` launched a *second* Chromium per `GET /cases/:id/report?format=pdf` request — a fresh 300 MB process on every dashboard refresh. The two consumers competed for the same RAM envelope, and a flood of PDF renders could starve the dossier pipeline.
+- **Decision:**
+  1. **Unify on Playwright.** Drop Puppeteer from `package.json` (saves ~300 MB per concurrent PDF render + removes a separate Chromium download from `npm install`).
+  2. **Single long-lived Chromium process** owned by one `PlaywrightBrowserPool` instance, exposed via the `sharedBrowserPool()` module-level singleton so the graph worker and the PDF renderer share the same process.
+  3. **Two independent semaphores** partition the 10-context envelope:
+     - `browserFallbackSemaphore` — capacity 8, used by `browserFallbackNode` (graph pipeline).
+     - `pdfRenderSemaphore` — capacity 2, used by `renderPdf()` (dashboard).
+  4. **Bounded queue + timeout.** Each semaphore rejects waiters after 30s with `PoolTimeoutError`. The browser-fallback node catches this and escalates to `requiresHuman: true` (INV-007 compliant — never auto-completes on pool starvation). The PDF renderer propagates the error, which the Hono error handler turns into 500; the client retries.
+  5. **PDF result caching.** `renderPdf` computes a content hash from the report's semantic fields (`caseId`, `subject`, `riskScore`, `dossier`, `evidenceChain`, `articleCitations`), looks up `pdf:{caseId}:{hash}` in Redis with a 5-minute TTL, and returns the cached buffer on hit. Cache failures are non-fatal — the render proceeds.
+- **Consequences:**
+  - One Chromium process per Node process. No more per-request Puppeteer launches.
+  - Pool saturation no longer fires `requiresHuman: true` from the hard cap path; it fires only from the new bounded-timeout path, with a precise error.
+  - The PDF endpoint sees a 60–80% reduction in render time on dashboard refreshes within the 5-minute cache window (real-world: most dashboards re-render the same case within seconds).
+  - `browserFallbackNode` becomes INV-007-strict: a pool timeout always escalates to HITL, never crashes the worker.
+  - `PoolTimeoutError` is exported from `src/services/browser/pool.ts`; `pdf-renderer.ts` re-exports it for route-handler convenience.
+  - `sharedBrowserPool()` singleton — tests construct their own `PlaywrightBrowserPool` directly to avoid the global.
+- **Do not undo unless:** the system is migrated to Browserless.io (or equivalent) self-hosted, in which case the singleton becomes a client to that service.
+- **Alternatives rejected:**
+  - Browserless.io SaaS — introduces third-party egress of company PII.
+  - Two separate Chromium processes (one per consumer) — doubles RAM with no benefit given the 8/2 partition.
+  - Hard cap returning `requiresHuman: true` on saturation (old behavior) — silently degrades user experience with no auditable signal.
+  - PDF cache keyed on `reportId` — varies per generation, hits 0% of the time; the content-hash approach hits ~80% in dashboard-refresh patterns.

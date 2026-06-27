@@ -18,7 +18,9 @@ import { childLogger } from "../config/logger.js";
 
 export interface GraphJobData { caseId: string; tenantId: string; }
 
-export const graphQueue = new Queue<GraphJobData>("kyc-graph", { connection: redis, defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 }, removeOnComplete: 1000, removeOnFail: false, timeout: 300000 } });
+export type GraphJobName = "run" | "rescreen";
+
+export const graphQueue = new Queue<GraphJobData, unknown, GraphJobName>("kyc-graph", { connection: redis, defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 }, removeOnComplete: 1000, removeOnFail: false } });
 
 export function createGraph(): KycGraph {
   return new KycGraph({ adapter: new CompositeKycDataAdapter(new OpenCorporatesClient(), new ComplyAdvantageClient()), browser: new PlaywrightBrowserPool(), llm: new FallbackLlmClient() });

@@ -2,7 +2,7 @@
 repo: kyc-copilot
 path: /Users/kakashi3lite/kyc-copilot
 version: 1.0.0
-updated: 2026-06-08
+updated: 2026-06-17
 stack: [Hono, Drizzle, PostgreSQL, Redis, BullMQ, Playwright, Puppeteer, Zod, Pino]
 compliance: AMLD6
 entry_points:
@@ -275,7 +275,7 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 | `src/services/llm/client.ts` | LLM interface | `LlmClient` |
 | `src/services/llm/fallback.ts` | Multi-provider LLM | `FallbackLlmClient` |
 | `src/services/reports/generator.ts` | JSON compliance reports | `generateReport` |
-| `src/services/reports/pdf-renderer.ts` | PDF via Puppeteer | `renderPdf` |
+| `src/services/reports/pdf-renderer.ts` | PDF via shared Playwright Chromium + Redis content-hash cache (5 min TTL) | `renderPdf` |
 | `src/services/webhooks/dispatcher.ts` | Webhook queue + HMAC | `enqueueWebhookEvent` |
 | `src/services/audit/logger.ts` | Audit log writer | `writeAuditLog` |
 | `src/services/billing/usage-meter.ts` | Usage tracking + ROI | `incrementUsage`, `getUsageSummary` |
@@ -298,7 +298,7 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 | OpenAI / Anthropic / Ollama | `src/services/llm/fallback.ts` | Structured dossier drafting |
 | Stripe | `src/services/billing/stripe.ts` | Billing adapter |
 | Resend | `src/services/notifications/email.ts` | Transactional email |
-| Puppeteer | `src/services/reports/pdf-renderer.ts` | PDF report rendering |
+| Playwright (Chromium) | `src/services/browser/pool.ts` + `src/services/reports/pdf-renderer.ts` | Browser fallback AND PDF rendering — single long-lived Chromium process shared via dual semaphores (`browserFallbackSemaphore` cap 8, `pdfRenderSemaphore` cap 2) per ADR-012 |
 | MinIO (S3) | `src/config/env.ts:L14-L17` | Evidence blob storage |
 
 ## §11 Frontend
@@ -357,7 +357,7 @@ Current repo is v1.0.0 at `/Users/kakashi3lite/kyc-copilot`. Do not confuse with
 
 ## §15 Open Gaps
 
-- Wire `PostgresSaver` for true graph checkpoint/resume (exported but unused in run path)
+- ~~Wire `PostgresSaver` for true graph checkpoint/resume (exported but unused in run path)~~ — **resolved 2026-06-17**: removed per ADR-012 cleanup; the unused import was the source of a peer-dep conflict that forced `npm install --legacy-peer-deps`. Case row remains source of truth (ADR-002).
 - Migrate imperative `KycGraph` to compiled LangGraph `StateGraph` (ADR-001)
 - Stripe billing enforcement in production
 - SAML/SSO
