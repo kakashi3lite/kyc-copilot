@@ -6,7 +6,7 @@ import { KycGraph } from "../graph/graph.js";
 import { CompositeKycDataAdapter } from "../services/kyc-data/adapter.js";
 import { OpenCorporatesClient } from "../services/kyc-data/opencorporates.js";
 import { ComplyAdvantageClient } from "../services/kyc-data/comply-advantage.js";
-import { PlaywrightBrowserPool } from "../services/browser/pool.js";
+import { PlaywrightBrowserPool, sharedBrowserPool } from "../services/browser/pool.js";
 import { FallbackLlmClient } from "../services/llm/fallback.js";
 import { decryptPii, encryptPii } from "../services/encryption/at-rest.js";
 import { writeAuditLog } from "../services/audit/logger.js";
@@ -15,6 +15,8 @@ import { incrementUsage } from "../services/billing/usage-meter.js";
 import { newId } from "../utils/id.js";
 import { maskPiiInText } from "../utils/mask.js";
 import { childLogger } from "../config/logger.js";
+
+const log = childLogger({ component: "graph-runner" });
 
 export interface GraphJobData { caseId: string; tenantId: string; }
 
@@ -52,4 +54,26 @@ export async function runCase(caseId: string, tenantId: string, graph = createGr
 
 export function startGraphWorker(): Worker<GraphJobData> {
   return new Worker<GraphJobData>("kyc-graph", async (job: Job<GraphJobData>) => runCase(job.data.caseId, job.data.tenantId), { connection: redis, concurrency: 10 });
+}
+
+/**
+ * Close graph-owned resources during graceful shutdown. The BullMQ worker
+ * itself is closed by `worker.close()` in `src/index.ts` before this is
+ * called; here we tear down the producer-side queue and the shared
+ * Chromium browser pool. Both close paths swallow and log their own
+ * errors so a failure in one does not block the other.
+ */
+export async function closeGraphResources(): Promise<void> {
+  try {
+    await graphQueue.close();
+    log.info("graph queue closed");
+  } catch (error) {
+    log.warn({ error: error instanceof Error ? error.message : String(error) }, "graphQueue close failed");
+  }
+  try {
+    await sharedBrowserPool().close();
+    log.info("shared browser pool closed");
+  } catch (error) {
+    log.warn({ error: error instanceof Error ? error.message : String(error) }, "shared browser pool close failed");
+  }
 }

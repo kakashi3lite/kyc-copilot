@@ -1,13 +1,5 @@
-declare module "vitest" {
-  export function describe(name: string, fn: () => void): void;
-  export function it(name: string, fn: () => void | Promise<void>): void;
-  export function expect(value: unknown): {
-    toBe(expected: unknown): void;
-    toContain(expected: unknown): void;
-    toHaveLength(expected: number): void;
-    toMatchObject(expected: Record<string, unknown>): void;
-    not: { toContain(expected: unknown): void };
-  };
-  export const vi: any;
-  export function beforeEach(fn: () => void | Promise<void>): void;
-}
+// Removed: an over-restrictive `declare module "vitest"` ambient declaration
+// previously lived here and shadowed vitest's real exported types (e.g.
+// `afterEach`, `.rejects`, `.toBeGreaterThanOrEqual`). The real types are
+// now picked up directly from the installed vitest package.
+export {};
