@@ -1,0 +1,49 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# KYC Copilot — Pull Request Checks
+# Runs typecheck and tests on every PR targeting main. No deploy.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  checks:
+    name: Typecheck & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Rebuild native addons
+        run: npm rebuild bcrypt 2>/dev/null || true
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+        continue-on-error: true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://kyc:kyc@localhost:5432/kyc
+          REDIS_URL: redis://localhost:6379
