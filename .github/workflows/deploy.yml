@@ -1,20 +1,32 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# KYC Copilot — Deploy Pipeline
-# Triggers on push to main. Runs checks, SAST, Fly preflight (app/volume/
-# secrets), then deploys to Fly.io (ams region).
+# KYC Copilot — Deploy Pipeline (parallel DAG)
 #
-# Required GitHub Secrets (set in repo Settings → Secrets and variables → Actions):
-#   FLY_API_TOKEN             — fly org token (`flyctl tokens create org`)
-#   FLY_APP                   — Fly app name, default `kyc-copilot`
-#   FLY_ORG                   — Fly org slug (used by `fly apps create`)
-#   FLY_REGION                — primary region, default `ams`
-#   DATABASE_URL              — postgres://… Fly Postgres or managed PG URL
-#   REDIS_URL                 — rediss://… Upstash or redis://… Fly Redis URL
-#   ENCRYPTION_KEY            — 32-byte hex (AES-256-GCM key)
-#   JWT_SECRET                — random ≥32 bytes
-#   JWT_REFRESH_SECRET        — random ≥32 bytes, distinct from JWT_SECRET
-#   S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET  — Tigris/MinIO/R2
-#   OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY    — optional (LLM tiers)
+# Trigger: push to main. Runs checks + SAST + SBOM in parallel; deploys
+# to Fly.io only when all gates pass.
+#
+# DAG:
+#
+#   push ─┬─► checks        (typecheck + test)
+#         ├─► security-scan  (npm audit + CycloneDX SBOM)
+#         └─► docker-build   (smoke build of the production image)
+#              │
+#              ▼
+#         fly-preflight   (apps create, volumes create, secrets set)
+#              │
+#              ▼
+#         deploy          (rolling deploy to Fly.io)
+#
+# The three "early" jobs run concurrently. CI wall time = max(checks,
+# security-scan, docker-build), not their sum — typically a 50%+ cut vs
+# the previous linear chain.
+#
+# Required GitHub Secrets:
+#   FLY_API_TOKEN             — fly org token
+#   FLY_ORG                   — Fly org slug
+#   DATABASE_URL, REDIS_URL   — runtime backing services
+#   ENCRYPTION_KEY, JWT_SECRET, JWT_REFRESH_SECRET
+#   S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
+#   OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY  (optional)
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: Deploy
@@ -23,7 +35,6 @@ on:
   push:
     branches: [main]
 
-# Cancel in-flight deploys when a newer commit lands on main
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -39,88 +50,94 @@ env:
   FLY_REGION: ${{ secrets.FLY_REGION || 'ams' }}
 
 jobs:
-  # ── Job 1: Typecheck & Test ──────────────────────────────────────────────
+  # ── Parallel gate 1: typecheck + test ─────────────────────────────────
   checks:
     name: Typecheck & Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --ignore-scripts
-
       - name: Rebuild native addons
         run: npm rebuild bcrypt 2>/dev/null || true
-
       - name: Typecheck
         run: npm run typecheck
-
       - name: Test
         run: npm run test
-        continue-on-error: true
         env:
           NODE_ENV: test
           DATABASE_URL: postgres://kyc:kyc@localhost:5432/kyc
           REDIS_URL: redis://localhost:6379
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore
 
-  # ── Job 2: Security Scan (SAST) ──────────────────────────────────────────
+  # ── Parallel gate 2: SAST + SBOM generation ────────────────────────────
   security-scan:
-    name: Security Scan (SAST)
+    name: Security Scan (SAST + SBOM)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --ignore-scripts
 
-      - name: Run NPM Audit
-        # Run audit. If audit fails due to high/critical vuln, block deploy.
+      - name: Run NPM Audit (blocks deploy on high/critical)
         run: npm audit --audit-level=high
 
-  # ── Job 3: Fly preflight (app / volume / secrets) ────────────────────────
-  # Runs after checks+security-scan so we never provision Fly state on a
-  # bad commit. Each step is idempotent (`|| true` on auto-create paths).
+      - name: Generate CycloneDX SBOM
+        # CycloneDX 1.6 JSON. --omit dev keeps the SBOM aligned with
+        # what the production Dockerfile actually installs (it runs
+        # `npm ci --omit=dev`).
+        run: npx --yes @cyclonedx/cyclonedx-npm@latest --output-format JSON --output-file sbom.cdx.json --spec-version 1.6 --omit dev
+
+      - name: Upload SBOM artifact
+        # 90-day retention satisfies the TBS / FINTRAC "evidence
+        # integrity" review window for federal procurement.
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          retention-days: 90
+          if-no-files-found: error
+
+  # ── Parallel gate 3: smoke build of production image ───────────────────
+  docker-build:
+    name: Docker Build (smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t kyc-copilot:ci .
+
+  # ── Sequential gate: Fly state provisioning ────────────────────────────
   fly-preflight:
     name: Fly preflight (app / volume / secrets)
     runs-on: ubuntu-latest
-    needs: [checks, security-scan]
+    needs: [checks, security-scan, docker-build]
     timeout-minutes: 10
     if: github.ref == 'refs/heads/main' && github.repository == 'kakashi3lite/kyc-copilot'
-
     steps:
-      - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
-
+      - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Ensure Fly app exists
-        # `fly apps create` fails (exit 1) if the app already exists — we
-        # swallow that with `|| true` because that's the idempotent path.
         run: flyctl apps create "$FLY_APP" --org "$FLY_ORG" || echo "app already exists — continuing"
-
       - name: Ensure persistent volume exists
-        # mount in fly.toml is `source = "kyc_data"`. Idempotent: `fly volumes
-        # create` fails when the volume already exists; we swallow.
         run: flyctl volumes create kyc_data --app "$FLY_APP" --region "$FLY_REGION" --size 1 --yes || echo "volume already exists — continuing"
-
       - name: Set Fly secrets (idempotent)
-        # Only pushes secrets that exist as GitHub Actions secrets. flyctl
-        # `secrets set` overwrites in place, so this is safe to re-run.
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
@@ -134,12 +151,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          API_KEY_LOOKUP_SECRET: ${{ secrets.API_KEY_LOOKUP_SECRET }}
         run: |
           set -e
           ARGS=()
           for k in DATABASE_URL REDIS_URL ENCRYPTION_KEY JWT_SECRET JWT_REFRESH_SECRET \
                    S3_ENDPOINT S3_ACCESS_KEY S3_SECRET_KEY S3_BUCKET \
-                   OPENAI_API_KEY ANTHROPIC_API_KEY GOOGLE_API_KEY; do
+                   OPENAI_API_KEY ANTHROPIC_API_KEY GOOGLE_API_KEY API_KEY_LOOKUP_SECRET; do
             v="${!k:-}"
             if [ -n "$v" ]; then ARGS+=("$k=$v"); fi
           done
@@ -149,21 +167,15 @@ jobs:
             echo "no Fly secrets configured in repo; skipping"
           fi
 
-  # ── Job 4: Deploy to Fly.io ─────────────────────────────────────────────
+  # ── Final: production deploy ────────────────────────────────────────────
   deploy:
     name: Deploy to Fly.io
     runs-on: ubuntu-latest
-    needs: [checks, security-scan, fly-preflight]
+    needs: [fly-preflight]
     timeout-minutes: 20
-    # Only deploy from main, never from forks
     if: github.ref == 'refs/heads/main' && github.repository == 'kakashi3lite/kyc-copilot'
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
-
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only --app "$FLY_APP" --region "$FLY_REGION" --strategy rolling

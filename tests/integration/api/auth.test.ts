@@ -36,7 +36,7 @@ vi.mock("bullmq", () => {
 
 vi.mock("ioredis", () => {
   const Redis = vi.fn().mockImplementation(function () {
-    return {
+    const instance: Record<string, unknown> = {
       incr: vi.fn(async () => {
         if (mockRedisIncrValue > 0) {
           return mockRedisIncrValue;
@@ -48,6 +48,18 @@ vi.mock("ioredis", () => {
       quit: vi.fn(async () => {}),
       on: vi.fn(),
     };
+    // The rate-limit module calls `redis.defineCommand("rateLimitAtomic", ...)`
+    // at module-load time. Real ioredis attaches the command as a method
+    // on the instance itself (not just returning it). Mirror that here so
+    // `redis.rateLimitAtomic(key, limit, ttl)` works the way the middleware
+    // expects.
+    instance["defineCommand"] = vi.fn((_name: string, _opts: unknown) => {
+      instance["rateLimitAtomic"] = vi.fn(async (_key: string, limit: number, _ttl: number) => {
+        const current = mockRedisIncrValue > 0 ? mockRedisIncrValue : 1;
+        return [current, limit, Math.max(0, limit - current), 60] as [number, number, number, number];
+      });
+    });
+    return instance;
   });
   return { Redis, default: Redis };
 });
@@ -63,6 +75,8 @@ vi.mock("pg", () => {
         name: "Test Tenant",
         plan: "growth",
         api_key_hash: "mocked_hash",
+        api_key_id: "mocked_lookup_id",
+        api_key_algo: "bcrypt",
         webhook_secret_encrypted: "whsec_encrypted",
         llm_budget_usd: "100.00",
         stripe_customer_id: "cus_stripe",
@@ -80,6 +94,8 @@ vi.mock("pg", () => {
               tenantObject.name,
               tenantObject.plan,
               tenantObject.api_key_hash,
+              tenantObject.api_key_id,
+              tenantObject.api_key_algo,
               tenantObject.webhook_secret_encrypted,
               tenantObject.llm_budget_usd,
               tenantObject.stripe_customer_id,

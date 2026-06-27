@@ -9,7 +9,13 @@ import { env } from "../../config/env.js";
 import { newId, newSecret } from "../../utils/id.js";
 import { encryptPii } from "../../services/encryption/at-rest.js";
 import { validateJson, getValidated } from "../middleware/validate.js";
-import { findUserByEmail, signAccessToken, signRefreshToken } from "../middleware/auth.js";
+import {
+  deriveApiKeyHash,
+  deriveApiKeyId,
+  findUserByEmail,
+  signAccessToken,
+  signRefreshToken,
+} from "../middleware/auth.js";
 import { problem } from "../middleware/error-handler.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 
@@ -24,7 +30,18 @@ authRoutes.post("/provision", validateJson(provisionSchema), async (c) => {
   const tenantId = newId("ten");
   const userId = newId("usr");
   const apiKey = newSecret("kc_live", 24);
-  await db.insert(tenants).values({ id: tenantId, name: body.name, plan: body.plan, apiKeyHash: await bcrypt.hash(apiKey, 12), webhookSecretEncrypted: encryptPii(newSecret("whsec", 16)) });
+  // Fast hash path: HMAC-SHA256 instead of bcrypt. The auth middleware
+  // uses apiKeyId for O(1) index lookup and apiKeyHash for constant-time
+  // digest comparison. See src/api/middleware/auth.ts.
+  await db.insert(tenants).values({
+    id: tenantId,
+    name: body.name,
+    plan: body.plan,
+    apiKeyHash: deriveApiKeyHash(apiKey),
+    apiKeyId: deriveApiKeyId(apiKey),
+    apiKeyAlgo: "fast",
+    webhookSecretEncrypted: encryptPii(newSecret("whsec", 16))
+  });
   await db.insert(users).values({ id: userId, tenantId, email: body.email, passwordHash: await bcrypt.hash(body.password, 12), role: "admin" });
   return c.json({ tenantId, apiKey, userId }, 201);
 });

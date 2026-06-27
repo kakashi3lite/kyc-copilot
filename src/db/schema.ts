@@ -16,6 +16,19 @@ export const tenants = pgTable("tenants", {
   name: text("name").notNull(),
   plan: planEnum("plan").notNull().default("starter"),
   apiKeyHash: text("api_key_hash").notNull(),
+  /**
+   * First 16 hex chars of HMAC-SHA256(API_KEY_LOOKUP_SECRET, raw_api_key).
+   * Indexable lookup field — turns the auth hot path from O(N) bcrypt
+   * iteration into a single O(1) index hit, then O(1) timingSafeEqual
+   * on the 32-byte HMAC digest. See src/api/middleware/auth.ts.
+   */
+  apiKeyId: text("api_key_id"),
+  /**
+   * "fast" → HMAC-SHA256 in apiKeyHash (preferred, new keys)
+   * "bcrypt" → legacy bcrypt hash (still honored during migration)
+   * null   → treat as legacy bcrypt
+   */
+  apiKeyAlgo: text("api_key_algo"),
   webhookSecretEncrypted: text("webhook_secret_encrypted").notNull(),
   llmBudgetUsd: numeric("llm_budget_usd", { precision: 10, scale: 2 }).notNull().default("100.00"),
   stripeCustomerId: text("stripe_customer_id"),
@@ -23,7 +36,8 @@ export const tenants = pgTable("tenants", {
   ...timestamps
 }, (table) => ({
   planIdx: index("tenants_plan_idx").on(table.plan),
-  createdIdx: index("tenants_created_idx").on(table.createdAt)
+  createdIdx: index("tenants_created_idx").on(table.createdAt),
+  apiKeyIdUnique: uniqueIndex("tenants_api_key_id_unique").on(table.apiKeyId)
 }));
 
 export const users = pgTable("users", {

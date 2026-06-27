@@ -3,6 +3,7 @@ import { db } from "./index.js";
 import { amld6Articles, auditLogs, cases, tenants, users } from "./schema.js";
 import { encryptPii } from "../services/encryption/at-rest.js";
 import { newId, sha256Hex } from "../utils/id.js";
+import { deriveApiKeyHash, deriveApiKeyId } from "../api/middleware/auth.js";
 
 // ─── Demo constants ────────────────────────────────────────────────────────────
 const DEMO_API_KEY = "kc_live_demo0000000000000000000000";
@@ -12,7 +13,10 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
   const password = "ChangeMe-123456";
 
   // ── 1. Upsert demo tenant with pinned API key ──────────────────────────────
-  const apiKeyHash = await bcrypt.hash(DEMO_API_KEY, 12);
+  // Uses the fast HMAC-SHA256 path so the auth middleware hits the O(1)
+  // apiKeyId index on every demo request.
+  const apiKeyHash = deriveApiKeyHash(DEMO_API_KEY);
+  const apiKeyId = deriveApiKeyId(DEMO_API_KEY);
   await db
     .insert(tenants)
     .values({
@@ -20,11 +24,13 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
       name: "Demo Payments BV",
       plan: "growth",
       apiKeyHash,
+      apiKeyId,
+      apiKeyAlgo: "fast",
       webhookSecretEncrypted: encryptPii("whsec_demo_placeholder"),
     })
     .onConflictDoUpdate({
       target: tenants.id,
-      set: { apiKeyHash, updatedAt: new Date() },
+      set: { apiKeyHash, apiKeyId, apiKeyAlgo: "fast", updatedAt: new Date() },
     });
 
   // ── 2. Upsert admin user ───────────────────────────────────────────────────

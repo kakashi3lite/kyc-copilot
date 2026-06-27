@@ -78,6 +78,12 @@ export const env = cleanEnv(process.env, {
   }),
   JWT_SECRET: str({ default: "dev-access-secret-change-me" }),
   JWT_REFRESH_SECRET: str({ default: "dev-refresh-secret-change-me" }),
+  /**
+   * HMAC secret used to derive the indexable apiKeyId from raw API keys.
+   * MUST be distinct from JWT_SECRET in production. Defaults to JWT_SECRET
+   * only for dev convenience.
+   */
+  API_KEY_LOOKUP_SECRET: str({ default: "" }),
 
   // ── Network & Security ─────────────────────────────────────────────────
   ALLOWED_ORIGINS: str({ default: "http://localhost:3000" }),
