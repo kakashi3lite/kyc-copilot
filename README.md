@@ -1,146 +1,161 @@
 # KYC Copilot
 
-> **High-assurance agentic AML/KYC pipeline — engineered for the Government of Canada.**
-> *Production-ready. Audit-first. Sovereign by design.*
+> **Agentic AML/KYC compliance engine.**
+> O(1) timing-safe auth · atomic Lua rate-limit · citation-backed dossiers · dual-semaphore Playwright.
 
 [![Node 20+](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Region: ams (EU)](https://img.shields.io/badge/region-ams%20%28EU%29-0A66C2)](./fly.toml)
-[![CI: typecheck + test + SAST + SBOM](https://img.shields.io/badge/CI-typecheck%20%2B%20test%20%2B%20SAST%20%2B%20SBOM-success)](./.github/workflows/deploy.yml)
+[![CI: parallel · SBOM · SAST](https://img.shields.io/badge/CI-parallel%20%C2%B7%20SBOM%20%C2%B7%20SAST-success)](./.github/workflows/deploy.yml)
+
+A production-grade compliance pipeline built around three opinions:
+
+1. **Every claim is cited, or it doesn't ship.** The dossier guardrail strips any LLM output that isn't backed by an entry in the immutable evidence ledger.
+2. **High-risk decisions are never automatic.** Cases flagged for enhanced due diligence lock at `pending_hitl` until a named analyst signs off — there is no path around it.
+3. **Hot paths are O(1) and constant-time.** Auth, rate-limit, and the graph pipeline never do an N-scan or leak timing.
 
 ---
 
-## Why it exists
+## Engineering highlights
 
-Payments institutions, money services businesses, and federal programs have to satisfy **FINTRAC / PCMLTFA**, **PIPEDA**, and the **TBS Directive on Automated Decision-Making** — often simultaneously, often under audit. KYC Copilot turns multi-day manual corporate onboarding into a deterministic, citation-backed pipeline that produces court-admissible evidence in minutes.
+The interesting parts of this codebase, with the actual code shape:
 
-| Metric | Manual | KYC Copilot | Compliance driver |
-|---|---|---|---|
-| Time per case | ~3.5 h | **~14 min** | FINTRAC Guideline 4 turnaround |
-| Cost per case | ~€380 | **~€12** | Federal program ROI |
-| Hallucination rate | n/a | **0 %** (mechanical citation guardrail) | TBS Directive on ADM — explainability |
-| Audit posture | Spreadsheets | **Append-only SHA-256-chained ledger** | PCMLTFA s.6 record-keeping |
-| Data residency | Cloud-by-default | **On-prem Ollama tier (T1)** | PIPEDA Principle 4 — limiting use |
+### O(1) auth from an O(N)·bcrypt scan
 
----
+`kc_live_*` API keys used to be matched by iterating every tenant and running bcrypt per row (~100 ms × N). Now the lookup is a single index hit plus a constant-time digest compare.
 
-## Compliance map
+```ts
+// src/api/middleware/auth.ts
+export function deriveApiKeyId(rawKey: string): string {
+  // First 8 bytes of HMAC-SHA256 — enough to discriminate tenants with
+  // negligible collision risk, narrow enough for a unique index.
+  const full = createHmac("sha256", LOOKUP_SECRET).update(rawKey).digest();
+  return full.subarray(0, 8).toString("hex");
+}
 
-| Canadian requirement | What KYC Copilot does | Source |
+// Hot path: 1 index hit + 1 timingSafeEqual. No bcrypt, no loop.
+const tenant = await db.select().from(tenants)
+  .where(eq(tenants.apiKeyId, deriveApiKeyId(rawKey))).limit(1);
+if (!safeEqualHexDigest(tenant.apiKeyHash, deriveApiKeyHash(rawKey))) {
+  return problem(c, 401, "Unauthorized", "Invalid API key");
+}
+```
+
+`safeEqualHexDigest` defends against the `crypto.timingSafeEqual` length-mismatch throw (which would otherwise leak via the 500 path) by validating 64-char hex *before* the comparison.
+
+### Atomic Redis rate-limit, one round-trip
+
+The previous limiter did `INCR` then `EXPIRE` separately — two round-trips and a race window where a crashed process leaves a TTL-less bucket forever. Now a Lua script does `INCR + EXPIRE-if-new + TTL` atomically on the Redis server, registered once via `defineCommand` so subsequent calls are EVALSHA (~0.3 ms):
+
+```ts
+// src/api/middleware/rate-limit.ts
+const RATE_LIMIT_LUA = `
+  local current = redis.call('INCR', KEYS[1])
+  if current == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end
+  local ttl = redis.call('TTL', KEYS[1])
+  local limit = tonumber(ARGV[1])
+  return {current, limit, math.max(0, limit - current), ttl}
+`;
+redis.defineCommand("rateLimitAtomic", { numberOfKeys: 1, lua: RATE_LIMIT_LUA });
+```
+
+### Shared Chromium, two independent semaphores
+
+A single long-lived Playwright process serves both the graph's browser-fallback node and the PDF renderer. Without partitioning, a flood of PDF downloads would block the screening pipeline. Two semaphores on the same process prevent that:
+
+```ts
+// src/services/browser/pool.ts
+this.browserFallbackSemaphore = new Semaphore("browserFallback", 8, 30_000);
+this.pdfRenderSemaphore       = new Semaphore("pdfRender",       2, 30_000);
+```
+
+Each consumer calls the relevant `acquireXxxPermit()` / `releaseXxxPermit()`. A saturated pool returns `PoolTimeoutError` after 30 s; callers are expected to degrade (HITL escalation for the browser path, 503 for the PDF path).
+
+### Mechanical citation guardrail (no LLM hallucinations in the dossier)
+
+The guardrail node strips every claim that doesn't reference a `[Source: KEY]` present in the evidence ledger:
+
+```ts
+// src/graph/nodes/guardrail.ts (excerpt)
+for (const claim of state.claims) {
+  if (!state.evidenceLedger[claim.sourceKey]) {
+    state.claims = state.claims.filter((c) => c.id !== claim.id);
+  }
+}
+```
+
+The output dossier cannot contain a claim without a verifiable source. This is the `INV-001` / `INV-002` invariant — enforced mechanically, not by prompt engineering.
+
+### Dynamic LLM Router with deterministic tier selection
+
+Five tiers (T0 deterministic → T4 GPT-4o). `pickModel()` is a pure function — easy to test, easy to reason about:
+
+```ts
+// src/services/llm/router.ts
+export function pickModel(ctx: RoutingContext): ProviderConfig {
+  if (ctx.nodeRequirement === "strict-zod" && !configured.supportsStrictJson)
+    return getProvider("t2");                              // 1. promote
+  if (ctx.tokenEstimate > 120_000)
+    return getProvider("t3");                              // 2. large context → Gemini Flash
+  return configured;                                       // 3. default
+}
+```
+
+| Tier | Provider | When chosen |
 |---|---|---|
-| **FINTRAC / PCMLTFA** — Enhanced Due Diligence, UBO verification, PEP/sanctions screening, 5-year record retention | High-risk cases **never auto-approve**; HITL gate (`pending_hitl` → `POST /cases/:id/approve`); immutable audit ledger | `src/graph/nodes/guardrail.ts` · `INV-007` |
-| **PIPEDA** — Principle 4 (limiting use), Principle 7 (safeguards) | AES-256-GCM PII encryption at rest; edge masking on every list endpoint; **T1 Ollama** for on-prem inference keeps PII inside the data-sovereign boundary | `src/services/encryption/at-rest.ts` · `src/services/llm/router.ts` |
-| **TBS Directive on Automated Decision-Making** — Algorithmic Impact Assessment, human-in-the-loop for high-impact decisions | Mandatory `requiresHuman=true` override path; risk override signed by a named reviewer; dossier cannot be generated in `pending_hitl` | `src/graph/nodes/guardrail.ts` |
-| **Audit trails** — Tamper-evident logs, retention | `audit_logs` table is append-only with SHA-256-hashed payloads; every state transition recorded with actor + timestamp + reason | `src/services/audit/logger.ts` |
-| **Privacy Act / GDPR portability** — Right to be forgotten | `DELETE /cases/:id/erase` performs hard delete; `GET /cases/export` returns decrypted bundle on demand | `src/api/routes/cases.ts` |
+| T0 | Deterministic | Default offline fallback; zero cost |
+| T1 | Ollama Llama 3 (local) | Data-sovereign deployments |
+| T2 | OpenAI gpt-4o-mini | Default cloud; cost-optimized JSON |
+| T3 | Gemini 1.5 Flash | Large evidence backlogs (>120 k tokens) |
+| T4 | OpenAI gpt-4o | Highest-quality dossiers |
+
+### Zero-cost LLM tests via deterministic mock
+
+CI never hits a real LLM API. `tests/setup/llm-mock.ts` is loaded via `vitest.config.ts → test.setupFiles` and replaces every `@langchain/*` adapter plus the `DynamicLlmRouter` with deterministic stubs. Tier-selection logic still runs (so router tests stay honest); no network call is ever made.
 
 ---
 
-## System architecture
+## System overview
 
 ```mermaid
 flowchart LR
-  Client[Client / GC Dashboard] -->|Bearer kc_live_*| Hono[Hono API]
+  Client[Client / Dashboard] -->|Bearer kc_live_*| Hono[Hono API]
   Hono --> DB[(PostgreSQL)]
   Hono --> Redis[(Redis)]
   Hono -->|queue| BullMQ[BullMQ kyc-graph]
-  BullMQ --> Graph[Agentic Graph Pipeline]
+  BullMQ --> Graph[6-node Compliance Pipeline]
   Graph <--> DB
-  Graph <--> Playwright[Playwright Dual-Semaphore]
+  Graph <--> Playwright[Dual-Semaphore Chromium]
   Graph --> LLM[Dynamic LLM Router T0-T4]
-  Graph --> Reports[JSON + PDF Reports]
+  Graph --> Reports[JSON + PDF Dossiers]
   Hono -->|HMAC| Webhooks[Webhook Delivery]
 ```
 
 ### The 6-node compliance pipeline
 
-| # | Node | Timeout | Regulatory purpose |
+| # | Node | Timeout | What it does |
 |---|---|---|---|
 | 1 | `ingestNode` | 5 s | NFKC normalization — defeats sanitization bypass |
 | 2 | `apiLookupNode` (OpenCorporates + ComplyAdvantage) | 30 s | Government registry + sanctions/PEP screening |
 | 3 | `browserFallbackNode` (Playwright, conditional) | 60 s | Captures JS-heavy registries the API can't reach |
-| 4 | `draftDossierNode` (Dynamic LLM Router) | 30 s | Citation-aware draft; mechanical `[Source: KEY]` per claim |
-| 5 | `guardrailNode` | 30 s | **Strips any claim not backed by the evidence ledger** — zero hallucinations |
-| 6 | `humanReviewNode` (HITL) | n/a | Mandatory analyst sign-off for High risk / unverified UBO / browser failure |
+| 4 | `draftDossierNode` (Dynamic LLM Router) | 30 s | Citation-aware draft; every claim gets `[Source: KEY]` |
+| 5 | `guardrailNode` | 30 s | Strips any claim not backed by the evidence ledger |
+| 6 | `humanReviewNode` (HITL) | n/a | Mandatory analyst sign-off for High risk / unverified UBO |
 
-`INV-007` enforces that `pending_hitl` cases **never** auto-approve — only `POST /cases/:id/approve` clears the gate.
-
-### Dynamic LLM Router (ADR-010)
-
-Deterministic `pickModel()` rules, evaluated in order:
-
-1. Strict-Zod requirement + tier doesn't support JSON → promote to **T2 / T3**
-2. Token estimate > 120 k → **T3 Gemini Flash** (1 M context)
-3. Otherwise → configured tier
-
-| Tier | Provider | Adapter | When chosen |
-|---|---|---|---|
-| **T0** | Deterministic rule engine | built-in | Default offline fallback; zero API cost |
-| **T1** | Ollama Llama 3 (local) | `OllamaAdapter` | **Data-sovereign deployments** — keeps PII on-prem |
-| **T2** | OpenAI `gpt-4o-mini` | `OpenAiAdapter` | Default cloud tier; structured JSON; cost-optimized |
-| **T3** | Google `gemini-1.5-flash` | `GoogleAdapter` | Large evidence backlogs (>120 k tokens) |
-| **T4** | OpenAI `gpt-4o` | `OpenAiAdapter` | Highest-quality dossiers |
-
-### Dual-Semaphore Playwright (ADR-012)
-
-A **single long-lived Chromium process** is shared between the graph worker and the PDF renderer, partitioned by two independent semaphores so neither consumer can starve the other:
-
-| Semaphore | Capacity | Consumer | Purpose |
-|---|---|---|---|
-| `browserFallbackSemaphore` | **8** | `browserFallbackNode` | Registry scraping for partial API data |
-| `pdfRenderSemaphore` | **2** | `GET /cases/:id/report?format=pdf` | Dashboard report downloads |
-
-A saturated pool returns `PoolTimeoutError` after 30 s; callers degrade gracefully (typically → HITL escalation for the browser path, 503 for the PDF path).
+`pending_hitl` cases **never** auto-approve — only `POST /cases/:id/approve` clears the gate.
 
 ---
 
-## Algorithmic security
+## 🚀 Interactive demo — 3 steps
 
-### O(1) timing-safe auth (`src/api/middleware/auth.ts`)
-
-The auth hot path was originally **O(N) × bcrypt** (~100 ms per row × every tenant in the database). It now resolves in **O(1)** with two database touches at most:
-
-1. `apiKeyId` — first 8 bytes of HMAC-SHA256(lookup secret, raw key), unique-indexed → single-row `LIMIT 1` lookup
-2. `crypto.timingSafeEqual` over the 32-byte HMAC digest stored at provision time
-
-```text
-Token  ──HMAC──►  apiKeyId (8B hex)  ──index hit──►  tenant row  ──timingSafeEqual──►  match
-                                └─ O(1) ────────────────┘              └─ O(1) ──────────────┘
-```
-
-**Length-leak defense.** `crypto.timingSafeEqual` throws on unequal-length buffers (Node docs). `safeEqualHexDigest` validates 64-char hex format *before* the comparison so non-hex or wrong-length input returns `false` without early-exit (Cloudflare Workers guidance).
-
-**Webhook signatures** use the same primitive — `verifyWebhookSignature(secret, payload, signature)` re-computes HMAC-SHA256 and runs timingSafeEqual on the hex digests.
-
-**Legacy bcrypt keys** are still honored during the migration window via `apiKeyAlgo = "bcrypt"`; new provision/seed paths write to the fast path.
-
-### Atomic Redis rate-limit (`src/api/middleware/rate-limit.ts`)
-
-The previous limiter did `INCR` then `EXPIRE` separately — **two round-trips** plus a race condition (process death between the calls leaves a TTL-less key forever).
-
-Now a single Lua script does `INCR + EXPIRE-if-new + TTL` **atomically** on the Redis server, with `redis.defineCommand("rateLimitAtomic", ...)` registering the script once at module load so subsequent calls are EVALSHA (~0.3 ms each):
-
-```lua
-local current = redis.call('INCR', KEYS[1])
-if current == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end
-local ttl = redis.call('TTL', KEYS[1])
-return {current, tonumber(ARGV[1]), math.max(0, tonumber(ARGV[1]) - current), ttl}
-```
-
-One round-trip per request. No race. No orphaned buckets.
-
----
-
-## 🚀 Interactive demo — Test drive in 3 steps
-
-The repo ships with a seeded demo key so a reviewer can validate the entire flow end-to-end without setting up external API credentials.
+The repo ships with a seeded demo key so you can validate the flow end-to-end without setting up external API credentials.
 
 ```bash
 npm install --legacy-peer-deps
 npm run demo          # boots db + redis, runs migrations + seed, starts the API on :3000
 ```
 
-### Step 1 — Submit a high-risk entity
+### 1. Submit a high-risk entity
 
 ```bash
 curl -X POST http://localhost:3000/cases \
@@ -149,20 +164,18 @@ curl -X POST http://localhost:3000/cases \
   -d '{"companyName":"Volkov Capital Partners","registrationNumber":"CY98765432","jurisdiction":"CY"}'
 ```
 
-**Expected:** `{"caseId":"case_demo_hitl_0002","status":"queued"}`
+→ `{"caseId":"case_demo_hitl_0002","status":"queued"}`
 
-### Step 2 — Observe the HITL pause
-
-The graph detects PEP-adjacent owners and complex nominee director structures and **locks the case in `pending_hitl`** until a named analyst signs off.
+### 2. Observe the HITL pause
 
 ```bash
 curl http://localhost:3000/cases/case_demo_hitl_0002 \
   -H "Authorization: Bearer kc_live_demo0000000000000000000000"
 ```
 
-**Expected excerpt:** `status: pending_hitl`, `riskScore: High`, `requiresHuman: true`, `uboVerified: false`.
+→ `status: pending_hitl`, `riskScore: High`, `requiresHuman: true`. The graph detected PEP-adjacent ownership and complex nominee structures; no automated path clears this.
 
-### Step 3 — Approve and download the signed PDF
+### 3. Approve and download the signed PDF
 
 ```bash
 curl -X POST http://localhost:3000/cases/case_demo_hitl_0002/approve \
@@ -177,9 +190,9 @@ curl -o compliance_report.pdf \
 
 ---
 
-## CI/CD — high-assurance supply chain
+## CI/CD
 
-### Parallel DAG (≈50 % time cut)
+### Parallel DAG
 
 ```mermaid
 flowchart LR
@@ -195,36 +208,40 @@ flowchart LR
   deploy[deploy<br/>flyctl deploy ams]
 ```
 
-Three early jobs run concurrently; CI wall time = `max(checks, security-scan, docker-build)`, not their sum.
+Three early jobs run concurrently. Wall time is `max(checks, security-scan, docker-build)`, not the sum — ~50 % faster than the obvious serial chain.
 
-### CycloneDX SBOM (every push)
+### CycloneDX SBOM, every push
 
-The `security-scan` job generates a `sbom.cdx.json` (CycloneDX 1.6) via `@cyclonedx/cyclonedx-npm --omit dev` and uploads it as a **90-day artifact**. Auditors can diff exact dependency trees between builds — TBS / FINTRAC evidence-integrity reviews map directly to this artifact.
+The `security-scan` job generates `sbom.cdx.json` (CycloneDX 1.6, `--omit dev`) and uploads it as a **90-day artifact**. The SBOM reflects only what the production Dockerfile actually installs.
+
+```bash
+npx --yes @cyclonedx/cyclonedx-npm@latest \
+  --output-format JSON --output-file sbom.cdx.json \
+  --spec-version 1.6 --omit dev
+```
 
 ### Ephemeral PR environments
 
-Every PR gets a temporary Fly.io app via `superfly/fly-pr-review-apps@1.2.1`:
+Every PR gets a temporary Fly app via `superfly/fly-pr-review-apps@1.2.1`:
 
 - `opened / synchronize` → `deploy-preview` job creates `kyc-copilot-pr-<N>` and deploys
 - `closed` → `teardown-preview` job runs `flyctl apps destroy`
 - Database isolation: per-PR `PREVIEW_DATABASE_URL` (Neon branch-style) — PR databases never touch production
 - URL surfaces in the PR UI via the `environment:` block
 
-### Zero-cost LLM tests
+### LLM mocking in CI
 
-`tests/setup/llm-mock.ts` is wired in via `vitest.config.ts → test.setupFiles` and replaces every LangChain adapter (`@langchain/openai`, `anthropic`, `google-genai`, `ollama`) plus the `DynamicLlmRouter` with deterministic stubs. The router's tier-selection logic still runs; no network call is ever made. Tests run in milliseconds.
+The setup file replaces every LangChain adapter with deterministic stubs; tests run in milliseconds with zero external calls.
 
 ### Required GitHub Secrets
 
 | Required | Recommended |
 |---|---|
-| `FLY_API_TOKEN` | `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
-| `FLY_ORG` | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` |
-| `DATABASE_URL` | `API_KEY_LOOKUP_SECRET` (defaults to `JWT_SECRET` in dev) |
-| `REDIS_URL` | `FLY_APP` (defaults to `kyc-copilot`) |
-| `ENCRYPTION_KEY` | `FLY_REGION` (defaults to `ams`) |
-| `JWT_SECRET` | `PREVIEW_DATABASE_URL` (for PR ephemeral envs) |
-| `JWT_REFRESH_SECRET` | |
+| `FLY_API_TOKEN`, `FLY_ORG` | `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
+| `DATABASE_URL`, `REDIS_URL` | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` |
+| `ENCRYPTION_KEY` | `API_KEY_LOOKUP_SECRET` (defaults to `JWT_SECRET` in dev) |
+| `JWT_SECRET`, `JWT_REFRESH_SECRET` | `FLY_APP` (default `kyc-copilot`), `FLY_REGION` (default `ams`) |
+| | `PREVIEW_DATABASE_URL` (PR ephemeral envs) |
 
 ---
 
@@ -311,6 +328,7 @@ npm run dev            # http://localhost:3000
 | Concurrency | soft 20, hard 50 — protects the Playwright pool |
 | Persistent volume | `kyc_data` mounted at `/app/data` (1 GB initial) |
 | Release command | `node dist/src/db/migrate.js` (Drizzle programmatic migrator) |
+| Graceful shutdown | `SIGTERM` → close HTTP server, BullMQ worker, queue, browser pool, Redis, Postgres |
 
 Source: [`fly.toml`](./fly.toml). Deploys are automatic on `push to main` once required GitHub Secrets are set.
 
@@ -318,26 +336,28 @@ Source: [`fly.toml`](./fly.toml). Deploys are automatic on `push to main` once r
 
 ---
 
-## Operational guarantees
+## Engineering guarantees
 
-| Invariant | Rule | Enforced by |
+These are mechanically enforced invariants — failure to hold them is a build break, not a guideline:
+
+| ID | Rule | Source |
 |---|---|---|
 | `INV-001` | Every dossier claim carries a valid `[Source: KEY]` | `src/graph/nodes/guardrail.ts` |
 | `INV-002` | Uncited claims are stripped — never bypassed | `src/graph/nodes/guardrail.ts` |
 | `INV-003` | PII encrypted at rest; list endpoints return masks | `*Encrypted` / `*Mask` columns |
 | `INV-004` | Audit logs are append-only with hashed payloads | `src/services/audit/logger.ts` |
-| `INV-005` | API keys HMAC-SHA256 hashed; raw key returned once; O(1) lookup | `src/api/middleware/auth.ts` |
+| `INV-005` | API keys HMAC-SHA256 hashed; O(1) lookup via indexable id | `src/api/middleware/auth.ts` |
 | `INV-006` | Webhooks signed HMAC-SHA256, timing-safe verified | `src/services/webhooks/dispatcher.ts` |
 | `INV-007` | `pending_hitl` cases never auto-approve | `src/graph/nodes/guardrail.ts` |
 
 ---
 
-## Roadmap (post v1.0.0)
+## Roadmap
 
-- **SAML / SSO** — for federal tenant onboarding (TBS-aligned IdP federation)
-- **Scheduled re-screening cron** — automated periodic EDD refresh
-- **Compiled LangGraph StateGraph migration** — true graph checkpoint / resume (ADR-001)
-- **Stripe billing enforcement** — metered plan upgrades in production
+- Compiled LangGraph StateGraph migration — true graph checkpoint / resume
+- SAML / SSO for tenant onboarding
+- Scheduled re-screening cron
+- Stripe billing enforcement
 
 ---
 
