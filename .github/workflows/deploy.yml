@@ -1,6 +1,20 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # KYC Copilot — Deploy Pipeline
-# Triggers on push to main. Runs checks, then deploys to Fly.io (ams region).
+# Triggers on push to main. Runs checks, SAST, Fly preflight (app/volume/
+# secrets), then deploys to Fly.io (ams region).
+#
+# Required GitHub Secrets (set in repo Settings → Secrets and variables → Actions):
+#   FLY_API_TOKEN             — fly org token (`flyctl tokens create org`)
+#   FLY_APP                   — Fly app name, default `kyc-copilot`
+#   FLY_ORG                   — Fly org slug (used by `fly apps create`)
+#   FLY_REGION                — primary region, default `ams`
+#   DATABASE_URL              — postgres://… Fly Postgres or managed PG URL
+#   REDIS_URL                 — rediss://… Upstash or redis://… Fly Redis URL
+#   ENCRYPTION_KEY            — 32-byte hex (AES-256-GCM key)
+#   JWT_SECRET                — random ≥32 bytes
+#   JWT_REFRESH_SECRET        — random ≥32 bytes, distinct from JWT_SECRET
+#   S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET  — Tigris/MinIO/R2
+#   OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY    — optional (LLM tiers)
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: Deploy
@@ -20,6 +34,9 @@ permissions:
 env:
   NODE_VERSION: "20"
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  FLY_APP: ${{ secrets.FLY_APP || 'kyc-copilot' }}
+  FLY_ORG: ${{ secrets.FLY_ORG }}
+  FLY_REGION: ${{ secrets.FLY_REGION || 'ams' }}
 
 jobs:
   # ── Job 1: Typecheck & Test ──────────────────────────────────────────────
@@ -77,11 +94,66 @@ jobs:
         # Run audit. If audit fails due to high/critical vuln, block deploy.
         run: npm audit --audit-level=high
 
-  # ── Job 3: Deploy to Fly.io ─────────────────────────────────────────────
-  deploy:
-    name: Deploy to Fly.io (ams)
+  # ── Job 3: Fly preflight (app / volume / secrets) ────────────────────────
+  # Runs after checks+security-scan so we never provision Fly state on a
+  # bad commit. Each step is idempotent (`|| true` on auto-create paths).
+  fly-preflight:
+    name: Fly preflight (app / volume / secrets)
     runs-on: ubuntu-latest
     needs: [checks, security-scan]
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main' && github.repository == 'kakashi3lite/kyc-copilot'
+
+    steps:
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ensure Fly app exists
+        # `fly apps create` fails (exit 1) if the app already exists — we
+        # swallow that with `|| true` because that's the idempotent path.
+        run: flyctl apps create "$FLY_APP" --org "$FLY_ORG" || echo "app already exists — continuing"
+
+      - name: Ensure persistent volume exists
+        # mount in fly.toml is `source = "kyc_data"`. Idempotent: `fly volumes
+        # create` fails when the volume already exists; we swallow.
+        run: flyctl volumes create kyc_data --app "$FLY_APP" --region "$FLY_REGION" --size 1 --yes || echo "volume already exists — continuing"
+
+      - name: Set Fly secrets (idempotent)
+        # Only pushes secrets that exist as GitHub Actions secrets. flyctl
+        # `secrets set` overwrites in place, so this is safe to re-run.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          set -e
+          ARGS=()
+          for k in DATABASE_URL REDIS_URL ENCRYPTION_KEY JWT_SECRET JWT_REFRESH_SECRET \
+                   S3_ENDPOINT S3_ACCESS_KEY S3_SECRET_KEY S3_BUCKET \
+                   OPENAI_API_KEY ANTHROPIC_API_KEY GOOGLE_API_KEY; do
+            v="${!k:-}"
+            if [ -n "$v" ]; then ARGS+=("$k=$v"); fi
+          done
+          if [ ${#ARGS[@]} -gt 0 ]; then
+            flyctl secrets set --app "$FLY_APP" "${ARGS[@]}"
+          else
+            echo "no Fly secrets configured in repo; skipping"
+          fi
+
+  # ── Job 4: Deploy to Fly.io ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to Fly.io (${{ env.FLY_REGION }})
+    runs-on: ubuntu-latest
+    needs: [checks, security-scan, fly-preflight]
     timeout-minutes: 20
     # Only deploy from main, never from forks
     if: github.ref == 'refs/heads/main' && github.repository == 'kakashi3lite/kyc-copilot'
@@ -93,5 +165,5 @@ jobs:
       - name: Setup Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy to Amsterdam (ams)
-        run: flyctl deploy --remote-only --region ams --strategy rolling
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --app "$FLY_APP" --region "$FLY_REGION" --strategy rolling

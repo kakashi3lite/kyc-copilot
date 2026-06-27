@@ -60,15 +60,33 @@ export async function closeInfrastructure(): Promise<void> {
   await pool.end();
 }
 
-// Run database health check on startup
+// Run database health check on startup. Tolerate Fly Postgres cold-start
+// latency (~30s window) before giving up. The migrate.ts release_command
+// already validates DB connectivity before traffic is shifted; this
+// runtime check is a defense-in-depth guard against later drift.
 if (process.env.NODE_ENV !== "test" && process.env.SKIP_DB_CHECK !== "true") {
-  checkDb().then((ok) => {
-    if (!ok) {
-      childLogger({ component: "db" }).error("Database health check failed on startup. Exiting.");
-      process.exit(1);
-    }
+  const startupWindowMs = 30_000;
+  const attempts = 30;
+  const baseDelayMs = 250;
+  const maxDelayMs = 2_000;
+
+  withRetry(
+    async () => {
+      const client = await pool.connect();
+      try {
+        await client.query("select 1");
+      } finally {
+        client.release();
+      }
+    },
+    { attempts, baseDelayMs, maxDelayMs },
+  ).then(() => {
+    childLogger({ component: "db" }).info("database reachable on startup");
   }).catch((error) => {
-    childLogger({ component: "db" }).error({ error: error instanceof Error ? error.message : String(error) }, "Database health check threw error on startup. Exiting.");
+    childLogger({ component: "db" }).fatal({
+      error: error instanceof Error ? error.message : String(error),
+      windowMs: startupWindowMs,
+    }, `Database health check failed after ${startupWindowMs}ms. Exiting.`);
     process.exit(1);
   });
 }

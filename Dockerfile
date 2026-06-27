@@ -2,10 +2,11 @@
 # KYC Copilot — Production Dockerfile
 # Multi-stage build on Playwright base image for browser-based KYC evidence
 # gathering. Final stage runs as non-root `node` user (AMLD6 compliance).
+# Playwright base image is pinned to match `playwright` in package.json.
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Install production dependencies ─────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.49.1-jammy AS deps
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS deps
 
 WORKDIR /app
 
@@ -22,7 +23,7 @@ RUN npm ci --omit=dev --legacy-peer-deps --ignore-scripts && \
     npm cache clean --force
 
 # ── Stage 2: Build TypeScript ────────────────────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.49.1-jammy AS build
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS build
 
 WORKDIR /app
 
@@ -39,7 +40,7 @@ COPY public/ ./public/
 RUN npm run typecheck && npm run build
 
 # ── Stage 3: Production runtime ─────────────────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.49.1-jammy AS runtime
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS runtime
 
 # Metadata labels (OCI standard)
 LABEL org.opencontainers.image.title="kyc-copilot" \
@@ -64,6 +65,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
+
+# Copy DB migrations into the runtime image so `dist/src/db/migrate.js`
+# (Fly's release_command) can find them at /app/src/db/migrations.
+# drizzle's migrator reads meta/_journal.json + meta/*.json snapshots in
+# addition to the SQL files, so the whole folder is required.
+COPY --from=build /app/src/db/migrations ./src/db/migrations
 
 # Create data directory for any local storage needs
 RUN mkdir -p /app/data && \
