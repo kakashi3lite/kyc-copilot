@@ -1,0 +1,41 @@
+# ── Build artifacts ──────────────────────────────────────
+dist/
+*.tsbuildinfo
+
+# ── Dependencies ─────────────────────────────────────────
+node_modules/
+
+# ── Environment / secrets ────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE / OS ─────────────────────────────────────────────
+.cursor/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# ── Version control ──────────────────────────────────────
+.git/
+.gitignore
+
+# ── Docs & CI (not needed in image) ─────────────────────
+docs/
+demo-logs/
+tests/
+scripts/
+.github/
+*.md
+!README.md
+
+# ── Docker recursion ─────────────────────────────────────
+Dockerfile
+docker-compose.yml
+fly.toml
+
+# ── Session & config artifacts ───────────────────────────
+.session-state.yaml
+drizzle.config.ts
+vitest.config.ts

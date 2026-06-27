@@ -1,0 +1,61 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# KYC Copilot — Fly.io Configuration
+# Region: ams (Amsterdam) — EU data residency for AMLD6 compliance
+# ──────────────────────────────────────────────────────────────────────────────
+
+app = "kyc-copilot"
+primary_region = "ams"
+kill_signal = "SIGTERM"
+kill_timeout = "10s"
+
+[build]
+
+[deploy]
+  release_command = "node dist/src/db/migrate.js"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  LOG_LEVEL = "info"
+  PLAYWRIGHT_BROWSERS_PATH = "/ms-playwright"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
+
+# ── HTTP Service ─────────────────────────────────────────────────────────────
+# Force HTTPS, TLS termination at Fly's edge proxy.
+# Concurrency limits protect the Playwright dual-semaphore browser pool:
+#   - soft_limit 20: Fly starts spinning up new machines
+#   - hard_limit 50: Fly refuses connections (backpressure)
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 20
+    hard_limit = 50
+
+# ── Health Checks ────────────────────────────────────────────────────────────
+[[http_service.checks]]
+  grace_period = "15s"
+  interval = "15s"
+  method = "GET"
+  path = "/health"
+  timeout = "5s"
+
+# ── Machine Sizing ───────────────────────────────────────────────────────────
+# Playwright + LLM calls need decent RAM. performance-2x gives 2 vCPU / 4GB.
+[[vm]]
+  size = "performance-2x"
+  memory = "4gb"
+  cpus = 2
+
+# ── Persistent Volume ───────────────────────────────────────────────────────
+# Mounted for local data needs (e.g., SQLite fallback, temp evidence cache).
+# Primary storage is Fly Postgres (attached separately via `fly postgres attach`).
+[mounts]
+  source = "kyc_data"
+  destination = "/app/data"
+  initial_size = "1gb"
