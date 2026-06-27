@@ -148,3 +148,36 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
 - **Alternatives rejected:**
   - Feature flags service (over-engineered for 3 tiers)
   - Hard-coded tenant allowlists
+
+---
+
+## ADR-010: Dynamic Multi-Provider LLM Routing
+
+- **Status:** Accepted
+- **Context:** Phase 1 used `DeterministicLlmClient` (rule-based, no LLM call). Production requires real LLM reasoning for complex dossiers while maintaining cost control and avoiding vendor lock-in. Different providers offer different trade-offs: context window size (Gemini 1M), cost (GPT-4o-mini), quality (GPT-4o), and local development (Ollama).
+- **Decision:** Implement `DynamicLlmRouter` behind the existing `LlmClient` interface. Five tiers:
+  - **T0** — Deterministic (rule-based, $0, always available)
+  - **T1** — Ollama/Llama 3 (local, $0, no strict JSON)
+  - **T2** — GPT-4o-mini (default prod tier, cheap, strict JSON)
+  - **T3** — Gemini 1.5 Flash (1M context, strict JSON, for large inputs)
+  - **T4** — GPT-4o (premium, reserved for complex cases)
+
+  Pure function `pickModel()` applies routing rules:
+  1. If strict-zod required and tier lacks support → route to T2
+  2. If token estimate > 120K → route to T3 (Gemini Flash)
+  3. Default → configured tier (env `LLM_TIER_PRIMARY`)
+
+  Sync gate on `POST /cases?sync=true` rejects tiers not in `LLM_SYNC_ALLOWED_TIERS` with HTTP 400 to prevent 504 Gateway Timeouts.
+- **Consequences:**
+  - Provider catalog in `src/config/llm-providers.ts` is single source of truth
+  - Router in `src/services/llm/router.ts` with `pickModel()` pure function
+  - LangChain adapters in `src/services/llm/adapters/*.ts` wrap provider SDKs
+  - `FallbackLlmClient` delegates to `DynamicLlmRouter` — zero changes to `graph-runner.ts`
+  - `AgentState.llmSelection` tracks which provider was selected per run
+  - T0 remains automatic fallback when API keys are missing or providers error
+- **Do not undo unless:** A dedicated AI gateway (e.g., LiteLLM proxy) replaces in-process routing.
+- **Alternatives rejected:**
+  - Single-provider hardcoding (vendor lock-in, no cost optimization)
+  - External LLM proxy service (adds infrastructure complexity prematurely)
+  - Per-node provider selection (over-complicated for current single-LLM-call architecture)
+

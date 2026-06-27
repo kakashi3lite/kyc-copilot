@@ -15,6 +15,7 @@ export interface AgentState extends EntityInput {
   browserFailed: boolean;
   guardrailFindings: string[];
   auditTrail: Array<{ actor: string; action: string; occurredAt: string; hash: string }>;
+  llmSelection: Record<string, unknown> | null;
 }
 
 export type AgentStatePatch = Partial<AgentState>;
@@ -33,7 +34,8 @@ export function initialState(input: EntityInput & { caseId: string; tenantId: st
     uboVerified: false,
     browserFailed: false,
     guardrailFindings: [],
-    auditTrail: []
+    auditTrail: [],
+    llmSelection: null
   };
 }
 
@@ -44,6 +46,7 @@ export function mergeState(state: AgentState, patch: AgentStatePatch): AgentStat
     evidenceLedger: { ...state.evidenceLedger, ...patch.evidenceLedger },
     claims: patch.claims ?? state.claims,
     guardrailFindings: patch.guardrailFindings ?? state.guardrailFindings,
-    auditTrail: patch.auditTrail ?? state.auditTrail
+    auditTrail: patch.auditTrail ?? state.auditTrail,
+    llmSelection: patch.llmSelection ?? state.llmSelection
   };
 }

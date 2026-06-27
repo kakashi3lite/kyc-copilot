@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { env } from "../../config/env.js";
 import { z } from "zod";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../../db/index.js";
@@ -26,7 +27,15 @@ caseRoutes.post("/cases", validateJson(createCaseSchema), async (c) => {
   const caseId = newId("case");
   await db.insert(cases).values({ id: caseId, tenantId: auth.tenantId, companyNameEncrypted: encryptPii(body.companyName), companyNameMask: maskName(body.companyName), registrationNumberEncrypted: encryptPii(body.registrationNumber), registrationNumberMask: maskRegistration(body.registrationNumber), jurisdiction: body.jurisdiction.toUpperCase(), status: "queued" });
   await writeAuditLog({ tenantId: auth.tenantId, caseId, actor: auth.userId ?? "api", action: "case.created", newValue: { jurisdiction: body.jurisdiction.toUpperCase() } });
-  if (c.req.query("sync") === "true") await runCase(caseId, auth.tenantId); else await graphQueue.add("run", { caseId, tenantId: auth.tenantId });
+  if (c.req.query("sync") === "true") {
+    const syncAllowed = env.LLM_SYNC_ALLOWED_TIERS.split(",").map((t: string) => t.trim());
+    if (!syncAllowed.includes(env.LLM_TIER_PRIMARY)) {
+      return problem(c, 400, "Bad Request", "Sync not allowed for heavy LLM tiers. Poll /cases/:id");
+    }
+    await runCase(caseId, auth.tenantId);
+  } else {
+    await graphQueue.add("run", { caseId, tenantId: auth.tenantId });
+  }
   return c.json({ caseId, status: "queued" }, 201);
 });
 
