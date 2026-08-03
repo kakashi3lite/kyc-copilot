@@ -1,8 +1,15 @@
 /**
  * DynamicLlmRouter — implements LlmClient by selecting the best provider
- * based on context size, cost, and strict-JSON requirements.
+ * based on task difficulty, cost, and strict-JSON requirements.
  *
  * Pure function `pickModel()` is deterministic and testable.
+ * `draftDossier()` integrates, in order:
+ *   1. Semantic cache lookup (Sprint 3) — repeat lookups skip the LLM.
+ *   2. Per-tenant budget check (Sprint 2) — over-budget tenants fall to t0,
+ *      near-budget tenants are capped at t2.
+ *   3. Difficulty classifier (Sprint 3) — assigns a cost-optimized tier.
+ *   4. Model selection + adapter call, then cache write-back.
+ *
  * The router instantiates adapters lazily and falls back to T0 on failure.
  */
 
@@ -11,7 +18,11 @@ import type { DossierDraft, LlmClient } from "./client.js";
 import { DeterministicLlmClient } from "./client.js";
 import { env } from "../../config/env.js";
 import { type LlmTier, type ProviderConfig, getProvider } from "../../config/llm-providers.js";
-import { estimateTokens } from "./adapters/prompt.js";
+import { checkLlmBudget } from "./budget.js";
+import { DeterministicDifficultyClassifier } from "./difficulty-classifier.js";
+import { cacheKey, hashCacheKey, sharedCache, type CacheEntry } from "./cache.js";
+import { recordTokenUsage } from "./cost-tracker.js";
+import type { GraphContext } from "../kyc-data/graph-query.js";
 import { childLogger } from "../../config/logger.js";
 
 const log = childLogger({ component: "llm-router" });
@@ -69,7 +80,7 @@ function createAdapter(provider: ProviderConfig): LlmClient {
       }
       // Lazy import to avoid loading SDK when not needed
       const { OpenAiAdapter } = require("./adapters/openai.js") as typeof import("./adapters/openai.js");
-      return new OpenAiAdapter(provider.modelId, key);
+      return new OpenAiAdapter(provider.modelId, key, provider.costPer1kInput, provider.costPer1kOutput, provider.tier);
     }
 
     case "anthropic": {
@@ -79,7 +90,7 @@ function createAdapter(provider: ProviderConfig): LlmClient {
         return new DeterministicLlmClient();
       }
       const { AnthropicAdapter } = require("./adapters/anthropic.js") as typeof import("./adapters/anthropic.js");
-      return new AnthropicAdapter(key);
+      return new AnthropicAdapter(key, provider.costPer1kInput, provider.costPer1kOutput, provider.tier);
     }
 
     case "google": {
@@ -89,12 +100,12 @@ function createAdapter(provider: ProviderConfig): LlmClient {
         return new DeterministicLlmClient();
       }
       const { GoogleAdapter } = require("./adapters/google.js") as typeof import("./adapters/google.js");
-      return new GoogleAdapter(key);
+      return new GoogleAdapter(key, provider.costPer1kInput, provider.costPer1kOutput, provider.tier);
     }
 
     case "ollama": {
       const { OllamaAdapter } = require("./adapters/ollama.js") as typeof import("./adapters/ollama.js");
-      return new OllamaAdapter(env.OLLAMA_BASE_URL);
+      return new OllamaAdapter(env.OLLAMA_BASE_URL, provider.costPer1kInput, provider.costPer1kOutput, provider.tier);
     }
 
     default:
@@ -108,17 +119,57 @@ function createAdapter(provider: ProviderConfig): LlmClient {
 export class DynamicLlmRouter implements LlmClient {
   private readonly deterministic = new DeterministicLlmClient();
 
-  public async draftDossier(state: AgentState): Promise<DossierDraft> {
+  public async draftDossier(state: AgentState, graphCtx?: GraphContext | null): Promise<DossierDraft> {
+    // ── 1. Semantic cache lookup ──────────────────────────────────────────
+    // Bypassed for high-risk cases (must always get a fresh assessment),
+    // browser-failed cases (incomplete data must not be cached), and in
+    // tests (no Redis dependency in CI).
+    const cacheEnabled = env.LLM_CACHE_ENABLED && env.NODE_ENV !== "test" && !state.requiresHuman && !state.browserFailed;
+    const key = cacheEnabled ? cacheKey(state, graphCtx) : null;
+    if (key !== null) {
+      const cached = await sharedCache.get(key);
+      if (cached) {
+        log.info({ promptHash: key.slice(0, 16) }, "cache hit");
+        // Record a zero-cost call so the cache-hit benchmark is measurable.
+        recordTokenUsage(state.tenantId, 0, 0, 0).catch(() => {});
+        return cached.response;
+      }
+    }
+
+    // ── 2. Budget enforcement ────────────────────────────────────────────
+    // Fail-open: if the budget check itself errors (DB down), proceed
+    // without a cap rather than blocking the case.
+    const budget = await checkLlmBudget(state.tenantId).catch((error) => {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, "budget check failed, proceeding without cap");
+      return null;
+    });
+    if (budget !== null && !budget.allowed) {
+      log.warn({ tenantId: state.tenantId, reason: budget.reason }, "budget blocked, routing to t0");
+      return this.deterministic.draftDossier(state);
+    }
+
+    // ── 3. Difficulty-aware routing ──────────────────────────────────────
+    const classifier = new DeterministicDifficultyClassifier();
+    const features = classifier.extractFeatures(state);
+    const assignment = classifier.classify(features);
+    let tier: LlmTier = assignment.tier;
+    // Near-budget tenants are capped at t2 — no t4 for them.
+    if (budget !== null && budget.allowed && budget.warning && tier === "t4") {
+      log.warn({ tenantId: state.tenantId }, "budget at warning threshold, capping t4 → t2");
+      tier = "t2";
+    }
+
     const ctx: RoutingContext = {
-      configuredTier: env.LLM_TIER_PRIMARY as LlmTier,
-      tokenEstimate: estimateTokens(state),
+      configuredTier: tier,
+      tokenEstimate: features.estimatedTokenCount,
       nodeRequirement: "strict-zod", // dossier always requires strict schema
     };
-
     const selected = pickModel(ctx);
     log.info({
+      assignedTier: assignment.tier,
       tier: selected.tier,
-      model: selected.modelId,
+      confidence: assignment.confidence,
+      reason: assignment.reason,
       tokenEstimate: ctx.tokenEstimate,
     }, "model selected for dossier draft");
 
@@ -129,7 +180,22 @@ export class DynamicLlmRouter implements LlmClient {
 
     try {
       const adapter = createAdapter(selected);
-      return await adapter.draftDossier(state);
+      const result = await adapter.draftDossier(state, graphCtx);
+
+      // ── 4. Cache write-back ────────────────────────────────────────────
+      if (key !== null) {
+        const entry: CacheEntry = {
+          promptHash: hashCacheKey(state, graphCtx),
+          response: result,
+          modelId: selected.modelId,
+          costSavedUsd: selected.costPer1kInput * (features.estimatedTokenCount / 1000),
+          createdAt: new Date().toISOString(),
+          ttlSeconds: sharedCache.ttlForState(state),
+        };
+        await sharedCache.set(entry).catch(() => {});
+      }
+
+      return result;
     } catch (error) {
       log.warn(
         { error: error instanceof Error ? error.message : String(error), tier: selected.tier },

@@ -224,6 +224,69 @@ export const stripeEvents = pgTable("stripe_events", {
   tenantIdx: index("stripe_events_tenant_idx").on(table.tenantId)
 }));
 
+// ── RAG-Graph tables (Phase 1: Blue Ocean Sprint 4) ──────────────────────
+// Cross-case knowledge graph: canonical entity nodes, relationship edges,
+// and case→entity links. Backs the RAG-Graph subsystem (arXiv:2512.06240 —
+// "AI in AML" entity resolution / knowledge graph patterns).
+
+/** Canonical entity nodes in the knowledge graph. */
+export const graphEntities = pgTable("graph_entities", {
+  id: text("id").primaryKey(),                    // "ent_<ulid>"
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  canonicalName: text("canonical_name").notNull(),
+  entityType: text("entity_type").notNull(),       // "company" | "person" | "wallet" | "sanctions_entry"
+  jurisdiction: varchar("jurisdiction", { length: 2 }),
+  registrationNumber: text("registration_number"),
+  /** JSON: { opencorporates: { name, confidence }, complyadvantage: {...} } */
+  sourceMetadata: jsonb("source_metadata").$type<Record<string, unknown>>().notNull().default({}),
+  /** Aggregated confidence score across all sources (0.0–1.0). */
+  resolutionConfidence: numeric("resolution_confidence", { precision: 3, scale: 2 }).notNull().default("1.00"),
+  /** Cached embedding (1536-d float32[]) for vector search. Null until computed. */
+  embedding: jsonb("embedding").$type<number[]>(),
+  isActive: boolean("is_active").notNull().default(true),
+  ...timestamps
+}, (table) => ({
+  tenantIdx: index("graph_entities_tenant_idx").on(table.tenantId),
+  typeIdx: index("graph_entities_type_idx").on(table.entityType),
+  nameSearchIdx: index("graph_entities_name_idx").on(table.canonicalName),
+  // One canonical entity per registration number per jurisdiction per tenant.
+  // G3 (tenant isolation): two tenants may independently assess the same
+  // legal entity — their graphs must not merge unless federation is opted in.
+  registrationUnique: uniqueIndex("graph_entities_reg_tenant_unique")
+    .on(table.tenantId, table.registrationNumber, table.jurisdiction)
+    .where(sql`${table.registrationNumber} IS NOT NULL`),
+}));
+
+/** Edges between graph entities. */
+export const graphEdges = pgTable("graph_edges", {
+  id: text("id").primaryKey(),                    // "edg_<ulid>"
+  tenantId: text("tenant_id").notNull().references(() => tenants.id),
+  sourceEntityId: text("source_entity_id").notNull().references(() => graphEntities.id, { onDelete: "cascade" }),
+  targetEntityId: text("target_entity_id").notNull().references(() => graphEntities.id, { onDelete: "cascade" }),
+  relationshipType: text("relationship_type").notNull(), // "controls" | "transacts_with" | "sanctioned_by" | "is_ubo_of" | "same_as"
+  /** JSON: { evidenceKeys: ["API_1"], confidence: 0.95 } */
+  edgeMetadata: jsonb("edge_metadata").$type<Record<string, unknown>>().notNull().default({}),
+  ...timestamps
+}, (table) => ({
+  sourceIdx: index("graph_edges_source_idx").on(table.sourceEntityId),
+  targetIdx: index("graph_edges_target_idx").on(table.targetEntityId),
+  tenantIdx: index("graph_edges_tenant_idx").on(table.tenantId),
+  relTypeIdx: index("graph_edges_rel_type_idx").on(table.relationshipType),
+}));
+
+/** Links a case to the graph entities it references. */
+export const caseEntities = pgTable("case_entities", {
+  id: text("id").primaryKey(),                    // "cel_<ulid>"
+  caseId: text("case_id").notNull().references(() => cases.id, { onDelete: "cascade" }),
+  entityId: text("entity_id").notNull().references(() => graphEntities.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),                   // "subject" | "ubo" | "sanctions_match" | "related"
+  ...timestamps
+}, (table) => ({
+  caseIdx: index("case_entities_case_idx").on(table.caseId),
+  entityIdx: index("case_entities_entity_idx").on(table.entityId),
+  caseEntityUnique: uniqueIndex("case_entities_unique").on(table.caseId, table.entityId, table.role),
+}));
+
 export type TenantRow = InferSelectModel<typeof tenants>;
 export type UserRow = InferSelectModel<typeof users>;
 export type CaseRow = InferSelectModel<typeof cases>;
@@ -232,3 +295,6 @@ export type EvidenceRow = InferSelectModel<typeof evidence>;
 export type WebhookRow = InferSelectModel<typeof webhooks>;
 export type PlanRow = InferSelectModel<typeof plans>;
 export type StripeEventRow = InferSelectModel<typeof stripeEvents>;
+export type GraphEntityRow = InferSelectModel<typeof graphEntities>;
+export type GraphEdgeRow = InferSelectModel<typeof graphEdges>;
+export type CaseEntityRow = InferSelectModel<typeof caseEntities>;

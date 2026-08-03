@@ -43,3 +43,27 @@ export function maskRecord(record: Record<string, unknown>): Record<string, unkn
   }
   return output;
 }
+
+const SCRIPT_PATTERN = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+const HTML_TAG_PATTERN = /<[^>]*>/g;
+const DANGEROUS_PROTOCOL = /javascript:|data:text\/html|vbscript:/gi;
+
+/**
+ * Sanitize LLM-generated output text for safe storage and display.
+ *
+ * Unlike {@link sanitizeInput} (which strips everything aggressive for
+ * injection prevention), sanitizeOutput is conservative — it only strips
+ * genuinely dangerous constructs while preserving legitimate punctuation
+ * and formatting that an LLM might produce in a dossier.
+ *
+ * Guards against stored XSS: LLM output is persisted in `cases.dossier`
+ * (plaintext) and rendered in the dashboard, so a hallucinated
+ * `<script>` tag or `javascript:` URL must never survive to the client.
+ */
+export function sanitizeOutput(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(SCRIPT_PATTERN, "")        // strip <script>...</script> blocks
+    .replace(DANGEROUS_PROTOCOL, "")    // strip javascript: etc.
+    .replace(HTML_TAG_PATTERN, "");     // strip remaining HTML tags
+}

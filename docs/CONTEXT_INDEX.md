@@ -28,6 +28,9 @@
 | Business MVP implementation | IMPLEMENTER | IS-001 | `docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md` → ARCHITECTURE_CONTEXT §3,5,7,8,11 → affected files | 4k |
 | Billing / Stripe change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/billing/*` → `src/api/routes/{billing,stripe-webhook,users}.ts` → `plan-gate.ts` | 1.5k |
 | Report / signing change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/reports/{signer,generator,pdf-renderer}.ts` | 1k |
+| LLM routing / cost / cache | IMPLEMENTER | IS-002 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §1-4,13 → `src/services/llm/{router,budget,difficulty-classifier,cache,cost-tracker,audit}.ts` → adapters | 2.5k |
+| RAG-Graph / entity resolution | IMPLEMENTER | IS-004 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §5-6,13 → `src/db/schema.ts` → `src/services/kyc-data/{entity-resolver,graph-query}.ts` → `src/graph/nodes/draft-dossier.ts` | 2k |
+| Security hardening / ZKP | IMPLEMENTER | IS-002 | `docs/PLAN_SECURITY_HARDENING.md` → `SECURITY.md` → `src/services/llm/pii-redactor.ts` → `src/services/encryption/at-rest.ts` | 2.5k |
 | Production run / ops | — | — | `docs/OPERATIONS.md` → `SECURITY.md` → `infra/*` | 2k |
 
 ## Anti-patterns
@@ -48,9 +51,11 @@
 | DB tables | `docs/ARCHITECTURE_CONTEXT.md` §6 |
 | Why a choice was made | `docs/DECISIONS.md` |
 | Active shipping plan | `docs/PLAN_MVP_SHIP.md` (approved for implementation) |
+| AI subsystems plan + execution log | `docs/PLAN_BLUE_OCEAN_IMPLEMENTATION.md` (Sprints 1–5 shipped, §13) |
 | Business MVP (shipped) | `docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md` — Phases A–G done 2026-08-04 |
 | Operations runbook | `docs/OPERATIONS.md` |
 | Security posture | `SECURITY.md` |
+| Security hardening plan (cryptographic defense in depth) 🆕 | `docs/PLAN_SECURITY_HARDENING.md` |
 | Next feature: UBO extraction | `docs/PLAN_UBO_EXTRACTION.md` (draft-ready) |
 | Next feature: webhook DLQ + replay | `docs/PLAN_WEBHOOK_DLQ_REPLAY.md` (draft-ready) |
 | Shipping status / stubs | `docs/SHIPPING_STATUS.md` |

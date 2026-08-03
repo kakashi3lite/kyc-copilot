@@ -1,0 +1,2 @@
+DROP INDEX "graph_entities_reg_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "graph_entities_reg_tenant_unique" ON "graph_entities" USING btree ("tenant_id","registration_number","jurisdiction") WHERE "graph_entities"."registration_number" IS NOT NULL;

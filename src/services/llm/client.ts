@@ -1,9 +1,18 @@
 import type { AgentState } from "../../graph/state.js";
 import type { RiskScore } from "../../types/index.js";
+import type { GraphContext } from "../kyc-data/graph-query.js";
 import { sanitizeInput } from "../../utils/mask.js";
 
 export interface DossierDraft { claims: Array<{ id: string; text: string; sourceKey: string }>; riskScore: RiskScore; summary: string; }
-export interface LlmClient { draftDossier(state: AgentState): Promise<DossierDraft>; }
+
+/**
+ * LLM client contract. `graphCtx` is optional cross-case knowledge-graph
+ * context (Sprint 5); when provided it is woven into the dossier prompt so
+ * the model can cite prior assessments and related entities. Implementations
+ * that do not use graph context (e.g. the deterministic T0 client) simply
+ * ignore it — the parameter is optional for that reason.
+ */
+export interface LlmClient { draftDossier(state: AgentState, graphCtx?: GraphContext | null): Promise<DossierDraft>; }
 
 const blackList = new Set(["KP", "IR", "MM"]);
 const greyList = new Set(["BG", "HR", "CD", "HT", "ML", "MZ", "NA", "NG", "PH", "SN", "SS", "SY", "TZ", "VE", "VN", "YE"]);

@@ -52,6 +52,17 @@ export const env = cleanEnv(process.env, {
     default: "t2",
   }),
   LLM_SYNC_ALLOWED_TIERS: str({ default: "t0,t2" }),
+  /** Semantic LLM cache (Sprint 3). Set false to bypass the cache layer entirely. */
+  LLM_CACHE_ENABLED: bool({ default: true }),
+
+  // ── PII Redaction (G1 — Privacy hardening) ───────────────────────────
+  /** HMAC key for deterministic PII pseudonym derivation. MUST be distinct
+   *  from ENCRYPTION_KEY, JWT_SECRET, and API_KEY_LOOKUP_SECRET. Falls back
+   *  to ENCRYPTION_KEY for zero-key dev mode only. */
+  PII_REDACTION_KEY: str({ default: "" }),
+  /** Set false to bypass PII redaction in LLM prompts. Default enabled.
+   *  This is a safety valve for debugging — NEVER disable in production. */
+  PII_REDACTION_ENABLED: bool({ default: true }),
 
   // ── External APIs ──────────────────────────────────────────────────────
   COMPLY_ADVANTAGE_API_KEY: str({ default: "" }),

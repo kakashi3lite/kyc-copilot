@@ -1,8 +1,8 @@
 ---
 repo: kyc-copilot
 path: /Users/kakashi3lite/kyc-copilot
-version: 1.0.0
-updated: 2026-08-03
+version: 1.1.0
+updated: 2026-08-04
 stack: [Hono, Drizzle, PostgreSQL, Redis, BullMQ, Playwright, Puppeteer, Zod, Pino]
 compliance: AMLD6
 entry_points:
@@ -12,6 +12,11 @@ entry_points:
   worker: src/workers/graph-runner.ts
   schema: src/db/schema.ts
 invariants: [INV-001, INV-002, INV-003, INV-004, INV-005, INV-006, INV-007]
+security:
+  pii_redaction: src/services/llm/pii-redactor.ts
+  prompt_injection_defense: src/services/llm/adapters/prompt.ts (XML-tagged + anti-injection)
+  graph_tenant_isolation: src/services/kyc-data/graph-query.ts (tenant-scoped queries, migration 0004)
+  plan: docs/PLAN_SECURITY_HARDENING.md
 ---
 
 # ARCHITECTURE_CONTEXT — KYC Copilot

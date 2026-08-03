@@ -22,6 +22,20 @@
       "when": 1785781916384,
       "tag": "0002_billing_mvp",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785790930839,
+      "tag": "0003_true_jack_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785793447328,
+      "tag": "0004_colossal_slayback",
+      "breakpoints": true
     }
   ]
 }

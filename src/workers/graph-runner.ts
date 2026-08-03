@@ -18,6 +18,24 @@ import { childLogger } from "../config/logger.js";
 
 const log = childLogger({ component: "graph-runner" });
 
+/**
+ * Remove decrypted PII fields from graph state before persistence.
+ *
+ * `AgentState` extends `EntityInput` and carries decrypted `companyName` /
+ * `registrationNumber` in memory for the graph pipeline. Those values
+ * already live in encrypted columns (`cases.companyNameEncrypted` etc.),
+ * so persisting them again inside the `graphState` jsonb would leak
+ * plaintext PII into the database — bypassing the ADR-003 encrypt+mask
+ * pattern. The state is shallow-copied so the in-memory object (used by
+ * later pipeline steps) is untouched.
+ */
+export function stripPiiFromGraphState(state: Record<string, unknown>): Record<string, unknown> {
+  const safe: Record<string, unknown> = { ...state };
+  delete safe.companyName;
+  delete safe.registrationNumber;
+  return safe;
+}
+
 export interface GraphJobData { caseId: string; tenantId: string; }
 
 export type GraphJobName = "run" | "rescreen";
@@ -38,7 +56,7 @@ export async function runCase(caseId: string, tenantId: string, graph = createGr
     for (const item of Object.values(state.evidenceLedger)) {
       await db.insert(evidence).values({ id: newId("evd"), caseId, tenantId, key: item.key, sourceUrlEncrypted: encryptPii(item.sourceUrl), sourceUrlMask: maskPiiInText(item.sourceUrl), summary: item.summary, kind: item.kind, version: item.version, contentHash: item.hash }).onConflictDoNothing();
     }
-    await db.update(cases).set({ status: state.status === "completed" ? "completed" : "pending_hitl", riskScore: state.riskScore, requiresHuman: state.requiresHuman, uboVerified: state.uboVerified, browserFailed: state.browserFailed, dossier: state.dossier, graphState: state as unknown as Record<string, unknown>, completedAt: state.status === "completed" ? new Date() : null, updatedAt: new Date() }).where(eq(cases.id, caseId));
+    await db.update(cases).set({ status: state.status === "completed" ? "completed" : "pending_hitl", riskScore: state.riskScore, requiresHuman: state.requiresHuman, uboVerified: state.uboVerified, browserFailed: state.browserFailed, dossier: state.dossier, graphState: stripPiiFromGraphState(state as unknown as Record<string, unknown>), completedAt: state.status === "completed" ? new Date() : null, updatedAt: new Date() }).where(eq(cases.id, caseId));
     await writeAuditLog({ tenantId, caseId, actor: "system", action: state.status === "completed" ? "case.completed" : "case.pending_hitl", newValue: { riskScore: state.riskScore, requiresHuman: state.requiresHuman } });
     await incrementUsage(tenantId, "casesProcessed");
     // Metered billing — reports to Stripe when the tenant has a
