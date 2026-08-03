@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { db } from "../../db/index.js";
+import { Queue, type ConnectionOptions } from "bullmq";
+import { db, redis } from "../../db/index.js";
 import { webhookDeliveries, webhooks } from "../../db/schema.js";
 import { decryptPii, encryptPii } from "../encryption/at-rest.js";
 import { newId, newSecret } from "../../utils/id.js";
@@ -9,6 +10,13 @@ import type { WebhookEvent } from "../../types/index.js";
 export function signWebhook(secret: string, payload: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
+
+/**
+ * Queue consumed by the webhook deliverer worker (`src/workers/webhook-deliverer.ts`).
+ * A job is added here whenever delivery rows are created so the worker runs
+ * `processPendingWebhooks()` promptly instead of waiting indefinitely.
+ */
+const webhookDelivererQueue = new Queue<Record<string, never>>("webhook-deliverer", { connection: redis as unknown as ConnectionOptions });
 
 export async function registerWebhookEndpoint(tenantId: string, url: string, events: WebhookEvent[]): Promise<{ id: string; secret: string }> {
   const id = newId("wh");
@@ -19,11 +27,13 @@ export async function registerWebhookEndpoint(tenantId: string, url: string, eve
 
 export async function enqueueWebhookEvent(tenantId: string, event: WebhookEvent, payload: Record<string, unknown>): Promise<void> {
   const endpoints = await db.select().from(webhooks).where(and(eq(webhooks.tenantId, tenantId), eq(webhooks.active, true)));
-  for (const endpoint of endpoints) {
-    const events = endpoint.events;
-    if (!events.includes(event)) continue;
+  const deliveries = endpoints.filter((endpoint) => endpoint.events.includes(event));
+  if (deliveries.length === 0) return;
+  for (const endpoint of deliveries) {
     await db.insert(webhookDeliveries).values({ id: newId("del"), webhookId: endpoint.id, tenantId, event, payload });
   }
+  // Wake the deliverer worker so the pending rows are processed immediately.
+  await webhookDelivererQueue.add("deliver", {});
 }
 
 export async function deliverWebhook(deliveryId: string): Promise<boolean> {

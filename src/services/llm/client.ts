@@ -13,7 +13,12 @@ export class DeterministicLlmClient implements LlmClient {
     const company = sanitizeInput(state.companyName);
     const apiKey = Object.keys(state.evidenceLedger)[0] ?? "API_1";
     const sanctionHit = state.apiData?.sanctions.some((hit) => hit.matched) === true;
-    const riskScore: RiskScore = sanctionHit || blackList.has(state.jurisdiction) ? "High" : greyList.has(state.jurisdiction) || !state.uboVerified ? "Medium" : "Low";
+    // Complete registry data without individual UBO rows is a documented
+    // limitation of the deterministic adapter, not a fraud signal — so a
+    // complete, non-elevated-jurisdiction entity scores Low even when UBO
+    // verification is absent (aligns with guardrail decision table, ADR-013).
+    const completeData = state.apiData?.completeness === "complete";
+    const riskScore: RiskScore = sanctionHit || blackList.has(state.jurisdiction) ? "High" : greyList.has(state.jurisdiction) ? "Medium" : completeData ? "Low" : !state.uboVerified ? "Medium" : "Low";
     return {
       riskScore,
       summary: `${company} was assessed under AMLD6 enhanced due diligence controls. [Source: ${apiKey}]`,

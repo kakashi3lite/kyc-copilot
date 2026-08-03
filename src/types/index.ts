@@ -1,3 +1,5 @@
+import type { ReportSignature } from "../services/reports/signer.js";
+
 export type CaseStatus = "queued" | "processing" | "pending_hitl" | "completed" | "failed" | "archived";
 export type RiskScore = "Low" | "Medium" | "High" | "Pending";
 export type Plan = "starter" | "growth" | "enterprise";
@@ -33,7 +35,9 @@ export interface ApiCompanyData {
   status: "active" | "inactive" | "unknown";
   incorporationDate: string | null;
   address: string | null;
-  ubos: ReadonlyArray<{ name: string; verified: boolean; ownershipPct: number }>;
+  // ownershipPct is null when the registry does not report the share
+  // percentage — never invented (ADR-013 / ADR-014).
+  ubos: ReadonlyArray<{ name: string; verified: boolean; ownershipPct: number | null }>;
   sanctions: ReadonlyArray<{ list: string; matched: boolean; name: string }>;
   pep: boolean;
   sourceUrl: string;
@@ -59,7 +63,8 @@ export interface ComplianceReportJson {
   dossier: string;
   evidenceChain: ReadonlyArray<EvidenceRecord>;
   auditTrail: ReadonlyArray<{ actor: string; action: string; occurredAt: string; hash: string }>;
-  digitalSignatureBlock: string;
+  /** D6 — HMAC-SHA256 content-integrity signature (replaces the old PKCS#7 placeholder). */
+  signature: ReportSignature;
 }
 
 export interface ProblemDetails {

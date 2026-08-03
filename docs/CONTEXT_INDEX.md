@@ -23,6 +23,12 @@
 | Code review / PR | REVIEWER | IS-001 | DECISIONS → invariants → changed files only | 1k |
 | Update context docs | CONTEXT_WRITER | IS-006 | All `docs/` → diff against codebase | 3k |
 | Session end (any role) | current | IS-006 | Write `.session-state.yaml` | 300 |
+| MVP shipping implementation | IMPLEMENTER | IS-001 | `docs/PLAN_MVP_SHIP.md` → ARCHITECTURE_CONTEXT §5,7,8,11 → affected files | 3k |
+| Post-ship review / roadmap | ARCHITECT | IS-001 | `docs/SESSION_REPORT_2026-08-03.md` → `docs/SHIPPING_STATUS.md` → DECISIONS ADR-013 | 3k |
+| Business MVP implementation | IMPLEMENTER | IS-001 | `docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md` → ARCHITECTURE_CONTEXT §3,5,7,8,11 → affected files | 4k |
+| Billing / Stripe change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/billing/*` → `src/api/routes/{billing,stripe-webhook,users}.ts` → `plan-gate.ts` | 1.5k |
+| Report / signing change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/reports/{signer,generator,pdf-renderer}.ts` | 1k |
+| Production run / ops | — | — | `docs/OPERATIONS.md` → `SECURITY.md` → `infra/*` | 2k |
 
 ## Anti-patterns
 
@@ -41,6 +47,15 @@
 | API routes | `docs/ARCHITECTURE_CONTEXT.md` §7 |
 | DB tables | `docs/ARCHITECTURE_CONTEXT.md` §6 |
 | Why a choice was made | `docs/DECISIONS.md` |
+| Active shipping plan | `docs/PLAN_MVP_SHIP.md` (approved for implementation) |
+| Business MVP (shipped) | `docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md` — Phases A–G done 2026-08-04 |
+| Operations runbook | `docs/OPERATIONS.md` |
+| Security posture | `SECURITY.md` |
+| Next feature: UBO extraction | `docs/PLAN_UBO_EXTRACTION.md` (draft-ready) |
+| Next feature: webhook DLQ + replay | `docs/PLAN_WEBHOOK_DLQ_REPLAY.md` (draft-ready) |
+| Shipping status / stubs | `docs/SHIPPING_STATUS.md` |
+| Session report (this ship) | `docs/SESSION_REPORT_2026-08-03.md` |
+| Product screenshots | `docs/screenshots/*.png` |
 | Last session state | `.session-state.yaml` (project root, gitignored) |
 | Cursor rules | `.cursor/rules/kyc-*.mdc` |
 
@@ -48,5 +63,5 @@
 
 - Path: `/Users/kakashi3lite/kyc-copilot`
 - Remote: `github.com/kakashi3lite/kyc-copilot`
-- Version: 1.0.0
+- Version: 1.1.0 (Business MVP shipped 2026-08-04)
 - Verify: `npm run typecheck && npm run test`

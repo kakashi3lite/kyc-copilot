@@ -2,6 +2,10 @@ import { expect, it, vi, beforeEach } from "vitest";
 import { createApp } from "../../../src/api/index.js";
 
 let mockRedisIncrValue = 0;
+// When true, the (mocked) cases table returns no rows — used to exercise the
+// approve route's 404 branch. `mock`-prefixed names are hoisted with the
+// vi.mock factory by Vitest.
+let mockMissingCase = false;
 const testApiKey = "kc_live_test_key";
 
 vi.mock("bcrypt", () => {
@@ -111,6 +115,11 @@ vi.mock("pg", () => {
     }
 
     if (sqlText.includes('from "cases"')) {
+      // A case id that does not exist in the (mocked) database returns no
+      // rows, which exercises the approve route's 404 branch.
+      if (mockMissingCase) {
+        return { rows: [] };
+      }
       const caseObject = {
         id: "case_1",
         tenant_id: "ten_test_123",
@@ -178,7 +187,7 @@ vi.mock("pg", () => {
     };
   });
 
-  return { Pool, default: Pool };
+  return { Pool, default: { Pool } };
 });
 
 vi.mock("../../../src/services/llm/router.js", () => {
@@ -192,6 +201,7 @@ vi.mock("../../../src/services/llm/router.js", () => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockRedisIncrValue = 0;
+  mockMissingCase = false;
 });
 
 it("auth middleware - missing authorization header returns 401", async () => {
@@ -259,4 +269,37 @@ it("rate limiter - blocks requests after rapid attempts and returns 429", async 
   const body = await res.json() as { title: string; detail: string };
   expect(body.title).toBe("Too Many Requests");
   expect(body.detail).toBe("Rate limit exceeded");
+});
+
+it("approve - missing case returns 404", async () => {
+  const app = createApp();
+  mockMissingCase = true;
+  const res = await app.request("/cases/case_missing/approve", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${testApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ notes: "test" }),
+  });
+  expect(res.status).toBe(404);
+  const body = await res.json() as { title: string; detail: string };
+  expect(body.title).toBe("Not Found");
+  expect(body.detail).toBe("Case not found");
+});
+
+it("approve - case not pending_hitl returns 409 (INV-007)", async () => {
+  const app = createApp();
+  const res = await app.request("/cases/case_1/approve", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${testApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ notes: "test" }),
+  });
+  expect(res.status).toBe(409);
+  const body = await res.json() as { title: string; detail: string };
+  expect(body.title).toBe("Conflict");
+  expect(body.detail).toBe("Only cases awaiting human review can be approved");
 });

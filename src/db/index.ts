@@ -1,10 +1,15 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import pg from "pg";
 import { Redis } from "ioredis";
 import { env } from "../config/env.js";
 import { childLogger } from "../config/logger.js";
 import * as schema from "./schema.js";
 import { withRetry } from "../utils/retry.js";
+
+// `pg` is a CommonJS module; under native ESM the named export `Pool` is not
+// statically analyzable (Node throws "does not provide an export named 'Pool'").
+// Import the default and destructure instead — identical at runtime.
+const { Pool } = pg;
 
 export type Database = NodePgDatabase<typeof schema>;
 

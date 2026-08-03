@@ -30,10 +30,14 @@
  */
 
 import { mkdir } from "node:fs/promises";
-import { Pool } from "pg";
+import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { logger } from "../config/logger.js";
+
+// `pg` is a CommonJS module; under native ESM the named export `Pool` is not
+// statically analyzable. Destructure from the default import instead.
+const { Pool } = pg;
 
 const DEFAULT_MIGRATIONS_DIR = "/app/src/db/migrations";
 

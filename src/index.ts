@@ -7,9 +7,11 @@ import {
   closeGraphResources,
   startGraphWorker,
 } from "./workers/graph-runner.js";
+import { startWebhookDeliverer } from "./workers/webhook-deliverer.js";
 
 const app = createApp();
 const worker = startGraphWorker();
+const webhookWorker = startWebhookDeliverer();
 const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
   logger.info({ port: env.PORT }, "kyc-copilot started");
 });
@@ -40,6 +42,15 @@ async function shutdown(signal: string): Promise<void> {
     logger.info("BullMQ worker closed");
   } catch (err) {
     logger.error({ error: err instanceof Error ? err.message : String(err) }, "error closing BullMQ worker");
+  }
+
+  try {
+    // 2b. Gracefully close webhook deliverer worker
+    logger.info("closing webhook deliverer worker...");
+    await webhookWorker.close();
+    logger.info("webhook deliverer worker closed");
+  } catch (err) {
+    logger.error({ error: err instanceof Error ? err.message : String(err) }, "error closing webhook deliverer worker");
   }
 
   try {

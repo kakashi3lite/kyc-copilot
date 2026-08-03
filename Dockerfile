@@ -34,10 +34,11 @@ RUN npm ci --legacy-peer-deps --ignore-scripts && \
 
 # Copy source and build
 COPY tsconfig.json ./
+COPY tsconfig.build.json ./
 COPY src/ ./src/
 COPY public/ ./public/
 
-RUN npm run typecheck && npm run build
+RUN npm run build
 
 # ── Stage 3: Production runtime ─────────────────────────────────────────────
 FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS runtime

@@ -1,18 +1,26 @@
 import type { EntityInput } from "../../types/index.js";
 import { CircuitBreaker, withRetry } from "../../utils/retry.js";
 import { sanitizeInput } from "../../utils/mask.js";
+import { env } from "../../config/env.js";
 
 export interface ScreeningResult { sanctions: ReadonlyArray<{ list: string; matched: boolean; name: string }>; pep: boolean; }
 
 export class ComplyAdvantageClient {
   private readonly breaker = new CircuitBreaker(5, 30000);
-  public constructor(private readonly baseUrl = "https://api.complyadvantage.com") {}
+  public constructor(private readonly baseUrl = env.COMPLY_ADVANTAGE_BASE_URL) {}
 
   public async screen(input: EntityInput): Promise<ScreeningResult> {
     return await this.breaker.execute(async () => withRetry(async () => {
       const response = await fetch(`${this.baseUrl}/searches`, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          // ComplyAdvantage uses an API-token auth scheme. An empty key
+          // (zero-key mode) yields 401 → retry → circuit breaker → the
+          // composite adapter's deterministic fallback.
+          authorization: `Token ${env.COMPLY_ADVANTAGE_API_KEY}`
+        },
         body: JSON.stringify({ search_term: sanitizeInput(input.companyName), client_ref: sanitizeInput(input.registrationNumber) }),
         signal: AbortSignal.timeout(15000)
       });

@@ -409,6 +409,169 @@
       0% { background: rgba(16, 185, 129, 0.15); }
       100% { background: transparent; }
     }
+
+    /* Filter selects + pagination (Phase C) */
+    .filter-select {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--gray);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-select option { background: #0b1120; color: var(--fg); }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--gray);
+    }
+    .pagination .pager-btns { display: flex; gap: 8px; }
+    .pagination button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--gray);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .pagination button:hover:not(:disabled) { background: var(--card-hover); color: white; }
+    .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Case detail panel — slides in from the right */
+    .detail-panel {
+      position: fixed;
+      top: 0;
+      right: -480px;
+      width: 460px;
+      max-width: 92vw;
+      height: 100vh;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      z-index: 1000;
+      transition: right 0.3s ease;
+      padding: 24px;
+      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+    }
+    .detail-panel.open { right: 0; }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .detail-header h2 { font-size: 20px; }
+    .btn-close { background: none; border: none; color: var(--gray); font-size: 26px; cursor: pointer; line-height: 1; }
+    .btn-close:hover { color: white; }
+    .detail-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; color: var(--gray); font-size: 13px; }
+    .detail-actions { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section h3 {
+      font-size: 0.8rem;
+      color: var(--gray);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .detail-dossier {
+      white-space: pre-wrap;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--fg);
+      margin: 0;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .evidence-row, .audit-row { display: flex; gap: 8px; padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+    .evidence-key { color: var(--blue); font-weight: 600; min-width: 56px; font-family: monospace; }
+    .evidence-summary { flex: 1; color: var(--fg); }
+    .evidence-hash { color: var(--gray); font-family: monospace; font-size: 11px; }
+    .audit-actor { color: var(--blue); font-weight: 600; min-width: 70px; }
+    .audit-action { flex: 1; color: var(--fg); }
+    .audit-date { color: var(--gray); font-size: 11px; }
+    .status-badge, .risk-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .status-badge.status-pending_hitl { background: var(--orange-bg); color: var(--orange); border-color: rgba(245,158,11,0.2); }
+    .status-badge.status-completed { background: var(--emerald-bg); color: var(--emerald); border-color: rgba(16,185,129,0.2); }
+    .status-badge.status-processing, .status-badge.status-queued { background: rgba(59,130,246,0.1); color: var(--blue); border-color: rgba(59,130,246,0.2); }
+    .status-badge.status-failed { background: var(--red-bg); color: var(--red); border-color: rgba(239,68,68,0.2); }
+    .risk-badge.risk-low { background: var(--emerald-bg); color: var(--emerald); }
+    .risk-badge.risk-medium { background: var(--orange-bg); color: var(--orange); }
+    .risk-badge.risk-high { background: var(--red-bg); color: var(--red); }
+    .risk-badge.risk-pending { background: rgba(148,163,184,0.1); color: var(--gray); }
+    .muted { color: var(--gray); font-size: 13px; }
+
+    /* Usage progress bar (Phase D — 🔔1 quota warning) */
+    .usage-bar {
+      width: 100%;
+      height: 6px;
+      background: #334155;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .usage-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--blue);
+      transition: width 0.5s ease;
+    }
+    .usage-bar-fill.warn { background: var(--orange); }
+
+    /* Welcome modal (Phase F) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 460px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .modal h2 { font-size: 22px; margin: 0 0 8px; }
+    .modal-sub { color: var(--gray); font-size: 14px; margin: 0 0 20px; }
+    .modal-label { font-size: 13px; color: var(--gray); margin: 0 0 8px; }
+    .onboarding-demo input, .onboarding-demo select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--fg);
+      font-size: 14px;
+    }
+    .modal-cta { width: 100%; margin-top: 16px; }
+    .text-btn {
+      display: block;
+      margin: 12px auto 0;
+      background: none;
+      border: none;
+      color: var(--gray);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -420,10 +583,9 @@
       GuardOS
     </div>
     <nav class="nav-tabs">
-      <a href="#" class="active">Dashboard</a>
-      <a href="#">Cases</a>
-      <a href="#">Alerts</a>
-      <a href="#">Reports</a>
+      <a href="#" class="nav-link active" data-view="dashboard" onclick="showView('dashboard')">Dashboard</a>
+      <a href="#" class="nav-link" data-view="billing" onclick="showView('billing')">Billing</a>
+      <a href="#" class="nav-link" data-view="team" onclick="showView('team')">Team</a>
     </nav>
     <div class="header-right">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -431,21 +593,23 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         <div style="position:absolute; top:0; right:2px; width:6px; height:6px; background:var(--red); border-radius:50%;"></div>
       </div>
-      <div class="avatar">JD</div>
+      <span id="user-plan" class="badge queued" style="display:none;">-</span>
+      <span id="user-email" class="user-email" style="color:var(--gray); font-size:13px; font-weight:500;">…</span>
+      <button onclick="logout()" class="btn btn-secondary">Log out</button>
     </div>
   </header>
 
-  <main>
+  <main id="view-dashboard">
     <div class="page-header">
       <h2>Compliance Overview</h2>
       <div class="header-actions">
-        <button class="btn btn-primary">
+        <button class="btn btn-primary" id="new-case-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           New Case
         </button>
-        <button class="btn btn-secondary">
+        <button class="btn btn-secondary" onclick="loadCases(); loadDashboard();">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Export
+          Refresh
         </button>
       </div>
     </div>
@@ -464,23 +628,32 @@
         <div class="header-actions">
           <div style="position:relative;">
             <svg style="position:absolute; left:12px; top:10px; color:var(--gray);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" placeholder="Search" style="background:transparent; border:1px solid var(--border); color:white; padding:8px 12px 8px 32px; border-radius:8px; font-size:14px; outline:none; width: 200px;">
+            <input id="case-search" type="text" placeholder="Search company..." oninput="debouncedSearch()" style="background:transparent; border:1px solid var(--border); color:white; padding:8px 12px 8px 32px; border-radius:8px; font-size:14px; outline:none; width: 200px;">
           </div>
-          <button class="btn btn-secondary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-            Filter
-          </button>
+          <select id="filter-status" onchange="resetAndLoad()" class="filter-select">
+            <option value="">All statuses</option>
+            <option value="processing">Processing</option>
+            <option value="pending_hitl">Pending HITL</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select id="filter-risk" onchange="resetAndLoad()" class="filter-select">
+            <option value="">All risks</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
         </div>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Company</th>
+            <th onclick="toggleSort('name')" style="cursor:pointer;">Company</th>
             <th>Registration</th>
             <th>Jurisdiction</th>
-            <th>Risk Score</th>
+            <th onclick="toggleSort('risk')" style="cursor:pointer;">Risk Score</th>
             <th>Status</th>
-            <th>Date Created</th>
+            <th onclick="toggleSort('createdAt')" style="cursor:pointer;">Date Created</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -491,11 +664,104 @@
           <tr><td colspan="7"><div class="skeleton skeleton-text" style="width: 100%; height: 32px;"></div></td></tr>
         </tbody>
       </table>
+      <div id="pagination" class="pagination" style="display:none;"></div>
     </div>
   </main>
 
+  <!-- Billing view (Phase D) -->
+  <main id="view-billing" style="display:none">
+    <div class="page-header">
+      <h2>Billing &amp; Usage</h2>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openBillingPortal()">Manage Subscription</button>
+      </div>
+    </div>
+    <div id="billing-content">
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+        <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+        <div class="metric-card"><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-text"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Team view (Phase D) -->
+  <main id="view-team" style="display:none">
+    <div class="page-header">
+      <h2>Team</h2>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openInviteModal()">Invite Member</button>
+      </div>
+    </div>
+    <div class="table-section">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="team-tbody">
+          <tr><td colspan="5"><div class="skeleton skeleton-text" style="width:100%; height:32px;"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Case detail panel (Phase C) — slide-in drawer -->
+  <div id="case-detail-panel" class="detail-panel">
+    <div class="detail-header">
+      <h2 id="detail-company-name">Company</h2>
+      <button onclick="closeDetailPanel()" class="btn-close">&times;</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-meta">
+        <span id="detail-reg"></span> · <span id="detail-jurisdiction"></span>
+        <span id="detail-status-badge" class="status-badge"></span>
+        <span id="detail-risk-badge" class="risk-badge"></span>
+      </div>
+      <div class="detail-actions">
+        <button onclick="downloadReport('pdf')" class="btn btn-primary">📄 Download PDF</button>
+        <button onclick="downloadReport('json')" class="btn btn-secondary">📋 Download JSON</button>
+        <button onclick="exportCase()" class="btn btn-secondary">📤 Export (GDPR)</button>
+        <button id="detail-approve-btn" onclick="approveFromDetail()" class="btn btn-approve" style="display:none">✅ Approve</button>
+      </div>
+      <div class="detail-section">
+        <h3>Dossier</h3>
+        <pre id="detail-dossier" class="detail-dossier"></pre>
+      </div>
+      <div class="detail-section">
+        <h3>Evidence Chain</h3>
+        <div id="detail-evidence"></div>
+      </div>
+      <div class="detail-section">
+        <h3>Audit Trail</h3>
+        <div id="detail-audit"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
-  
+
+  <!-- Welcome onboarding modal (Phase F / 🔔3) -->
+  <div id="welcome-modal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <h2>Welcome to KYC Copilot 🎉</h2>
+      <p class="modal-sub">Your account is ready. Let's run your first compliance check.</p>
+      <div class="onboarding-demo">
+        <p class="modal-label">Try it with a test company:</p>
+        <input value="Acme Logistics BV" disabled>
+        <input value="NL12345678" disabled>
+        <select disabled><option>Netherlands (NL)</option></select>
+      </div>
+      <button onclick="runDemoCase()" class="btn btn-primary modal-cta" id="demo-case-btn">Run Your First Check (14 seconds)</button>
+      <button onclick="closeWelcome()" class="text-btn">Skip — I'll explore on my own</button>
+    </div>
+  </div>
+
   <div class="ceremony-overlay" id="ceremony">
     <svg class="ceremony-icon" width="160" height="160" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -504,11 +770,109 @@
   </div>
 
   <script>
-    const API_KEY = "kc_live_demo0000000000000000000000";
-    const headers = {
-      'Authorization': `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json'
-    };
+    // ── Auth (D3 — JWT dashboard auth) ─────────────────────────────────────
+    // The hardcoded kc_live_demo API key is GONE. Dashboard users authenticate
+    // with email/password → JWT access (15 min) + refresh (7 day) tokens.
+    // API keys remain for machine-to-machine clients only.
+    const TOKEN_KEY = 'kyc_access_token';
+    const REFRESH_KEY = 'kyc_refresh_token';
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+
+    function setTokens(access, refresh) {
+      localStorage.setItem(TOKEN_KEY, access);
+      localStorage.setItem(REFRESH_KEY, refresh);
+    }
+
+    function clearTokens() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+    }
+
+    function redirectToLogin() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    function decodeToken(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); }
+      catch { return null; }
+    }
+
+    function isLoggedIn() {
+      const t = getToken();
+      if (!t) return false;
+      const p = decodeToken(t);
+      return p !== null && p.exp * 1000 > Date.now();
+    }
+
+    async function tryRefresh() {
+      const rt = localStorage.getItem(REFRESH_KEY);
+      if (!rt) return false;
+      try {
+        const res = await fetch('/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt })
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch { return false; }
+    }
+
+    // Auth-aware fetch: attaches the Bearer token, silently refreshes on 401,
+    // and redirects to login when the session can no longer be recovered.
+    async function fetchWithAuth(url, opts = {}) {
+      const token = getToken();
+      if (!token) { redirectToLogin(); throw new Error('Not authenticated'); }
+      const headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+      let res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) {
+        if (!(await tryRefresh())) { redirectToLogin(); throw new Error('Session expired'); }
+        headers.Authorization = `Bearer ${getToken()}`;
+        res = await fetch(url, { ...opts, headers });
+        if (res.status === 401) { redirectToLogin(); throw new Error('Session expired'); }
+      }
+      return res;
+    }
+
+    function logout() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    async function populateUser() {
+      const token = getToken();
+      const p = decodeToken(token || '');
+      if (p && p.email) {
+        const emailEl = document.getElementById('user-email');
+        if (emailEl) emailEl.textContent = p.email;
+      }
+      // Plan badge comes from /billing (JWT deliberately carries no plan —
+      // the DB is the source of truth; see src/api/routes/billing.ts).
+      try {
+        const res = await fetchWithAuth('/billing');
+        if (res.ok) {
+          const b = await res.json();
+          const planEl = document.getElementById('user-plan');
+          if (planEl && b.plan) {
+            planEl.style.display = '';
+            planEl.textContent = b.plan.name;
+            planEl.className = `badge ${b.subscriptionStatus === 'active' ? 'completed' : 'queued'}`;
+          }
+        }
+      } catch { /* banner is non-critical */ }
+    }
+
+    // Gate the whole dashboard behind auth (B.4).
+    (function checkAuth() {
+      if (!isLoggedIn()) { redirectToLogin(); return; }
+      const p = decodeToken(getToken());
+      if (p && p.exp * 1000 < Date.now() + 60000) { tryRefresh(); }
+      populateUser();
+    })();
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
@@ -537,6 +901,156 @@
       setTimeout(() => el.classList.remove('active'), 1500);
     }
 
+    // K3 — wire "New Case": collect entity details, create via POST /cases,
+    // then reload so the new case appears in the table and metrics.
+    async function newCase() {
+      const companyName = prompt('Company name (e.g. Acme Logistics BV)');
+      if (!companyName) return;
+      const registrationNumber = prompt('Registration number (e.g. NL12345678)');
+      if (!registrationNumber) return;
+      const jurisdiction = prompt('Jurisdiction (2-letter country code, e.g. NL)');
+      if (!jurisdiction || jurisdiction.length !== 2) {
+        showToast('Jurisdiction must be a 2-letter code', 'error');
+        return;
+      }
+      try {
+        const res = await fetchWithAuth('/cases', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName, registrationNumber, jurisdiction: jurisdiction.toUpperCase() })
+        });
+        if (!res.ok) throw new Error('Failed to create case');
+        const data = await res.json();
+        showToast(`Case created (${data.status}) — ${data.caseId}`);
+        loadDashboard();
+        loadCases();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // K4 — wire "View": open the slide-in detail panel with full dossier,
+    // evidence chain, audit trail, and report download actions (Phase C).
+    async function viewCase(id) {
+      try {
+        const res = await fetchWithAuth(`/cases/${id}`);
+        if (!res.ok) throw new Error('Failed to load case');
+        const data = await res.json();
+        const c = data.case || data;
+
+        document.getElementById('detail-company-name').textContent = c.companyName || c.companyNameMask || '—';
+        document.getElementById('detail-reg').textContent = c.registrationNumber || c.registrationNumberMask || '—';
+        document.getElementById('detail-jurisdiction').textContent = c.jurisdiction || '—';
+        const statusBadge = document.getElementById('detail-status-badge');
+        statusBadge.textContent = (c.status || '').replace('_', ' ');
+        statusBadge.className = `status-badge status-${c.status || 'queued'}`;
+        const riskBadge = document.getElementById('detail-risk-badge');
+        riskBadge.textContent = c.riskScore || 'Pending';
+        riskBadge.className = `risk-badge risk-${(c.riskScore || 'Pending').toLowerCase()}`;
+
+        document.getElementById('detail-dossier').textContent = c.dossier || 'Dossier not yet generated.';
+
+        const approveBtn = document.getElementById('detail-approve-btn');
+        if (c.status === 'pending_hitl') {
+          approveBtn.style.display = '';
+          approveBtn.dataset.caseId = id;
+        } else {
+          approveBtn.style.display = 'none';
+        }
+
+        const evidence = c.evidence || [];
+        document.getElementById('detail-evidence').innerHTML = evidence.length
+          ? evidence.map(e => `<div class="evidence-row"><span class="evidence-key">[${e.key}]</span><span class="evidence-summary">${e.summary || ''}</span><span class="evidence-hash" title="${e.hash || ''}">${(e.hash || '').slice(0, 12)}…</span></div>`).join('')
+          : "<p class='muted'>No evidence recorded.</p>";
+
+        const audit = c.audit || [];
+        document.getElementById('detail-audit').innerHTML = audit.length
+          ? audit.map(a => `<div class="audit-row"><span class="audit-actor">${a.actor || 'system'}</span><span class="audit-action">${a.action || ''}</span><span class="audit-date">${a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span></div>`).join('')
+          : "<p class='muted'>No audit events.</p>";
+
+        const panel = document.getElementById('case-detail-panel');
+        panel.dataset.caseId = id;
+        panel.classList.add('open');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('case-detail-panel').classList.remove('open');
+    }
+
+    // 🔔9 — first report download toast; the evidence chain is verifiable.
+    let reportDownloads = 0;
+    async function downloadReport(format) {
+      const id = document.getElementById('case-detail-panel').dataset.caseId;
+      if (!id) return;
+      try {
+        const res = await fetchWithAuth(`/cases/${id}/report?format=${format}`);
+        if (!res.ok) throw new Error('Report generation failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kyc-report-${id}.${format === 'pdf' ? 'pdf' : 'json'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        reportDownloads += 1;
+        showToast(reportDownloads === 1
+          ? 'Report downloaded. Evidence chain is verifiable.'
+          : 'Report downloaded.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function exportCase() {
+      const id = document.getElementById('case-detail-panel').dataset.caseId;
+      if (!id) return;
+      try {
+        const res = await fetchWithAuth(`/cases/${id}/report?format=json`);
+        if (!res.ok) throw new Error('Export failed');
+        const json = await res.json();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kyc-gdpr-export-${id}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('GDPR export downloaded');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function approveFromDetail() {
+      const id = document.getElementById('case-detail-panel').dataset.caseId;
+      const notes = prompt('Approval notes (optional):') || '';
+      try {
+        const res = await fetchWithAuth(`/cases/${id}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes })
+        });
+        if (!res.ok) {
+          const problem = await res.json().catch(() => null);
+          throw new Error(problem?.detail || 'Approval failed');
+        }
+        showCeremony();
+        showToast('Case approved successfully');
+        closeDetailPanel();
+        loadCases();
+        loadDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
     async function approveCase(id, btn) {
       const originalHTML = btn.innerHTML;
       btn.innerHTML = 'Approving...';
@@ -544,30 +1058,28 @@
       btn.style.opacity = '0.5';
       
       try {
-        const res = await fetch(`/cases/${id}/approve`, {
+        const res = await fetchWithAuth(`/cases/${id}/approve`, {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ notes: 'Approved via GuardOS Dashboard' })
         });
         
-        if (!res.ok) throw new Error('Approval failed');
+        if (!res.ok) {
+          const problem = await res.json().catch(() => null);
+          throw new Error(problem?.detail || 'Approval failed');
+        }
         
         showCeremony();
         showToast('Case approved successfully');
         
+        // K5 — no hardcoded risk/status cell writes: let loadDashboard()
+        // re-render the row from real server state. Keep the highlight
+        // transition, then refresh.
         const row = document.getElementById(`row-${id}`);
-        if (row) {
-          row.classList.add('row-updating');
-          row.querySelector('.status-cell').innerHTML = `<span class="badge completed">Completed</span>`;
-          row.querySelector('.risk-cell').innerHTML = `
-            <div class="risk-container risk-Low">
-              <div class="risk-label"><span>20</span> <span style="font-weight:400">(Low)</span></div>
-              <div class="risk-bar-bg"><div class="risk-bar-fill"></div></div>
-            </div>
-          `;
-          btn.remove();
-        }
+        if (row) row.classList.add('row-updating');
+        btn.remove();
         
+        loadCases();  // Refresh table from real server state
         loadDashboard(); // Refresh metrics
       } catch (err) {
         showToast(err.message, 'error');
@@ -592,8 +1104,8 @@
               <h3>No active cases</h3>
               <p>The queue is currently empty. Start new reviews from Alerts or Onboarding.</p>
               <div class="empty-state-actions">
-                <button class="btn btn-primary" onclick="showToast('View Alerts mocked', 'success')">View All Alerts +</button>
-                <button class="btn btn-secondary">Go to Onboarding</button>
+                <button class="btn btn-primary" onclick="newCase()">New Case +</button>
+                <button class="btn btn-secondary" onclick="loadCases(); loadDashboard();">Refresh</button>
               </div>
             </div>
           </td>
@@ -601,18 +1113,13 @@
       `;
     }
 
+    // ── Dashboard metrics (real data from /dashboard) ──────────────────────
     async function loadDashboard() {
       try {
-        const [dashRes, casesRes] = await Promise.all([
-          fetch('/dashboard', { headers }),
-          fetch('/cases', { headers })
-        ]);
-        
-        if (!dashRes.ok || !casesRes.ok) throw new Error('Failed to load data');
-        
+        const dashRes = await fetchWithAuth('/dashboard');
+        if (!dashRes.ok) throw new Error('Failed to load data');
         const dashData = await dashRes.json();
-        const casesData = await casesRes.json();
-        
+
         let total = 0, completed = 0, hitl = 0, processing = 0;
         (dashData.metrics || []).forEach(m => {
           total += m.count;
@@ -620,7 +1127,9 @@
           if (m.status === 'pending_hitl') hitl += m.count;
           if (m.status === 'processing') processing += m.count;
         });
-        
+        // K1 — real High Risk count from the dashboard's riskBreakdown.
+        const highRisk = dashData.riskBreakdown?.High ?? 0;
+
         document.getElementById('metrics-grid').innerHTML = `
           <div class="metric-card">
             <div class="metric-card-header">
@@ -628,7 +1137,7 @@
               <div class="metric-icon" style="color:var(--blue);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>
             </div>
             <div class="metric-value">${total}</div>
-            <div class="metric-trend trend-up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> +12% since yesterday</div>
+            <div class="metric-trend trend-flat">cases in pipeline</div>
           </div>
           <div class="metric-card">
             <div class="metric-card-header">
@@ -636,7 +1145,7 @@
               <div class="metric-icon" style="color:var(--orange);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>
             </div>
             <div class="metric-value">${hitl}</div>
-            <div class="metric-trend trend-flat">needs review</div>
+            <div class="metric-trend trend-flat">awaiting analyst approval</div>
           </div>
           <div class="metric-card">
             <div class="metric-card-header">
@@ -644,26 +1153,91 @@
               <div class="metric-icon" style="color:var(--emerald);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
             </div>
             <div class="metric-value">${completed}</div>
-            <div class="metric-trend trend-up">processed today</div>
+            <div class="metric-trend trend-up">cases cleared</div>
           </div>
           <div class="metric-card">
             <div class="metric-card-header">
               <span class="metric-title">High Risk</span>
               <div class="metric-icon" style="color:var(--red);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
             </div>
-            <div class="metric-value">${total > 0 ? 1 : 0}</div>
-            <div class="metric-trend trend-down">requires immediate action</div>
+            <div class="metric-value">${highRisk}</div>
+            <div class="metric-trend trend-down">elevated to HITL</div>
           </div>
         `;
-        
+      } catch (err) {
+        showToast('Error loading dashboard data', 'error');
+      }
+    }
+
+    // ── Case table: search / filter / sort / pagination (Phase C) ──────────
+    let currentPage = 0;
+    const PAGE_SIZE = 20;
+    let sortField = 'createdAt';
+    let sortOrder = 'desc';
+    let searchTimeout = null;
+
+    function debouncedSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => { currentPage = 0; loadCases(); }, 300);
+    }
+
+    function resetAndLoad() { currentPage = 0; loadCases(); }
+
+    function toggleSort(field) {
+      if (sortField === field) {
+        sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      } else {
+        sortField = field;
+        sortOrder = 'desc';
+      }
+      loadCases();
+    }
+
+    function renderPagination(total) {
+      const el = document.getElementById('pagination');
+      const pages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+      if (total <= PAGE_SIZE) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      el.style.display = 'flex';
+      const from = total === 0 ? 0 : currentPage * PAGE_SIZE + 1;
+      const to = Math.min((currentPage + 1) * PAGE_SIZE, total);
+      el.innerHTML = `
+        <span>Showing ${from}–${to} of ${total}</span>
+        <div class="pager-btns">
+          <button onclick="currentPage--; loadCases();" ${currentPage === 0 ? 'disabled' : ''}>← Prev</button>
+          <span style="align-self:center;">Page ${currentPage + 1} / ${pages}</span>
+          <button onclick="currentPage++; loadCases();" ${currentPage >= pages - 1 ? 'disabled' : ''}>Next →</button>
+        </div>
+      `;
+    }
+
+    async function loadCases() {
+      const search = document.getElementById('case-search')?.value || '';
+      const status = document.getElementById('filter-status')?.value || '';
+      const risk = document.getElementById('filter-risk')?.value || '';
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(currentPage * PAGE_SIZE),
+        sort: sortField,
+        order: sortOrder
+      });
+      if (search) params.set('search', search);
+      if (status) params.set('status', status);
+      if (risk) params.set('risk', risk);
+
+      try {
+        const res = await fetchWithAuth(`/cases?${params}`);
+        if (!res.ok) throw new Error('Failed to load cases');
+        const total = parseInt(res.headers.get('X-Total-Count') || '0', 10);
+        const data = await res.json();
+
         const tbody = document.getElementById('cases-tbody');
-        if (!casesData.cases || casesData.cases.length === 0) {
+        if (!data.cases || data.cases.length === 0) {
           tbody.innerHTML = renderEmptyState();
         } else {
-          tbody.innerHTML = casesData.cases.map(c => {
+          tbody.innerHTML = data.cases.map(c => {
             const riskValue = c.riskScore === 'High' ? 78 : c.riskScore === 'Low' ? 32 : c.riskScore === 'Medium' ? 65 : 0;
             const riskDisplay = c.riskScore === 'Pending' ? '-' : `${riskValue} <span style="font-weight:400">(${c.riskScore})</span>`;
-            
+
             return `
             <tr id="row-${c.id}">
               <td style="font-weight: 500;">${c.companyName}</td>
@@ -680,19 +1254,237 @@
               <td>
                 <div class="actions-cell">
                   ${c.status === 'pending_hitl' ? `<button class="btn btn-approve" onclick="approveCase('${c.id}', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Approve</button>` : ''}
-                  <button class="btn btn-secondary">View</button>
+                  <button class="btn btn-secondary" onclick="viewCase('${c.id}')">View</button>
                   <button class="btn btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
                 </div>
               </td>
             </tr>
           `}).join('');
         }
+        renderPagination(total);
       } catch (err) {
-        showToast('Error loading dashboard data', 'error');
+        showToast('Error loading cases', 'error');
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadDashboard);
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('new-case-btn').addEventListener('click', newCase);
+      loadDashboard();
+      loadCases();
+    });
+
+    // ── View switching: Dashboard / Billing / Team (Phase D) ──────────────
+    function showView(name) {
+      ['dashboard', 'billing', 'team'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.style.display = v === name ? '' : 'none';
+      });
+      document.querySelectorAll('.nav-link').forEach(a => {
+        a.classList.toggle('active', a.dataset.view === name);
+      });
+      if (name === 'billing') loadBilling();
+      if (name === 'team') loadTeam();
+    }
+
+    // ── Billing tab ────────────────────────────────────────────────────────
+    async function loadBilling() {
+      const el = document.getElementById('billing-content');
+      try {
+        const res = await fetchWithAuth('/billing');
+        if (!res.ok) throw new Error('Failed to load billing data');
+        const b = await res.json();
+        const plan = b.plan || { name: '—', priceMonthlyUsd: 0, casesPerMonth: 0 };
+        const used = b.currentUsage?.casesProcessed || 0;
+        const limit = plan.casesPerMonth || 0;
+        const unlimited = limit >= 99999;
+        const pct = limit ? Math.min(Math.round((used / limit) * 100), 100) : 0;
+        // 🔔1 — amber warning at ≥90% of the plan limit.
+        const amber = !unlimited && limit > 0 && (used / limit) >= 0.9;
+        const subStatus = b.subscriptionStatus || 'inactive';
+        const invoices = b.invoices || [];
+        const price = ((plan.priceMonthlyUsd || 0) / 100).toFixed(0);
+
+        el.innerHTML = `
+          <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="metric-card">
+              <div class="metric-card-header"><span class="metric-title">Plan</span></div>
+              <div class="metric-value">${plan.name || '—'}</div>
+              <div class="metric-trend trend-flat">€${price}/mo · ${unlimited ? 'unlimited cases' : limit + ' cases/mo'}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-header"><span class="metric-title">Subscription</span></div>
+              <div class="metric-value" style="font-size:28px;">${subStatus}</div>
+              <div class="metric-trend trend-flat">${b.trialEndsAt ? 'Trial ends ' + new Date(b.trialEndsAt).toLocaleDateString() : '—'}</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-header"><span class="metric-title">Usage this month</span></div>
+              <div class="metric-value">${used}<span style="font-size:16px;color:var(--gray);"> / ${unlimited ? '∞' : limit}</span></div>
+              <div class="usage-bar"><div class="usage-bar-fill ${amber ? 'warn' : ''}" style="width:${pct}%"></div></div>
+              ${amber
+                ? `<div class="metric-trend trend-down">⚠ ${Math.max(limit - used, 0)} cases left — <a href="#" onclick="openBillingPortal()" style="color:var(--blue);">Upgrade →</a></div>`
+                : `<div class="metric-trend trend-flat">${unlimited ? 'unlimited' : Math.max(limit - used, 0) + ' cases remaining'}</div>`}
+            </div>
+          </div>
+
+          <div class="metric-card" style="margin-top:24px;">
+            <div class="metric-card-header"><span class="metric-title">ROI Summary</span></div>
+            <div class="metric-value" style="font-size:28px;">€${(b.currentUsage?.manualCostAvoidedEur || 0).toLocaleString()}</div>
+            <div class="metric-trend trend-up">manual review cost avoided this month</div>
+            <div class="metric-trend trend-flat" style="margin-top:4px;">≈ ${(b.currentUsage?.timeSavedHours || 0).toFixed(1)} analyst hours saved</div>
+          </div>
+
+          <div class="table-section" style="margin-top:24px;">
+            <div class="table-header"><h3>Recent Invoices</h3></div>
+            ${invoices.length
+              ? `<table><thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${invoices.map(i => `<tr><td style="font-family:monospace;">${i.id}</td><td style="color:var(--gray);">${new Date(i.created * 1000).toLocaleDateString()}</td><td>€${(i.amountPaid / 100).toFixed(2)}</td><td><span class="badge completed">${i.status}</span></td><td>${i.hostedInvoiceUrl ? `<a href="${i.hostedInvoiceUrl}" target="_blank" style="color:var(--blue);">View</a>` : ''}</td></tr>`).join('')}</tbody></table>`
+              : '<p class="muted" style="padding:16px 24px;">No paid invoices yet.</p>'}
+          </div>
+        `;
+      } catch (err) {
+        el.innerHTML = `<p class="muted" style="padding:16px 24px;">Billing unavailable: ${err.message}</p>`;
+      }
+    }
+
+    async function openBillingPortal() {
+      try {
+        const res = await fetchWithAuth('/billing/portal', { method: 'POST' });
+        if (!res.ok) {
+          const p = await res.json().catch(() => null);
+          throw new Error(p?.detail || 'Billing is not configured');
+        }
+        const data = await res.json();
+        window.open(data.url, '_blank');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Team tab ───────────────────────────────────────────────────────────
+    async function loadTeam() {
+      const tbody = document.getElementById('team-tbody');
+      try {
+        const res = await fetchWithAuth('/users');
+        if (!res.ok) throw new Error('Failed to load team');
+        const data = await res.json();
+        const me = decodeToken(getToken());
+        tbody.innerHTML = (data.users || []).map(u => {
+          const isSelf = me !== null && u.id === me.sub;
+          const invited = u.invitedAt && !u.inviteAcceptedAt ? 'invited' : 'active';
+          const lastActive = u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'never';
+          return `<tr>
+            <td style="font-weight:500;">${u.email}${isSelf ? ' <span class="badge queued">you</span>' : ''}</td>
+            <td><select onchange="changeRole('${u.id}', this.value)" ${isSelf ? 'disabled' : ''} class="filter-select">
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+              <option value="analyst" ${u.role === 'analyst' ? 'selected' : ''}>Analyst</option>
+            </select></td>
+            <td><span class="badge ${invited === 'invited' ? 'processing' : 'completed'}">${invited}</span></td>
+            <td style="color:var(--gray);">${lastActive}</td>
+            <td>${isSelf ? '<span class="muted">—</span>' : `<button class="btn btn-secondary" onclick="removeUser('${u.id}')">Remove</button>`}</td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="5" class="muted" style="padding:24px;">No team members.</td></tr>';
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="muted" style="padding:24px;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openInviteModal() {
+      const email = prompt('Invite a teammate by email:');
+      if (!email) return;
+      const role = confirm('Make this person an Admin? OK = Admin, Cancel = Analyst') ? 'admin' : 'analyst';
+      inviteUser(email.trim(), role);
+    }
+
+    async function inviteUser(email, role) {
+      try {
+        const res = await fetchWithAuth('/users/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role })
+        });
+        if (!res.ok) {
+          const p = await res.json().catch(() => null);
+          throw new Error(p?.detail || 'Invite failed');
+        }
+        showToast(`Invite sent to ${email}`);
+        loadTeam();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function changeRole(id, role) {
+      try {
+        const res = await fetchWithAuth(`/users/${id}/role`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role })
+        });
+        if (!res.ok) {
+          const p = await res.json().catch(() => null);
+          throw new Error(p?.detail || 'Role change failed');
+        }
+        showToast('Role updated');
+      } catch (err) {
+        showToast(err.message, 'error');
+        loadTeam();
+      }
+    }
+
+    async function removeUser(id) {
+      if (!confirm('Remove this team member?')) return;
+      try {
+        const res = await fetchWithAuth(`/users/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const p = await res.json().catch(() => null);
+          throw new Error(p?.detail || 'Remove failed');
+        }
+        showToast('Team member removed');
+        loadTeam();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Guided onboarding (Phase F / 🔔3 first-case ceremony) ───────────────
+    // Triggered by Stripe Checkout success URL /app?welcome=1.
+    if (new URLSearchParams(window.location.search).get('welcome') === '1') {
+      document.getElementById('welcome-modal').style.display = 'flex';
+    }
+
+    function closeWelcome() {
+      document.getElementById('welcome-modal').style.display = 'none';
+      history.replaceState(null, '', '/app');
+    }
+
+    async function runDemoCase() {
+      const btn = document.getElementById('demo-case-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running your first check…';
+      try {
+        const res = await fetchWithAuth('/cases?sync=true', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: 'Acme Logistics BV', registrationNumber: 'NL12345678', jurisdiction: 'NL' })
+        });
+        const problem = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(problem?.detail || 'Failed to run check');
+        }
+        closeWelcome();
+        if (problem?.status === 'completed') {
+          showCeremony();
+          showToast('Your first dossier is ready! 🎉');
+        } else {
+          showToast(`Case created (${problem?.status || 'queued'}) — it will appear in the list.`);
+        }
+        loadDashboard();
+        loadCases();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Run Your First Check (14 seconds)';
+      }
+    }
   </script>
 </body>
 </html>

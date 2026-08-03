@@ -1,4 +1,5 @@
 import { boolean, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export const planEnum = pgEnum("plan", ["starter", "growth", "enterprise"]);
@@ -32,12 +33,20 @@ export const tenants = pgTable("tenants", {
   webhookSecretEncrypted: text("webhook_secret_encrypted").notNull(),
   llmBudgetUsd: numeric("llm_budget_usd", { precision: 10, scale: 2 }).notNull().default("100.00"),
   stripeCustomerId: text("stripe_customer_id"),
+  /** Stripe subscription fields — synced from webhook events (Phase A). */
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripePriceId: text("stripe_price_id"),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  subscriptionStatus: text("subscription_status").notNull().default("inactive"),
   active: boolean("active").notNull().default(true),
   ...timestamps
 }, (table) => ({
   planIdx: index("tenants_plan_idx").on(table.plan),
   createdIdx: index("tenants_created_idx").on(table.createdAt),
-  apiKeyIdUnique: uniqueIndex("tenants_api_key_id_unique").on(table.apiKeyId)
+  apiKeyIdUnique: uniqueIndex("tenants_api_key_id_unique").on(table.apiKeyId),
+  subscriptionIdx: index("tenants_subscription_status_idx").on(table.subscriptionStatus),
+  // Partial unique index — webhook lookups by Stripe subscription id.
+  stripeSubscriptionUnique: uniqueIndex("tenants_stripe_subscription_unique").on(table.stripeSubscriptionId).where(sql`${table.stripeSubscriptionId} IS NOT NULL`)
 }));
 
 export const users = pgTable("users", {
@@ -47,6 +56,13 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("analyst"),
   refreshTokenHash: text("refresh_token_hash"),
+  name: text("name"),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  invitedAt: timestamp("invited_at", { withTimezone: true }),
+  inviteAcceptedAt: timestamp("invite_accepted_at", { withTimezone: true }),
+  deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+  resetTokenHash: text("reset_token_hash"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at", { withTimezone: true }),
   ...timestamps
 }, (table) => ({
   emailUnique: uniqueIndex("users_email_unique").on(table.email),
@@ -121,6 +137,9 @@ export const usage = pgTable("usage", {
   completionTokens: integer("completion_tokens").notNull().default(0),
   costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
   apiCalls: integer("api_calls").notNull().default(0),
+  /** Stripe metering bookkeeping — set after a usage record is reported. */
+  stripeUsageRecordId: text("stripe_usage_record_id"),
+  reportedToStripeAt: timestamp("reported_to_stripe_at", { withTimezone: true }),
   ...timestamps
 }, (table) => ({
   tenantMonthUnique: uniqueIndex("usage_tenant_month_unique").on(table.tenantId, table.month),
@@ -174,8 +193,42 @@ export const amld6Articles = pgTable("amld6_articles", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 });
 
+/**
+ * Plan definitions — single source of truth for plan metadata (quota,
+ * pricing, feature flags). Seeded by migration 0002; `id` matches the
+ * `plan` enum values on tenants so plan lookups are a single index hit.
+ */
+export const plans = pgTable("plans", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  casesPerMonth: integer("cases_per_month").notNull(),
+  priceMonthlyUsd: integer("price_monthly_usd").notNull(),
+  features: jsonb("features").$type<Record<string, boolean | number>>().notNull().default({}),
+  stripePriceId: text("stripe_price_id"),
+  ...timestamps
+});
+
+/**
+ * Stripe webhook event log — idempotency key (event id is the PK) plus
+ * a full audit trail of every event Stripe delivered to us.
+ */
+export const stripeEvents = pgTable("stripe_events", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  tenantId: text("tenant_id").references(() => tenants.id),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  typeIdx: index("stripe_events_type_idx").on(table.type),
+  tenantIdx: index("stripe_events_tenant_idx").on(table.tenantId)
+}));
+
 export type TenantRow = InferSelectModel<typeof tenants>;
+export type UserRow = InferSelectModel<typeof users>;
 export type CaseRow = InferSelectModel<typeof cases>;
 export type NewCaseRow = InferInsertModel<typeof cases>;
 export type EvidenceRow = InferSelectModel<typeof evidence>;
 export type WebhookRow = InferSelectModel<typeof webhooks>;
+export type PlanRow = InferSelectModel<typeof plans>;
+export type StripeEventRow = InferSelectModel<typeof stripeEvents>;

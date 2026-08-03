@@ -1,447 +1,347 @@
-# KYC Copilot
+<!-- KYC Copilot — README (customer-facing) -->
+<div align="center">
 
-> **Agentic AML/KYC compliance engine.** O(1) timing-safe auth · atomic Lua rate-limit · citation-backed dossiers · dual-semaphore Playwright · 5-tier LLM routing.
+# 🔐 KYC Copilot
 
-[![Node 20+](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![TypeScript 5.7](https://img.shields.io/badge/typescript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Region: ams · failover yyz / ord](https://img.shields.io/badge/region-ams%20%C2%B7%20failover%20yyz%20%2F%20ord-0A66C2)](./fly.toml)
-[![CI: parallel · SBOM · SAST](https://img.shields.io/badge/CI-parallel%20%C2%B7%20SBOM%20%C2%B7%20SAST-success)](./.github/workflows/deploy.yml)
+**Agentic AML/KYC due diligence for EU payments institutions.**
 
-Three opinions drive every commit:
+Turn a ~3.5 hour manual corporate review into an evidence-backed, audit-grade
+dossier in **14 minutes**.
 
-1. **Every claim is cited, or it doesn't ship.** The dossier guardrail strips any LLM output that isn't backed by an entry in the immutable evidence ledger — `INV-001` / `INV-002` enforced mechanically, not by prompt engineering.
-2. **High-risk decisions are never automatic.** Cases flagged for enhanced due diligence lock at `pending_hitl` until a named analyst signs off via `POST /cases/:id/approve` — there is no path around it.
-3. **Hot paths are O(1) and constant-time.** Auth, rate-limit, and the graph pipeline never do an N-scan or leak timing — even length-mismatch errors on `crypto.timingSafeEqual` are pre-validated.
+![Node 20+](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-5.7-3178C6?logo=typescript&logoColor=white)
+![Stripe](https://img.shields.io/badge/billing-stripe-635BFF?logo=stripe&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/db-postgresql-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/cache-redis-DC382D?logo=redis&logoColor=white)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
----
+[Product tour](#-product-tour) · [Features](#-features) · [How it works](#-how-it-works) · [Architecture](#-architecture) · [Security](#-security--compliance) · [Quickstart](#-quickstart) · [Docs](#-documentation)
 
-## Hot-path latency budget (per dossier)
-
-```
-node              │ budget │ typical p95 │ chart
-──────────────────┼────────┼─────────────┼──────────────────────────────────────
-1. ingest         │   5 s  │     ~3 ms   │ ▏
-2. api-lookup     │  30 s  │   ~900 ms   │ ████▏
-3. browser-fb     │  60 s  │   ~4 s *    │ ████████████▏   (* conditional)
-4. draft-dossier  │  30 s  │  ~1.8 s     │ ██████▊
-5. guardrail      │  30 s  │     ~2 ms   │ ▏
-──────────────────┼────────┼─────────────┼──────────────────────────────────────
-end-to-end (async)│  60 s  │  ~7 s p95   │ ██████████████████████████▏
-```
-
-The browser-fallback lane is skipped for API-complete cases — most production dossiers never enter the third bar. Worst case stays under the 60 s wall clock for `POST /cases?sync=true` on `t0` / `t2`.
+</div>
 
 ---
 
-## The four engineering tricks
+## What is KYC Copilot?
 
-### 1. O(1) auth from an O(N)·bcrypt scan
+KYC Copilot is a self-serve, agentic due-diligence platform for EU payments
+institutions, PSPs and fintech compliance teams. It automates the end-to-end
+**Enhanced Due Diligence (EDD)** workflow — entity intake, registry screening,
+sanctions & PEP checks, UBO extraction, dossier drafting, human-in-the-loop
+review, and audit-grade reporting — with **every claim cited to an immutable
+evidence chain**.
 
-`kc_live_*` API keys used to be matched by iterating every tenant and running bcrypt per row (~100 ms × N). Now the lookup is a single index hit plus a constant-time digest compare.
+No more copy-pasting between registries, spreadsheets and emails. No more
+unverifiable LLM output. No more €380-per-case analyst hours.
 
-```ts
-// src/api/middleware/auth.ts
-export function deriveApiKeyId(rawKey: string): string {
-  // First 8 bytes of HMAC-SHA256 — enough to discriminate tenants with
-  // negligible collision risk, narrow enough for a unique index.
-  const full = createHmac("sha256", LOOKUP_SECRET).update(rawKey).digest();
-  return full.subarray(0, 8).toString("hex");
-}
-
-// Hot path: 1 index hit + 1 timingSafeEqual. No bcrypt, no loop.
-const tenant = await db.select().from(tenants)
-  .where(eq(tenants.apiKeyId, deriveApiKeyId(rawKey))).limit(1);
-if (!safeEqualHexDigest(tenant.apiKeyHash, deriveApiKeyHash(rawKey))) {
-  return problem(c, 401, "Unauthorized", "Invalid API key");
-}
+```text
+Manual EDD                          KYC Copilot
+────────────────────                ─────────────────────────────
+~3.5 h per case                     ~14 min per case
+Copy-paste from registries          Automated registry + browser capture
+Unverifiable write-ups              Every claim cites an evidence hash
+High-risk review ad-hoc             Built-in human-in-the-loop workflow
+PDFs with no integrity              Tamper-evident signed reports
 ```
-
-`safeEqualHexDigest` defends against the `crypto.timingSafeEqual` length-mismatch throw (which would otherwise leak via the 500 path) by validating 64-char hex *before* the comparison.
-
-```
-                        before                           after
-lookup shape       ────────────────────           ────────────────────
-key presented  →   scan all N tenants       →    derive apiKeyId
-                     bcrypt(rawKey, hash[i])        index scan LIMIT 1
-                     O(N) · ~100 ms                O(1) · ~0.4 ms
-verify            bcrypt compare wins       →    HMAC-SHA256 → hex (64)
-                     wall: ~N × 100 ms              timingSafeEqual
-                                                 wall: ~0.4 ms total
-```
-
-Migration safety: legacy `apiKeyAlgo = "bcrypt"` rows are still honored during the rollout window; new tenants go straight to the fast path via the `provision` endpoint.
-
-### 2. Atomic Redis rate-limit, one round-trip
-
-The previous limiter did `INCR` then `EXPIRE` separately — two round-trips and a race window where a crashed process leaves a TTL-less bucket forever. Now a Lua script does `INCR + EXPIRE-if-new + TTL` atomically on the Redis server, registered once via `defineCommand` so subsequent calls are EVALSHA (~0.3 ms):
-
-```ts
-// src/api/middleware/rate-limit.ts
-const RATE_LIMIT_LUA = `
-  local current = redis.call('INCR', KEYS[1])
-  if current == 1 then
-    redis.call('EXPIRE', KEYS[1], ARGV[2])
-  end
-  local ttl = redis.call('TTL', KEYS[1])
-  local limit = tonumber(ARGV[1])
-  return {current, limit, math.max(0, limit - current), ttl}
-`;
-redis.defineCommand("rateLimitAtomic", { numberOfKeys: 1, lua: RATE_LIMIT_LUA });
-```
-
-```
-client ──► redis                                    client ──► redis
-   │                                                 │
-   │  INCR  rl:api:kc_...:1719500400                  │  EVALSHA <sha> 1 rl:api:...
-   │  ◄── 1                                            │  ─ atomically ─
-   │  EXPIRE rl:api:... 60                              │     INCR  → 1
-   │  ◄── 1                                            │     EXPIRE (new key)
-   │  TTL    rl:api:...                                │     TTL    → 60
-   │  ◄── 60                                           │  ◄── {1, 100, 99, 60}
-   │                                                   │
-   ▼                                                   ▼
- 2 round-trips, race window                        1 round-trip, atomic
-```
-
-### 3. Shared Chromium, two independent semaphores
-
-A single long-lived Playwright process serves both the graph's browser-fallback node and the PDF renderer. Without partitioning, a flood of PDF downloads would block the screening pipeline. Two semaphores on the same process prevent that:
-
-```ts
-// src/services/browser/pool.ts
-this.browserFallbackSemaphore = new Semaphore("browserFallback", 8, 30_000);
-this.pdfRenderSemaphore       = new Semaphore("pdfRender",       2, 30_000);
-```
-
-```
-                            Playwright Chromium (single process)
-                              │
-            ┌─────────────────┼─────────────────┐
-            │                                   │
-   browserFallbackSemaphore                pdfRenderSemaphore
-        cap 8, 30 s                            cap 2, 30 s
-            │                                   │
-   ┌────────┴────────┐                   ┌──────┴──────┐
-   ▼  ▼  ▼  ▼  ▼  ▼  ▼  ▼                ▼  ▼
- graph nodes                     /cases/:id/report?format=pdf
- (api-lookup fallback)           (dashboard downloads)
-```
-
-Each consumer calls the relevant `acquireXxxPermit()` / `releaseXxxPermit()`. A saturated pool returns `PoolTimeoutError` after 30 s; callers degrade (HITL escalation for the browser path, 503 for the PDF path). Timers `unref()` so a cancelled request can't pin the event loop.
-
-### 4. Mechanical citation guardrail (no LLM hallucinations in the dossier)
-
-The guardrail node strips every claim that doesn't reference a `[Source: KEY]` present in the evidence ledger:
-
-```ts
-// src/graph/nodes/guardrail.ts
-for (const line of state.dossier.split("\n")) {
-  const citations = [...line.matchAll(/\[Source:\s*([A-Z0-9_:-]+)\]/g)];
-  if (citations.length === 0 && /\w/.test(line)) continue;   // strip
-  if (citations.some(([, key]) => !validKeys.has(key))) continue; // strip
-  sanitized.push(line);
-}
-```
-
-```
-   LLM draft                       guardrail                       dossier
- ─────────────                  ─────────────                  ─────────────
- "Sanctions clear"              ← no [Source: …]                (dropped)
- "UBO verified [Source: API_1]" ← API_1 ∈ ledger                (kept)
- "Trustworthy LLC"              ← no [Source: …]                (dropped)
-                                 findings += ["Removed …"]
-```
-
-The output dossier cannot contain a claim without a verifiable source. This is `INV-001` / `INV-002` — failure to hold them is a build break.
 
 ---
 
-## Dynamic LLM router
+## 📸 Product Tour
 
-Five tiers, one pure function. `pickModel()` is deterministic and unit-tested:
+### Dashboard — compliance overview at a glance
 
-```ts
-// src/services/llm/router.ts
-export function pickModel(ctx: RoutingContext): ProviderConfig {
-  const configured = getProvider(ctx.configuredTier);
+Real-time metrics, searchable case list with status/risk filters, sorting and
+pagination. One-click actions: **New Case**, **View**, **Approve**.
 
-  // 1. promote when the configured tier can't emit strict JSON
-  if (ctx.nodeRequirement === "strict-zod" && !configured.supportsStrictJson)
-    return getProvider("t2");
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="KYC Copilot dashboard" width="720">
+</p>
 
-  // 2. large context → Gemini Flash (1M window)
-  if (ctx.tokenEstimate > 120_000)
-    return getProvider("t3");
+### Case detail — dossier, evidence chain, audit trail
 
-  // 3. default to configured tier
-  return configured;
-}
-```
+Every case opens a slide-in panel with the full dossier, the hashed evidence
+chain, the audit trail, and one-click **Download PDF / JSON** and **GDPR
+export**. High-risk cases show an **Approve** action.
 
-| Tier | Provider | When chosen | $ / 1K in | $ / 1K out | Context |
-|---|---|---|---:|---:|---:|
-| **T0** | Deterministic | Offline / CI / cost-zero | $0.000000 | $0.000000 | ∞ |
-| **T1** | Ollama Llama 3 (local) | Data-sovereign on-prem | $0.00 | $0.00 | 8 K |
-| **T2** | OpenAI gpt-4o-mini | Default cloud, strict JSON | $0.00015 | $0.0006 | 128 K |
-| **T3** | Gemini 1.5 Flash | Backlogs > 120 K tokens | $0.000075 | $0.0003 | 1 M |
-| **T4** | OpenAI gpt-4o | Highest-quality dossiers | $0.0025 | $0.010 | 128 K |
+<p align="center">
+  <img src="docs/screenshots/case-detail.png" alt="Case detail panel" width="720">
+</p>
 
-On any provider failure the router falls back to T0 — `DynamicLlmRouter.draftDossier()` wraps the call in try/catch and emits a deterministic dossier if every cloud adapter is unavailable.
+### Billing & usage — plans, metering, ROI
+
+Plan badge, live subscription status, usage meter with quota warnings, ROI
+summary, and invoice history. **Manage Subscription** opens the Stripe Customer
+Portal.
+
+<p align="center">
+  <img src="docs/screenshots/billing.png" alt="Billing and usage view" width="720">
+</p>
+
+### Team — roles, invites, last active
+
+Admin-controlled team management: invite members, assign admin/analyst roles,
+and track last-login activity.
+
+<p align="center">
+  <img src="docs/screenshots/team.png" alt="Team management view" width="720">
+</p>
+
+### Self-serve onboarding
+
+Sign up in minutes, pick a plan, and complete a 14-day trial on Stripe Checkout.
+No sales call required.
+
+<p align="center">
+  <img src="docs/screenshots/login.png" alt="Login" width="560">
+  <img src="docs/screenshots/signup.png" alt="Sign up with plan selection" width="560">
+</p>
+
+### Landing page
+
+Pricing, a live ROI calculator, and compliance positioning for prospects.
+
+<p align="center">
+  <img src="docs/screenshots/landing.png" alt="Landing page" width="720">
+</p>
 
 ---
 
-## System overview
+## ✨ Features
+
+### Core engine
+
+| Feature | What you get |
+|---|---|
+| **Agentic EDD pipeline** | Ingest → registry API lookup → browser fallback → dossier drafting → guardrail → report. Fully automated. |
+| **Evidence-cited dossiers** | Every claim must cite an entry in the immutable, hash-chained evidence ledger — enforced mechanically, not by prompt. |
+| **UBO extraction** | Beneficial-ownership data pulled from registry officers with graceful degradation when sources are incomplete. |
+| **Human-in-the-loop (HITL)** | High-risk cases lock at `pending_hitl` until a named analyst approves — there is no automated path around it. |
+| **5-tier LLM routing** | Deterministic tier for cost/speed, frontier models for complex dossiers, automatic fallback when providers are down. |
+| **Zero-key demo mode** | Fully deterministic local operation with no API keys — run the whole product offline. |
+
+### Compliance & reports
+
+| Feature | What you get |
+|---|---|
+| **AMLD6-aligned reports** | PDF and JSON dossiers citing AMLD6 articles (Art. 13 CDD, Art. 18 EDD). |
+| **Content-integrity signatures** | Every report carries an HMAC-SHA256 signature over its canonical content — tamper-evident and independently verifiable via `POST /cases/:id/report/verify`. |
+| **Full audit trail** | Every action (create, complete, approve, erase) is hash-linked and retained. |
+| **GDPR-first** | Encrypted PII at rest (AES-256-GCM), masked displays, full data export, and one-click erasure. |
+
+### Product & business
+
+| Feature | What you get |
+|---|---|
+| **Self-serve signup** | Company + email + password → Stripe Checkout → live workspace. 14-day trial on Starter. |
+| **Stripe subscription billing** | Starter (€99/mo · 50 cases), Growth (€499/mo · 500 cases), Enterprise (custom). Customer Portal for self-service plan changes. |
+| **Usage metering & quotas** | Real per-month usage metering; `402 Payment Required` with an upgrade link when your plan limit is hit. |
+| **Search & filtering** | Case search by company, status/risk filters, sortable columns, pagination. |
+| **Team management** | Invite members, admin/analyst roles, last-active tracking. |
+| **API access** | REST API with `kc_live_*` keys for machine-to-machine integration (O(1) timing-safe auth). |
+| **Webhooks** | `case.created` / `case.completed` / `case.pending_hitl` / `case.approved` / `case.failed` events with HMAC signing, retries and dead-letter queue. |
+| **ROI tracking** | Dashboard shows cost avoided (€380/case) and analyst hours saved. |
+
+---
+
+## 🔄 How it works
 
 ```mermaid
 flowchart LR
-  Client[Client / Dashboard] -->|Bearer kc_live_*| Hono[Hono API]
-  Hono --> DB[(PostgreSQL)]
-  Hono --> Redis[(Redis)]
-  Hono -->|queue| BullMQ[BullMQ kyc-graph]
-  BullMQ --> Graph[6-node Compliance Pipeline]
-  Graph <--> DB
-  Graph <--> Playwright[Dual-Semaphore Chromium]
-  Graph --> LLM[Dynamic LLM Router T0-T4]
-  Graph --> Reports[JSON + PDF Dossiers]
-  Hono -->|HMAC| Webhooks[Webhook Delivery]
+    A[Case intake<br/>Dashboard / API] --> B[Registry API lookup<br/>OpenCorporates, ComplyAdvantage]
+    B -->|incomplete| C[Browser fallback<br/>Playwright capture]
+    B -->|complete| D[Dossier drafting<br/>5-tier LLM routing]
+    C --> D
+    D --> E[Guardrail<br/>evidence-cited claims only]
+    E --> F{High risk?}
+    F -->|No| G[Completed<br/>signed report]
+    F -->|Yes| H[pending_hitl<br/>analyst review]
+    H --> I[Approve → Completed]
+    G --> J[PDF / JSON report + verify]
+    I --> J
 ```
 
-### The 6-node compliance pipeline
-
-| # | Node | Timeout | What it does |
-|---|---|---|---|
-| 1 | `ingestNode` | 5 s | NFKC normalization — defeats sanitization bypass |
-| 2 | `apiLookupNode` (OpenCorporates + ComplyAdvantage) | 30 s | Government registry + sanctions/PEP screening (OFAC / EU / UN) |
-| 3 | `browserFallbackNode` (Playwright, conditional) | 60 s | Captures JS-heavy registries the API can't reach |
-| 4 | `draftDossierNode` (Dynamic LLM Router) | 30 s | Citation-aware draft; every claim gets `[Source: KEY]` |
-| 5 | `guardrailNode` | 30 s | Strips any claim not backed by the evidence ledger |
-| 6 | `humanReviewNode` (HITL) | n/a | Mandatory analyst sign-off for High risk / unverified UBO |
-
-`pending_hitl` cases **never** auto-approve — only `POST /cases/:id/approve` clears the gate (`INV-007`).
+1. **Intake** — A compliance officer creates a case (company name, registration
+   number, jurisdiction) from the dashboard or the API.
+2. **Registry lookup** — The system queries company registries and screening
+   providers for corporate data, sanctions and PEP matches, and UBOs.
+3. **Browser fallback** — When APIs are incomplete, a managed Chromium pool
+   captures the public registry directly.
+4. **Drafting** — An LLM (routed across 5 tiers by cost/quality) drafts the
+   dossier. The **guardrail** strips anything not backed by the evidence ledger.
+5. **Decision** — Low-risk cases complete automatically. High-risk cases lock
+   at `pending_hitl` until a named analyst approves.
+6. **Report** — A signed, AMLD6-aligned PDF/JSON report is generated with a
+   verifiable content-integrity signature.
 
 ---
 
-## 🚀 Interactive demo — 3 steps
+## 🏗 Architecture
 
-The repo ships with a seeded demo key so you can validate the flow end-to-end without setting up external API credentials.
-
-```bash
-npm install --legacy-peer-deps
-npm run demo          # boots db + redis, runs migrations + seed, starts the API on :3000
+```mermaid
+flowchart TB
+    subgraph Client
+        U[Dashboard<br/>vanilla HTML · public/]
+        A[Public API]
+    end
+    subgraph API["Hono API (Node + TypeScript)"]
+        R[Routes<br/>auth · cases · billing · users · webhooks]
+        M[Middleware<br/>JWT/API-key auth · rate-limit · plan gate]
+        W[Stripe webhook]
+    end
+    subgraph Engine
+        G[KycGraph pipeline]
+        AD[KYC data adapters]
+        LLM[5-tier LLM router]
+        BR[Playwright browser pool]
+        S[Report signer]
+    end
+    subgraph Data
+        PG[(PostgreSQL<br/>cases · evidence · audit · billing)]
+        RD[(Redis<br/>queues · rate limits · pdf cache)]
+    end
+    subgraph Ext
+        ST[Stripe]
+        CA[ComplyAdvantage]
+        OC[OpenCorporates]
+    end
+    U --> R
+    A --> R
+    R --> M
+    W --> PG
+    R --> G
+    G --> AD --> OC
+    G --> AD --> CA
+    G --> LLM
+    G --> BR
+    G --> S
+    R --> RD
+    G --> PG
+    R --> ST
+    ST --> W
 ```
 
-### 1. Submit a high-risk entity
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 20+, TypeScript 5.7 (strict), ESM |
+| API | Hono — typed routes, middleware, RFC-7807 problem responses |
+| Database | PostgreSQL 16 + Drizzle ORM (migrations, type-safe queries) |
+| Cache / queues | Redis 7 — BullMQ graph jobs, atomic Lua rate limiting, PDF cache |
+| Browser | Playwright shared pool with dual-semaphore concurrency control |
+| LLM | `t0` deterministic → `t4` frontier, automatic fallback |
+| Billing | Stripe Checkout, Customer Portal, metered usage records |
+| Encryption | AES-256-GCM at rest, SHA-256 evidence hash chain, HMAC report signing |
+| Deployment | Docker, Fly.io (`fly.toml`), Terraform WAF (`infra/`) |
+
+> Deep-dive: [docs/ARCHITECTURE_CONTEXT.md](docs/ARCHITECTURE_CONTEXT.md)
+
+---
+
+## 🛡 Security & Compliance
+
+- **PII at rest** — company names, registration numbers, and source URLs are
+  encrypted with AES-256-GCM; the UI only ever renders masked values.
+- **Constant-time auth** — API keys resolve via an HMAC shadow index (O(1)
+  index hit + `crypto.timingSafeEqual`), no bcrypt scans, no timing leaks.
+- **JWT sessions** — 15-minute access + 7-day refresh tokens for dashboard
+  users; refresh-token rotation with revocation on password reset.
+- **Atomic rate limiting** — single-round-trip Redis Lua token buckets.
+- **Webhook integrity** — outgoing webhooks are HMAC-signed; incoming Stripe
+  events verify the `Stripe-Signature` header and are idempotently logged.
+- **Tamper-evident reports** — HMAC-SHA256 content signatures + a public
+  verification endpoint.
+- **Hardened headers** — `X-Frame-Options`, `Strict-Transport-Security`, and a
+  restrictive Content-Security-Policy on every response.
+- **Audit logging** — every state-changing action is hash-chained into the
+  audit ledger.
+
+See [SECURITY.md](SECURITY.md) for the full production-hardening checklist and
+secret-handling policy.
+
+---
+
+## 🚀 Quickstart
+
+### 1. One-command demo (Docker)
 
 ```bash
-curl -X POST http://localhost:3000/cases \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000" \
+npm run demo        # docker compose up postgres redis → migrate → seed → dev
+```
+
+Then open <http://localhost:3000> and log in with:
+
+```
+Email:    admin@example.test
+Password: ChangeMe-123456
+```
+
+### 2. Run without Docker (local Postgres + Redis)
+
+```bash
+npm install
+npm run db:migrate && npm run db:seed
+LLM_TIER_PRIMARY=t0 npm run dev
+```
+
+### 3. Try the zero-key flow
+
+```bash
+# Low-risk entity → auto-completes
+curl -X POST 'http://localhost:3000/cases?sync=true' \
+  -H "Authorization: Bearer <api-key-or-jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"companyName":"Acme Logistics BV","registrationNumber":"NL12345678","jurisdiction":"NL"}'
+
+# High-risk entity → pauses for human review
+curl -X POST 'http://localhost:3000/cases?sync=true' \
+  -H "Authorization: Bearer <api-key-or-jwt>" \
   -H "Content-Type: application/json" \
   -d '{"companyName":"Volkov Capital Partners","registrationNumber":"CY98765432","jurisdiction":"CY"}'
 ```
 
-→ `{"caseId":"case_demo_hitl_0002","status":"queued"}`
-
-### 2. Observe the HITL pause
+### 4. Verification
 
 ```bash
-curl http://localhost:3000/cases/case_demo_hitl_0002 \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000"
+npm run typecheck   # strict TS
+npm run test        # 82 tests — unit, integration, contract, real E2E lifecycle
+npm run build       # production build → dist/
+docker build .      # container image
+docker compose run --rm test   # full suite against real Postgres + Redis
 ```
-
-→ `status: pending_hitl`, `riskScore: High`, `requiresHuman: true`. The graph detected PEP-adjacent ownership and complex nominee structures; no automated path clears this.
-
-### 3. Approve and download the signed PDF
-
-```bash
-curl -X POST http://localhost:3000/cases/case_demo_hitl_0002/approve \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000" \
-  -H "Content-Type: application/json" \
-  -d '{"notes":"UBO documentation verified manually.","riskOverride":"Medium"}'
-
-curl -o compliance_report.pdf \
-  "http://localhost:3000/cases/case_demo_hitl_0002/report?format=pdf" \
-  -H "Authorization: Bearer kc_live_demo0000000000000000000000"
-```
-
-The PDF carries an AMLD6 article-citation block, the SHA-256 evidence chain, and an audit-trail signature — all generated in ~600 ms via the shared Chromium pool.
 
 ---
 
-## CI/CD
+## 🗺 Repository layout
 
-### Parallel DAG
-
-```mermaid
-flowchart LR
-  push[push to main] --> checks
-  push --> sast
-  push --> docker
-  checks & sast & docker --> preflight
-  preflight --> deploy
-  checks[checks<br/>typecheck + test]
-  sast[security-scan<br/>npm audit + SBOM]
-  docker[docker-build<br/>smoke build]
-  preflight[fly-preflight<br/>app + volume + secrets]
-  deploy[deploy<br/>flyctl deploy ams]
+```text
+src/
+  api/          # Hono app: middleware, routes (auth, cases, billing, users, webhooks)
+  db/           # Drizzle schema, migrations, seed
+  graph/        # KycGraph pipeline + nodes
+  services/     # kyc-data, llm, reports, billing, encryption, audit, webhooks, browser
+  workers/      # BullMQ graph-runner + webhook-deliverer
+  utils/        # id, mask, date, retry
+public/         # Vanilla HTML product: landing, login, signup, dashboard, resets
+docs/           # Architecture, decisions (ADRs), shipping status, screenshots
+infra/          # Fly secrets, Cloudflare WAF (Terraform)
+tests/          # Unit, integration, contract, and real E2E lifecycle tests
 ```
 
-Three early jobs run concurrently. Wall time is `max(checks, security-scan, docker-build)`, not the sum — typically a 50%+ cut vs the obvious serial chain.
+---
 
-### CycloneDX SBOM, every push
+## 📚 Documentation
 
-The `security-scan` job generates `sbom.cdx.json` (CycloneDX 1.6, `--omit dev`) and uploads it as a **90-day artifact**. The SBOM reflects only what the production Dockerfile actually installs.
-
-```bash
-npx --yes @cyclonedx/cyclonedx-npm@latest \
-  --output-format JSON --output-file sbom.cdx.json \
-  --spec-version 1.6 --omit dev
-```
-
-### Ephemeral PR environments
-
-Every PR gets a temporary Fly app via `superfly/fly-pr-review-apps@1.2.1`:
-
-- `opened / synchronize` → `deploy-preview` job creates `kyc-copilot-pr-<N>` and deploys
-- `closed` → `teardown-preview` job runs `flyctl apps destroy`
-- Database isolation: per-PR `PREVIEW_DATABASE_URL` — PR databases never touch production
-- URL surfaces in the PR UI via the `environment:` block
-
-### LLM mocking in CI
-
-`tests/setup/llm-mock.ts` is loaded via `vitest.config.ts → test.setupFiles` and replaces every `@langchain/*` adapter plus the `DynamicLlmRouter` with deterministic stubs. Tier-selection logic still runs (so router tests stay honest); no network call is ever made.
-
-### Required GitHub Secrets
-
-| Required | Recommended |
+| Doc | What it covers |
 |---|---|
-| `FLY_API_TOKEN`, `FLY_ORG` | `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
-| `DATABASE_URL`, `REDIS_URL` | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` |
-| `ENCRYPTION_KEY` | `API_KEY_LOOKUP_SECRET` (defaults to `JWT_SECRET` in dev) |
-| `JWT_SECRET`, `JWT_REFRESH_SECRET` | `FLY_APP` (default `kyc-copilot`), `FLY_REGION` (default `ams`) |
-| | `PREVIEW_DATABASE_URL` (PR ephemeral envs) |
+| [docs/ARCHITECTURE_CONTEXT.md](docs/ARCHITECTURE_CONTEXT.md) | System topology, request lifecycle, data model, invariants |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records (ADR-001 → ADR-017) |
+| [docs/SHIPPING_STATUS.md](docs/SHIPPING_STATUS.md) | Ready vs stub inventory, capability matrix |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running, deploying, and operating in production |
+| [SECURITY.md](SECURITY.md) | Security posture, secret handling, hardening checklist |
+| [docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md](docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md) | The Business MVP implementation plan (Phases A–G) |
 
 ---
 
-## API surface
+<div align="center">
 
-<details>
-<summary><b>🔌 Public endpoints (no auth)</b></summary>
+Built for regulated EU payments institutions. © 2026 KYC Copilot · [MIT License](./LICENSE)
 
-- `GET /health` — liveness; checks DB, Redis, LLM router
-- `GET /ready` — readiness probe (Kubernetes / Fly)
-- `POST /provision` — provisions a tenant, emits the raw API key **once**
-- `POST /auth/login` — JWT (15 min) + refresh token (7 d)
-- `POST /auth/refresh` — rotating refresh
-
-</details>
-
-<details>
-<summary><b>🔐 Authenticated endpoints (Bearer <code>kc_live_*</code> or JWT)</b></summary>
-
-| Method | Path | Notes |
-|---|---|---|
-| `POST` | `/cases` | `?sync=true` runs inline (T0/T2 only) |
-| `GET` | `/cases` | Masked list |
-| `GET` | `/cases/:id` | Full detail + evidence ledger + audit |
-| `POST` | `/cases/:id/approve` | HITL completion — only path out of `pending_hitl` |
-| `GET` | `/cases/:id/report?format=json\|pdf` | Immutable PDF / JSON dossier |
-| `POST` | `/cases/:id/rescreen` | growth+ plan |
-| `GET` | `/cases/stream` | Server-Sent Events snapshot |
-| `GET` | `/cases/export` | Decrypted portability bundle |
-| `DELETE` | `/cases/:id/erase` | Hard delete (GDPR Art. 17 / right-to-erasure) |
-| `GET` | `/dashboard` | Metrics + recent activity |
-| `GET` | `/usage` | Monthly ROI summary |
-| `POST` `/GET` | `/webhooks` | Registration (growth+) |
-| `POST` | `/webhooks/:id/test` | Queue test event |
-
-</details>
-
-<details>
-<summary><b>🏛 Admin (JWT role=admin)</b></summary>
-
-- `GET /tenants`
-- `GET /tenants/:id/usage`
-- `POST /tenants/:id/plan`
-
-</details>
-
----
-
-## Local development
-
-```bash
-git clone https://github.com/kakashi3lite/kyc-copilot
-cd kyc-copilot
-npm install --legacy-peer-deps
-cp .env.example .env
-docker compose up -d db redis
-npm run db:migrate
-npm run db:seed        # provisions demo tenant + 3 demo cases
-npm run dev            # http://localhost:3000
-```
-
-| Script | Purpose |
-|---|---|
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run test` | Vitest with v8 coverage (auto-loads LLM mock) |
-| `npm run test:unit` | Unit tests only |
-| `npm run test:integration` | Integration tests only |
-| `npm run db:migrate` | Drizzle migrations |
-| `npm run db:seed` | Seeds the demo tenant + 3 cases |
-| `npm run demo` | Boots db + redis, migrates, seeds, starts the API |
-
----
-
-## Production deployment
-
-<details>
-<summary><b>☁️ Fly.io — transatlantic primary, NA failover</b></summary>
-
-| Setting | Value |
-|---|---|
-| Primary region | `ams` (Amsterdam) — EU residency by default |
-| Failover regions | `yyz` (Toronto) · `ord` (Chicago) — NA round-trip & redundancy |
-| VM size | `performance-2x` (2 vCPU / 4 GB) |
-| Health check | `GET /health` every 15 s, 5 s timeout |
-| Concurrency | soft 20, hard 50 — protects the Playwright pool |
-| Persistent volume | `kyc_data` mounted at `/app/data` (1 GB initial) |
-| Release command | `node dist/src/db/migrate.js` (Drizzle programmatic migrator) |
-| Graceful shutdown | `SIGTERM` → close HTTP server, BullMQ worker, queue, browser pool, Redis, Postgres |
-| Timezone handling | `formatInTimeZone` from `date-fns-tz` — dossier timestamps localize per region |
-| Currency | LLM cost ledger in USD; format layer is locale-aware for downstream display |
-
-Source: [`fly.toml`](./fly.toml). Deploys are automatic on `push to main` once required GitHub Secrets are set. Reports generate with timezone-correct timestamps regardless of which region serves the request.
-
-</details>
-
----
-
-## Engineering guarantees
-
-These are mechanically enforced invariants — failure to hold them is a build break, not a guideline:
-
-| ID | Rule | Source |
-|---|---|---|
-| `INV-001` | Every dossier claim carries a valid `[Source: KEY]` | `src/graph/nodes/guardrail.ts` |
-| `INV-002` | Uncited claims are stripped — never bypassed | `src/graph/nodes/guardrail.ts` |
-| `INV-003` | PII encrypted at rest; list endpoints return masks | `*Encrypted` / `*Mask` columns |
-| `INV-004` | Audit logs are append-only with hashed payloads | `src/services/audit/logger.ts` |
-| `INV-005` | API keys HMAC-SHA256 hashed; O(1) lookup via indexable id | `src/api/middleware/auth.ts` |
-| `INV-006` | Webhooks signed HMAC-SHA256, timing-safe verified | `src/services/webhooks/dispatcher.ts` |
-| `INV-007` | `pending_hitl` cases never auto-approve | `src/graph/nodes/guardrail.ts` |
-
----
-
-## Roadmap
-
-- Compiled LangGraph StateGraph migration — true graph checkpoint / resume
-- SAML / SSO for tenant onboarding
-- Scheduled re-screening cron
-- Stripe billing enforcement
-
----
-
-## License
-
-MIT. See [`LICENSE`](./LICENSE).
+</div>

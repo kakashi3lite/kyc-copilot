@@ -11,7 +11,7 @@ import type { Plan } from "../../types/index.js";
 import { logger } from "../../config/logger.js";
 
 export interface AuthContext { tenantId: string; userId?: string; role: "admin" | "analyst" | "api"; plan: Plan; }
-interface JwtClaims { sub: string; tenantId: string; role: "admin" | "analyst"; type: "access" | "refresh"; }
+interface JwtClaims { sub: string; tenantId: string; role: "admin" | "analyst"; type: "access" | "refresh"; email: string; }
 
 /**
  * Secret used to derive the indexable apiKeyId from the raw key.

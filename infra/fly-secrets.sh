@@ -56,6 +56,7 @@ fly secrets set \
   ENCRYPTION_KEY="$(openssl rand -hex 32)" \
   JWT_SECRET="$(openssl rand -base64 48)" \
   JWT_REFRESH_SECRET="$(openssl rand -base64 48)" \
+  API_KEY_LOOKUP_SECRET="$(openssl rand -hex 32)" \
   --app "${APP_NAME}"
 
 # ── 5. Object Storage (Cloudflare R2 / Tigris) ──────────────────────────────
@@ -78,6 +79,11 @@ fly secrets set \
   RESEND_API_KEY="re_CHANGE_ME_RESEND_KEY" \
   STRIPE_SECRET_KEY="sk_live_CHANGE_ME_STRIPE_KEY" \
   STRIPE_WEBHOOK_SECRET="whsec_CHANGE_ME_STRIPE_WEBHOOK" \
+  STRIPE_PRICE_STARTER="price_CHANGE_ME_STARTER" \
+  STRIPE_PRICE_GROWTH="price_CHANGE_ME_GROWTH" \
+  STRIPE_PRICE_ENTERPRISE="price_CHANGE_ME_ENTERPRISE" \
+  APP_BASE_URL="https://kyc-copilot.fly.dev" \
+  REPORT_SIGNING_KEY="$(openssl rand -hex 32)" \
   --app "${APP_NAME}"
 
 # ── 7. Network & Observability ───────────────────────────────────────────────

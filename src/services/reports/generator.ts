@@ -2,9 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { amld6Articles, auditLogs, cases, evidence } from "../../db/schema.js";
 import { decryptPii } from "../encryption/at-rest.js";
-import { newId, sha256Hex } from "../../utils/id.js";
+import { newId } from "../../utils/id.js";
 import { nowIso } from "../../utils/date.js";
 import type { ComplianceReportJson, EvidenceRecord } from "../../types/index.js";
+import { signReport } from "./signer.js";
 
 export async function generateReport(caseId: string, tenantId: string): Promise<ComplianceReportJson> {
   const rows = await db.select().from(cases).where(and(eq(cases.id, caseId), eq(cases.tenantId, tenantId))).limit(1);
@@ -22,18 +23,31 @@ export async function generateReport(caseId: string, tenantId: string): Promise<
     version: entry.version,
     hash: entry.contentHash
   }));
-  return {
-    reportId: newId("rpt"),
+  const reportId = newId("rpt");
+  const generatedAt = nowIso();
+  const auditTrail = audits.map((audit) => ({ actor: audit.actor, action: audit.action, occurredAt: audit.createdAt.toISOString(), hash: audit.hash }));
+  // D6 — content-integrity signature over the canonical report fields.
+  const signature = signReport({
+    reportId,
     caseId,
     tenantId,
-    generatedAt: nowIso(),
+    generatedAt,
+    dossier: row.dossier,
+    evidenceChain,
+    auditTrail,
+  });
+  return {
+    reportId,
+    caseId,
+    tenantId,
+    generatedAt,
     framework: "AMLD6",
     articleCitations: articles.map((article) => ({ article: article.article, title: article.title, effectiveFrom: article.effectiveFrom.toISOString() })),
     subject: { companyName: decryptPii(row.companyNameEncrypted), registrationNumber: decryptPii(row.registrationNumberEncrypted), jurisdiction: row.jurisdiction },
     riskScore: row.riskScore,
     dossier: row.dossier,
     evidenceChain,
-    auditTrail: audits.map((audit) => ({ actor: audit.actor, action: audit.action, occurredAt: audit.createdAt.toISOString(), hash: audit.hash })),
-    digitalSignatureBlock: sha256Hex(`${caseId}:${row.updatedAt.toISOString()}:${evidenceChain.map((entry) => entry.hash).join("|")}`)
+    auditTrail,
+    signature,
   };
 }

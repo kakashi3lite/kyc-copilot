@@ -1,8 +1,9 @@
 import bcrypt from "bcrypt";
 import { db } from "./index.js";
-import { amld6Articles, auditLogs, cases, tenants, users } from "./schema.js";
+import { amld6Articles, auditLogs, cases, evidence, plans, tenants, users } from "./schema.js";
 import { encryptPii } from "../services/encryption/at-rest.js";
 import { newId, sha256Hex } from "../utils/id.js";
+import { maskPiiInText } from "../utils/mask.js";
 import { deriveApiKeyHash, deriveApiKeyId } from "../api/middleware/auth.js";
 
 // ─── Demo constants ────────────────────────────────────────────────────────────
@@ -46,6 +47,34 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
     })
     .onConflictDoNothing();
 
+  // ── 2b. Plan definitions (mirrors migration 0002 seed — idempotent) ───────
+  await db
+    .insert(plans)
+    .values([
+      {
+        id: "starter",
+        name: "Starter",
+        casesPerMonth: 50,
+        priceMonthlyUsd: 9900,
+        features: { webhooks: false, rescreen: false, reports: true, api_access: true, team_members: 1 },
+      },
+      {
+        id: "growth",
+        name: "Growth",
+        casesPerMonth: 500,
+        priceMonthlyUsd: 49900,
+        features: { webhooks: true, rescreen: true, reports: true, api_access: true, team_members: 10 },
+      },
+      {
+        id: "enterprise",
+        name: "Enterprise",
+        casesPerMonth: 99999,
+        priceMonthlyUsd: 99900,
+        features: { webhooks: true, rescreen: true, reports: true, api_access: true, team_members: 999 },
+      },
+    ])
+    .onConflictDoNothing();
+
   // ── 3. AMLD6 reference data ────────────────────────────────────────────────
   await db
     .insert(amld6Articles)
@@ -77,7 +106,7 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
       id: caseA,
       tenantId: DEMO_TENANT_ID,
       companyNameEncrypted: encryptPii("Acme Logistics BV"),
-      companyNameMask: "Ac** Lo*******",
+      companyNameMask: "Acme Logi***** BV",
       registrationNumberEncrypted: encryptPii("NL12345678"),
       registrationNumberMask: "NL****78",
       jurisdiction: "NL",
@@ -101,7 +130,7 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
       id: caseB,
       tenantId: DEMO_TENANT_ID,
       companyNameEncrypted: encryptPii("Volkov Capital Partners"),
-      companyNameMask: "Vo**** Ca****** Pa*****",
+      companyNameMask: "Volk Capi*** Part****",
       registrationNumberEncrypted: encryptPii("CY98765432"),
       registrationNumberMask: "CY****32",
       jurisdiction: "CY",
@@ -124,7 +153,7 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
       id: caseC,
       tenantId: DEMO_TENANT_ID,
       companyNameEncrypted: encryptPii("Sunshine Retail GmbH"),
-      companyNameMask: "Su******* Re**** Gm**",
+      companyNameMask: "Suns Reta**** Gm**",
       registrationNumberEncrypted: encryptPii("DE45678901"),
       registrationNumberMask: "DE****01",
       jurisdiction: "DE",
@@ -152,6 +181,51 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
       newValue: { notes: "Automated CDD pass", riskOverride: null },
       hash: sha256Hex(auditPayloadA),
     })
+    .onConflictDoNothing();
+
+  // ── 5b. Seed evidence rows so the demo evidence chain is populated ────────
+  // Completed case → API_1; HITL case → API_1 + BR_1; queued case → none.
+  // Idempotent via the (case_id, key) unique index (onConflictDoNothing).
+  await db
+    .insert(evidence)
+    .values([
+      {
+        id: newId("evd"),
+        caseId: caseA,
+        tenantId: DEMO_TENANT_ID,
+        key: "API_1",
+        sourceUrlEncrypted: encryptPii("https://api.opencorporates.com/v0.4/companies/nl/NL12345678"),
+        sourceUrlMask: maskPiiInText("https://api.opencorporates.com/v0.4/companies/nl/NL12345678"),
+        summary: "Structured registry and screening data for NL",
+        kind: "api",
+        version: 1,
+        contentHash: sha256Hex(`evd:${caseA}:API_1`),
+      },
+      {
+        id: newId("evd"),
+        caseId: caseB,
+        tenantId: DEMO_TENANT_ID,
+        key: "API_1",
+        sourceUrlEncrypted: encryptPii("https://api.opencorporates.com/v0.4/companies/cy/CY98765432"),
+        sourceUrlMask: maskPiiInText("https://api.opencorporates.com/v0.4/companies/cy/CY98765432"),
+        summary: "Structured registry and screening data for CY",
+        kind: "api",
+        version: 1,
+        contentHash: sha256Hex(`evd:${caseB}:API_1`),
+      },
+      {
+        id: newId("evd"),
+        caseId: caseB,
+        tenantId: DEMO_TENANT_ID,
+        key: "BR_1",
+        sourceUrlEncrypted: encryptPii("https://www.companies.gov.cy/en/"),
+        sourceUrlMask: maskPiiInText("https://www.companies.gov.cy/en/"),
+        summary: "Browser registry fallback captured text hash for CY",
+        kind: "browser",
+        version: 1,
+        contentHash: sha256Hex(`evd:${caseB}:BR_1`),
+      },
+    ])
     .onConflictDoNothing();
 
   return { tenantId: DEMO_TENANT_ID, apiKey: DEMO_API_KEY, email: "admin@example.test", password };

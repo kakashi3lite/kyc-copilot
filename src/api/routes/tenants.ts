@@ -1,10 +1,11 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
-import { tenants } from "../../db/schema.js";
+import { tenants, usage } from "../../db/schema.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { validateJson, getValidated } from "../middleware/validate.js";
+import { monthsAgoKey } from "../../utils/date.js";
 
 const planSchema = z.object({ plan: z.enum(["starter", "growth", "enterprise"]) });
 
@@ -20,7 +21,15 @@ tenantRoutes.get("/tenants", async (c) => {
 tenantRoutes.get("/tenants/:id/usage", async (c) => {
   const denied = requireAdmin(c);
   if (denied !== null) return denied;
-  return c.json({ tenantId: c.req.param("id"), usage: [] });
+  const tenantId = c.req.param("id") ?? "";
+  // Real 6-month usage history (R12 — was a hardcoded empty array).
+  const rows = await db
+    .select({ month: usage.month, casesProcessed: usage.casesProcessed, apiCalls: usage.apiCalls, costUsd: usage.costUsd })
+    .from(usage)
+    .where(and(eq(usage.tenantId, tenantId), gte(usage.month, monthsAgoKey(5))))
+    .orderBy(desc(usage.month))
+    .limit(6);
+  return c.json({ tenantId, usage: rows });
 });
 
 tenantRoutes.post("/tenants/:id/plan", validateJson(planSchema), async (c) => {

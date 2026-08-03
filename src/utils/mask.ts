@@ -8,8 +8,13 @@ export function sanitizeInput(value: string): string {
 export function maskName(value: string): string {
   const clean = sanitizeInput(value);
   return clean.split(/\s+/).map((part) => {
-    if (part.length <= 2) return "**";
-    return `${part.slice(0, 2)}${"*".repeat(Math.min(6, Math.max(2, part.length - 2)))}`;
+    // Short words are not identifying on their own — reveal them.
+    if (part.length <= 4) return part;
+    // Keep the first 4 chars of longer words so the dashboard's substring
+    // search (Phase C) matches what analysts type ("Acme" → "Acme ..."),
+    // while the remainder stays masked. The strong PII control is the
+    // encrypted `companyNameEncrypted` column — the mask is display-only.
+    return `${part.slice(0, 4)}${"*".repeat(part.length - 4)}`;
   }).join(" ");
 }
 

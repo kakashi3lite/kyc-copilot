@@ -61,6 +61,16 @@ export const env = cleanEnv(process.env, {
   RESEND_API_KEY: str({ default: "" }),
   STRIPE_SECRET_KEY: str({ default: "" }),
   STRIPE_WEBHOOK_SECRET: str({ default: "" }),
+  STRIPE_PRICE_STARTER: str({ default: "" }),
+  STRIPE_PRICE_GROWTH: str({ default: "" }),
+  STRIPE_PRICE_ENTERPRISE: str({ default: "" }),
+
+  // ── App & Reports ────────────────────────────────────────────────────────
+  // Base URL used for Stripe redirects and password-reset links.
+  APP_BASE_URL: url({ default: "http://localhost:3000" }),
+  // HMAC key for tamper-evident report signing (Phase E). Empty in dev
+  // falls back to an unsigned SHA-256 content hash.
+  REPORT_SIGNING_KEY: str({ default: "" }),
 
   // ── Object Storage (S3-compatible) ─────────────────────────────────────
   // Cloudflare R2:  https://<account-id>.r2.cloudflarestorage.com

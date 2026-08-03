@@ -12,7 +12,46 @@ function escapeHtml(value: string): string {
 
 export function reportHtml(report: ComplianceReportJson): string {
   const evidenceRows = report.evidenceChain.map((entry) => `<tr><td>${escapeHtml(entry.key)}</td><td>${escapeHtml(entry.kind)}</td><td>${escapeHtml(entry.summary)}</td><td>${escapeHtml(entry.hash)}</td></tr>`).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Inter,Arial,sans-serif;color:#172033;margin:36px}.brand{border-bottom:4px solid #2457ff;padding-bottom:12px}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff}table{border-collapse:collapse;width:100%;margin-top:16px}td,th{border:1px solid #d8deea;padding:8px;text-align:left}pre{white-space:pre-wrap}.sig{margin-top:36px;border:1px dashed #5b6475;padding:16px}</style></head><body><section class="brand"><h1>KYC-Copilot Compliance Report</h1><p>${escapeHtml(report.reportId)} · ${escapeHtml(report.generatedAt)}</p></section><h2>${escapeHtml(report.subject.companyName)}</h2><p class="badge">Risk: ${escapeHtml(report.riskScore)}</p><h3>AMLD6 citations</h3><ul>${report.articleCitations.map((article) => `<li>${escapeHtml(article.article)} — ${escapeHtml(article.title)}</li>`).join("")}</ul><h3>Dossier</h3><pre>${escapeHtml(report.dossier)}</pre><h3>Digital evidence chain</h3><table><thead><tr><th>Key</th><th>Kind</th><th>Summary</th><th>SHA-256</th></tr></thead><tbody>${evidenceRows}</tbody></table><div class="sig">PKCS#7 signature placeholder: ${escapeHtml(report.digitalSignatureBlock)}</div></body></html>`;
+  const sig = report.signature;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+body{font-family:Inter,Arial,sans-serif;color:#172033;margin:36px}
+.brand{border-bottom:4px solid #2457ff;padding-bottom:12px}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff}
+table{border-collapse:collapse;width:100%;margin-top:16px}
+td,th{border:1px solid #d8deea;padding:8px;text-align:left}
+pre{white-space:pre-wrap}
+.sig{margin-top:36px;border:1px dashed #5b6475;padding:16px;background:#f8faff}
+.sig h4{margin:0 0 12px;color:#2457ff}
+.sig-detail{display:flex;flex-direction:column;gap:6px;font-family:monospace;font-size:11px;word-break:break-all}
+.sig-verify{margin-top:12px;padding-top:12px;border-top:1px solid #d8deea;font-size:11px;color:#5b6475}
+.sig-verify code{display:block;margin-top:6px;padding:8px;background:#eef2ff;border-radius:6px;font-size:10px;word-break:break-all}
+.page-footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:9px;color:#94a3b8;padding:6px;border-top:1px solid #e2e8f0}
+@page{margin:36px}
+</style></head><body>
+<section class="brand"><h1>KYC-Copilot Compliance Report</h1><p>${escapeHtml(report.reportId)} · ${escapeHtml(report.generatedAt)}</p></section>
+<h2>${escapeHtml(report.subject.companyName)}</h2>
+<p class="badge">Risk: ${escapeHtml(report.riskScore)}</p>
+<h3>AMLD6 citations</h3>
+<ul>${report.articleCitations.map((article) => `<li>${escapeHtml(article.article)} — ${escapeHtml(article.title)}</li>`).join("")}</ul>
+<h3>Dossier</h3>
+<pre>${escapeHtml(report.dossier)}</pre>
+<h3>Digital evidence chain</h3>
+<table><thead><tr><th>Key</th><th>Kind</th><th>Summary</th><th>SHA-256</th></tr></thead><tbody>${evidenceRows}</tbody></table>
+<div class="sig">
+  <h4>Report Integrity Verification</h4>
+  <div class="sig-detail">
+    <span>Algorithm: ${escapeHtml(sig.algorithm)}</span>
+    <span>Signature: ${escapeHtml(sig.signature)}</span>
+    <span>Key Fingerprint: ${escapeHtml(sig.keyFingerprint)}</span>
+    <span>Canonical fields: ${sig.canonicalFields.map(escapeHtml).join(", ")}</span>
+  </div>
+  <div class="sig-verify">
+    <p>To verify this report, compute SHA-256 of the canonical fields and verify the HMAC-SHA256 signature against the key whose fingerprint is shown above.</p>
+    <code>${escapeHtml(sig.verificationHint)}</code>
+  </div>
+</div>
+<div class="page-footer">Page <span class="pageNumber"></span> of <span class="totalPages"></span> | KYC Copilot v1.0.0 | Confidential</div>
+</body></html>`;
 }
 
 /**

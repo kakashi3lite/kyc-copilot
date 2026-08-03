@@ -13,7 +13,7 @@ export const ApiCompanyDataSchema = z.object({
   status: z.enum(["active", "inactive", "unknown"]),
   incorporationDate: z.string().nullable(),
   address: z.string().nullable(),
-  ubos: z.array(z.object({ name: z.string(), verified: z.boolean(), ownershipPct: z.number().min(0).max(100) })),
+  ubos: z.array(z.object({ name: z.string(), verified: z.boolean(), ownershipPct: z.number().min(0).max(100).nullable() })),
   sanctions: z.array(z.object({ list: z.string(), matched: z.boolean(), name: z.string() })),
   pep: z.boolean(),
   sourceUrl: z.string(),

@@ -151,7 +151,6 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
 
 ---
 
-<<<<<<< HEAD
 ## ADR-010: Dynamic Multi-Provider LLM Routing
 
 - **Status:** Accepted
@@ -216,3 +215,206 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
   - Two separate Chromium processes (one per consumer) — doubles RAM with no benefit given the 8/2 partition.
   - Hard cap returning `requiresHuman: true` on saturation (old behavior) — silently degrades user experience with no auditable signal.
   - PDF cache keyed on `reportId` — varies per generation, hits 0% of the time; the content-hash approach hits ~80% in dashboard-refresh patterns.
+
+---
+
+## ADR-013: Deterministic KYC data fallback for zero-key operation
+
+- **Status:** Accepted
+- **Context:** The MVP demo must run end-to-end **without any external API
+  credentials** (OpenCorporates, ComplyAdvantage, LLM providers). Previously a
+  keyless run either failed (ComplyAdvantage 401 with no auth header) or forced
+  every case to `pending_hitl` (the composite adapter forced
+  `completeness: "partial"` because `ubos.length > 0` was always false, and the
+  guardrail sent every unverified-UBO case to HITL). That made the zero-key
+  story undemonstrable. This ADR mirrors ADR-010 (which guarantees a T0 LLM
+  tier is always available) for the registry/screening data side.
+- **Decision:**
+  1. New `DeterministicKycDataAdapter` (`src/services/kyc-data/deterministic.ts`)
+     implements `KycDataAdapter` with **zero network calls**. It echoes the
+     input identity fields, reports `completeness: "complete"`, `ubos: []`,
+     `status: "active"`, and `sourceUrl: "urn:deterministic:kyc-copilot"`. A
+     bundled, jurisdiction-gated high-risk rule set (currently matching the
+     seeded demo entity **Volkov Capital Partners / CY**) returns a
+     `kyc-copilot-demo` sanctions hit and `pep: true`; everything else is clean.
+  2. `CompositeKycDataAdapter` is now **fail-open**: the `Promise.all` of real
+     providers is wrapped in try/catch and falls back to the deterministic
+     adapter on any throw (401 from a missing key, network error, circuit
+     breaker trip). Each real adapter reports its own `completeness`
+     truthfully — the composite no longer overrides it.
+  3. **HITL trigger relaxation** (guardrail decision table): a case goes to
+     `pending_hitl` only on sanctions match, PEP, `riskScore === "High"`,
+     Medium with unverified UBO, `completeness === "partial"`, or browser
+     failure. **Low + complete now completes even when UBOs were not
+     individually verified** — missing UBO rows are a documented limitation of
+     the deterministic adapter / deferred officers API, not a fraud signal.
+  4. T0 LLM risk scoring (`DeterministicLlmClient`) scores complete,
+     non-elevated-jurisdiction data as **Low** even with no UBO rows, so the
+     guardrail's Low + complete row actually fires in zero-key mode.
+- **Consequences:**
+  - `api-lookup.ts` sets `requiresHuman` on sanctions **or PEP** or partial.
+  - `edges.ts` skips the browser fallback when `completeness === "complete"` and
+    `!requiresHuman` (previously required `uboVerified`).
+  - Real adapters take priority; deterministic is used only on the catch path.
+  - `approve` route enforces INV-007 atomically: pre-read 404/409 + `WHERE
+    status = pending_hitl`.
+  - `tests/unit/services/deterministic-kyc.test.ts`,
+    `tests/integration/api/cases-keyless.test.ts` cover the fallback and the
+    completed/pending_hitl split.
+- **Do not undo unless:** a real zero-key-capable data provider replaces the
+  deterministic adapter (e.g., a local registry mirror), or UBO extraction via
+  the officers API lands and restores `completeness: "complete"` semantics
+  with verified UBOs.
+- **Alternatives rejected:**
+  - Making the deterministic adapter always report `ubos: [verified UBO]` —
+    fabricates identity data, unacceptable for compliance.
+  - Leaving the unconditional `!uboVerified → HITL` guardrail — every zero-key
+    case would pend forever and the demo would not reproduce.
+
+---
+
+## ADR-014: Real UBO extraction from registry officers with soft-degrade
+
+- **Status:** Accepted
+- **Context:** The officers API was a documented limitation — `OpenCorporatesClient`
+  always returned `ubos: []` and `completeness: "complete"` without ever calling the
+  officers endpoint (ADR-013 "Do not undo unless … UBO extraction via the officers
+  API lands"). This feature converts that limitation into a genuine CDD capability
+  while preserving the zero-key story and the "never fabricate identity data"
+  principle.
+- **Decision:**
+  1. **D1 — Source:** OpenCorporates officers API
+     (`GET /companies/{jurisdiction}/{registration}/officers`). First page only
+     (max 25 officers) — no pagination chasing in v1.
+  2. **D2 — Verified semantics:** an officer is `verified: true` only with a
+     non-empty `name` and a `current_status` that is not explicitly
+     resigned/inactive/removed. Unnamed and resigned officers are dropped.
+  3. **D3 — Ownership honesty:** `ApiCompanyData.ubos[].ownershipPct` widened
+     from `number` to `number | null`. `percentage_of_shares` (number or
+     numeric string) is used when present; otherwise `null` — never invented.
+     Zod schema updated to `.nullable()`.
+  4. **D4 — Failure = soft-degrade, NOT every-case-HITL:** if the officers
+     fetch throws, times out, trips its breaker, or yields zero valid officers,
+     `OpenCorporatesClient.lookup()` returns the company-only record with
+     `ubos: []` and `completeness: "complete"`, logging a warning. A documented
+     limitation must not re-introduce the old every-case-HITL behavior.
+  5. **D5 — Evidence:** a single `API_1` key is retained; its summary gains
+     `" · N beneficial owner(s) reported by registry"` when UBOs are present.
+     The evidence hash already covers `ubos` (hash over `JSON.stringify(data)`).
+  6. **D6 — Zero-key invariant:** `DeterministicKycDataAdapter` is unchanged —
+     `completeness: "complete"`, `ubos: []`. Real UBOs come only from the real
+     provider.
+  7. **D7 — Location:** the officers fetch lives **inside**
+     `OpenCorporatesClient.lookup()` (own try/catch + its own
+     `CircuitBreaker(5, 30s)` + `withRetry`), not in a separate graph node.
+     This keeps the `CompositeKycDataAdapter` fail-open contract intact: only a
+     company-lookup failure trips the deterministic fallback; an officers-only
+     failure degrades to `ubos: []` without losing real company data.
+- **Consequences:**
+  - `src/types/index.ts`, `src/graph/schemas.ts` — `ownershipPct` nullable.
+  - `src/services/kyc-data/opencorporates.ts` — `fetchOfficers` +
+    `fetchOfficersSafe` (soft-degrade wrapper), separate officers breaker.
+  - `src/graph/nodes/api-lookup.ts` — evidence summary UBO count; `uboVerified`
+    logic unchanged (already correct).
+  - Guardrail decision table (ADR-013) unchanged: Medium + verified UBO +
+    complete completes; Medium + `!uboVerified` still HITL; officers failure +
+    Low still completes.
+  - `tests/unit/services/opencorporates-ubo.test.ts` (new), api-lookup unit
+    tests extended, fixtures extended.
+- **Do not undo unless:** a richer beneficial-ownership source (e.g., a
+  corporate-register API with ownership chains) replaces the officers endpoint.
+- **Alternatives rejected:**
+  - A separate `uboExtractionNode` in the graph — a node failure would crash
+    the worker and route to `failed_cases`, losing the soft-degrade property
+    and real company data.
+  - Guessing ownership from officer role — fabricates data (D3).
+  - Pagination chasing across all officers pages — added complexity with
+    diminishing returns at this scale.
+
+## ADR-015: JWT dashboard auth replaces the hardcoded demo key
+
+- **Status:** Accepted (Business MVP, 2026-08-04)
+- **Context:** `public/app.html` shipped a hardcoded `kc_live_demo...` API key in
+  the browser — any visitor could read it and drive the API. The auth system
+  already supported JWT issuance (`/auth/login`, `/auth/refresh`); only the UI
+  was missing.
+- **Decision:**
+  1. **D1 — Auth mode:** email/password → 15-minute access JWT + 7-day refresh
+     token. Refresh tokens rotate on use and are revoked on password reset.
+  2. **D2 — Client:** `public/app.html` now uses a `fetchWithAuth` helper —
+     attaches the Bearer token, silently refreshes on 401, redirects to
+     `/login.html` when the session can't be recovered. No framework (ADR-006).
+  3. **D3 — JWT claims:** access tokens carry `sub`, `tenantId`, `role`, and
+     `email` (for the header). The plan badge is fetched from `/billing` — the
+     DB is the source of truth, never a possibly-stale token claim.
+  4. **D4 — API keys unchanged:** `kc_live_*` keys remain for machine-to-machine
+     (O(1) HMAC lookup, ADR-011). They are never rendered into the browser.
+  5. **D5 — Password reset:** `POST /auth/forgot-password` stores a SHA-256
+     reset-token hash (1 h expiry) and always returns 200 (no account
+     enumeration); `POST /auth/reset-password` updates the password and revokes
+     all sessions. Emails are logged in dev until Resend is wired.
+- **Consequences:** new `public/{login,signup,forgot-password,reset-password}.html`;
+  self-serve provision (`POST /provision`) creates tenant + user + Stripe
+  customer + Checkout in one flow (duplicate email → 409).
+- **Do not undo unless:** a full IdP (SAML/OIDC) replaces email/password.
+
+## ADR-016: Stripe Checkout + Customer Portal for subscription billing
+
+- **Status:** Accepted (Business MVP, 2026-08-04)
+- **Context:** The product was pre-revenue. `StripeBillingClient` had a real
+  `createCustomer()` and a no-op `recordUsage()`; nothing created subscriptions
+  or enforced plans. Building a billing engine in-house would be PCI-heavy and
+  slow.
+- **Decision:**
+  1. **D1 — Stripe owns the lifecycle:** hosted Checkout (subscriptions), the
+     Customer Portal (self-serve plan changes/invoices), and dunning. We sync
+     state to Postgres via **signed, idempotent webhooks** (event id is the
+     `stripe_events` PK; `checkout.session.completed`,
+     `customer.subscription.updated/deleted`, `invoice.paid/payment_failed`).
+  2. **D2 — Webhook route is public but verified:** `POST /stripe/webhook`
+     reads the **raw body** (`c.req.text()`) and verifies `Stripe-Signature`
+     before anything else — it is registered before any body-consuming
+     middleware in `src/api/index.ts`.
+  3. **D3 — Self-serve provision:** `POST /provision` creates tenant + user +
+     Stripe customer + Checkout session (14-day trial on Starter). `checkoutUrl`
+     is null in dev/zero-key mode — the signup page proceeds to `/app` directly.
+  4. **D4 — Plan enforcement in middleware:** `requirePlanLimit("cases")` returns
+     `402 Payment Required` with `{currentUsage, limit, upgradeUrl}` when the
+     monthly quota is exhausted. Subscription-status gating is skipped when
+     `STRIPE_SECRET_KEY` is empty (fail-soft — the zero-key demo must not lock
+     out).
+  5. **D5 — Metered usage:** after each processed case,
+     `reportMeteredUsageToStripe` reports an idempotent usage record
+     (`case:<caseId>` key). Our `usage` table remains the billing source of
+     truth; Stripe is the metering sink.
+- **Consequences:** migration `0002_billing_mvp` (plans, stripe_events, tenant
+  subscription columns); `src/api/routes/{billing,stripe-webhook}.ts`;
+  `src/api/middleware/plan-gate.ts`; billing + team tabs in `app.html`.
+- **Do not undo unless:** Stripe becomes unavailable long-term (then switch to
+  an alternative PSP behind the same webhook contract).
+
+## ADR-017: HMAC-SHA256 content-integrity report signing (D6)
+
+- **Status:** Accepted (Business MVP, 2026-08-04)
+- **Context:** PDF reports displayed a `PKCS#7 signature placeholder: <sha256>`
+  string — not a signature. Full PKCS#7 with a CA-issued certificate requires
+  HSM/KMS infrastructure that is premature for the MVP and deferred to the
+  Enterprise plan.
+- **Decision:**
+  1. **D1 — Algorithm:** HMAC-SHA256 over a canonical string of the report's
+     content fields (`reportId, caseId, tenantId, generatedAt, dossier,
+     evidenceChain, auditTrail`), keyed by `REPORT_SIGNING_KEY`.
+  2. **D2 — Fields:** the report carries `{algorithm, signature, keyFingerprint,
+     canonicalFields, verificationHint}`; the PDF renders a "Report Integrity
+     Verification" block (no more placeholder).
+  3. **D3 — No key = unsigned, tamper-evident:** without `REPORT_SIGNING_KEY`,
+     the signature is `unsigned:<sha256(contentHash)>` — content changes are
+     still detectable, but the report is not authenticated. Warnings are logged.
+  4. **D4 — Verification endpoint:** `POST /cases/:id/report/verify` recomputes
+     and compares the signature, returning `{valid, signature, fingerprint}`.
+  5. **D5 — SDK note:** the Stripe SDK's pinned API version
+     (`2024-12-18.acacia`) is used as-is — no `as any` version-string cast.
+- **Consequences:** `src/services/reports/signer.ts`; `ComplianceReportJson.signature`
+  replaces `digitalSignatureBlock`; unit tests cover unsigned + signed paths.
+- **Do not undo unless:** enterprise customers require CA-issued PKCS#7 (then
+  layer it behind the same `signature` field).

@@ -1,0 +1,19 @@
+# KYC Copilot — crawler policy
+# The public marketing page is indexable; the authenticated product surface
+# and auth pages are not (they expose no meaningful SEO content and may
+# contain masked demo data).
+
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /login.html
+Disallow: /signup.html
+Disallow: /forgot-password.html
+Disallow: /reset-password.html
+Disallow: /api/
+Disallow: /cases
+Disallow: /billing
+Disallow: /usage
+Disallow: /users
+Disallow: /webhooks
+Disallow: /tenants

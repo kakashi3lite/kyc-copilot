@@ -2,7 +2,7 @@
 repo: kyc-copilot
 path: /Users/kakashi3lite/kyc-copilot
 version: 1.0.0
-updated: 2026-06-17
+updated: 2026-08-03
 stack: [Hono, Drizzle, PostgreSQL, Redis, BullMQ, Playwright, Puppeteer, Zod, Pino]
 compliance: AMLD6
 entry_points:
@@ -53,8 +53,15 @@ flowchart TB
   end
 
   subgraph api [HonoAPI]
-    MW["requestId, headers, cors, auth, rateLimit, RFC7807"]
-    Routes["cases, dashboard, usage, webhooks, tenants, auth"]
+    MW["requestId, headers, cors, auth, rateLimit, plan-gate, RFC7807"]
+    Routes["auth, cases, dashboard, usage, billing, users, tenants, webhooks"]
+    StripeWH["POST /stripe/webhook (public, signature-verified)"]
+  end
+
+  subgraph ext [External]
+    Stripe["Stripe Checkout / Portal / metered usage"]
+    CA["ComplyAdvantage"]
+    OC["OpenCorporates"]
   end
 
   subgraph async [AsyncLayer]
@@ -81,9 +88,20 @@ flowchart TB
   GraphWorker --> WebhookWorker
   api --> PG
   api --> Redis
+  Routes --> Stripe
+  Stripe --> StripeWH
+  StripeWH --> PG
+  core --> CA
+  core --> OC
 ```
 
 Bootstrap: `src/index.ts:L8-L12` — creates Hono app, starts graph worker, serves on `env.PORT`.
+
+> **Business MVP (2026-08-04):** the Hono app now also mounts `/stripe/webhook`
+> (before any body-consuming middleware — raw-body signature verification),
+> `/billing`, `/billing/portal`, and `/users*` (admin). Report generation signs
+> every report with an HMAC-SHA256 content-integrity signature
+> (`src/services/reports/signer.ts`).
 
 ## §4 Request Lifecycle — Case Creation
 
@@ -123,10 +141,17 @@ Human review node exists (`src/graph/nodes/human-review.ts`) but is called from 
 
 | Function | Condition | Next |
 |---|---|---|
-| `afterApiLookup()` | `completeness === "complete" && uboVerified` | skip browser |
+| `afterApiLookup()` | `completeness === "complete" && !requiresHuman` | skip browser (fast path) |
 | `afterApiLookup()` | else | `browserFallbackNode` |
-| `guardrailNode()` | `requiresHuman \|\| highRisk \|\| !uboVerified \|\| browserFailed` | `status: pending_hitl` |
-| `guardrailNode()` | else | `status: completed` |
+| `guardrailNode()` | sanctions match \|\| PEP \|\| High \|\| (Medium && !uboVerified) \|\| partial \|\| browserFailed | `status: pending_hitl` |
+| `guardrailNode()` | else — including **Low + complete even with unverified UBO** (ADR-013) | `status: completed` |
+
+> **HITL decision table (ADR-013):** a case is escalated to human review only on
+> a sanctions match, PEP flag, `riskScore === "High"`, Medium risk with
+> unverified UBO, `completeness === "partial"`, or browser failure. Missing UBO
+> rows alone no longer force HITL — with `completeness: "complete"` data and a
+> Low risk score, the case completes (the deterministic adapter reports no UBOs
+> by design, see §10 / ADR-013).
 
 ### State shape
 
@@ -144,7 +169,12 @@ Zod schemas: `src/graph/schemas.ts` — `EntityInputSchema`, `ApiCompanyDataSche
 ### Dependencies injected into graph
 
 `src/workers/graph-runner.ts:L23-L25`:
-- `CompositeKycDataAdapter` (OpenCorporates + ComplyAdvantage)
+- `CompositeKycDataAdapter` (OpenCorporates + ComplyAdvantage) — **fail-open**:
+  on any provider throw it falls back to `DeterministicKycDataAdapter`
+  (zero-key T0 for KYC data, ADR-013). OpenCorporates now also extracts
+  beneficial owners from the officers API with **soft-degrade** (ADR-014):
+  an officers failure degrades to `ubos: []` inside the client and never trips
+  the composite fallback or forces every-case HITL.
 - `PlaywrightBrowserPool`
 - `FallbackLlmClient`
 
@@ -179,27 +209,34 @@ Schema source: `src/db/schema.ts`.
 |---|---|---|
 | GET | `/health` | `src/api/routes/health.ts:L7-L10` |
 | GET | `/ready` | `src/api/routes/health.ts:L12-L15` |
-| GET | `/` | `src/api/index.ts:L32` → `public/landing.html` |
-| GET | `/app` | `src/api/index.ts:L33` → `public/app.html` |
-| POST | `/provision` | `src/api/routes/auth.ts:L22-L30` |
-| POST | `/auth/login` | `src/api/routes/auth.ts:L32-L41` |
-| POST | `/auth/refresh` | `src/api/routes/auth.ts:L43-L58` |
+| GET | `/` | `src/api/index.ts` → `public/landing.html` |
+| GET | `/app` | `src/api/index.ts` → `public/app.html` |
+| GET | `/login`·`/login.html`·`/signup`·`/signup.html`·`/forgot-password.html`·`/reset-password.html` | static auth pages (`public/*.html`) |
+| POST | `/provision` | self-serve tenant + user + Stripe customer/Checkout (D4) |
+| POST | `/auth/login` | JWT access + refresh, sets `last_login_at` / `invite_accepted_at` (🔔7) |
+| POST | `/auth/refresh` | rotate refresh token |
+| POST | `/auth/forgot-password` | one-hour reset token (always 200 — never leaks existence) |
+| POST | `/auth/reset-password` | verify token, set password, revoke sessions |
+| POST | `/stripe/webhook` | public but signature-verified; idempotent by event id (registered BEFORE body middleware) |
 
 ### Authenticated (Bearer `kc_live_*` or JWT)
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/cases` | `?sync=true` for inline run |
-| GET | `/cases` | Masked PII in list |
+| POST | `/cases` | `?sync=true` for inline run; **plan-gated** (`requirePlanLimit("cases")`) |
+| GET | `/cases` | search / status / risk / sort / offset / limit; `X-Total-Count` |
 | GET | `/cases/stream` | SSE snapshot |
 | GET | `/cases/export` | GDPR portability (decrypted) |
 | GET | `/cases/:id` | Full detail + evidence + audit |
 | POST | `/cases/:id/approve` | HITL completion |
-| POST | `/cases/:id/rescreen` | Growth+ only |
-| GET | `/cases/:id/report` | `?format=json\|pdf` |
+| POST | `/cases/:id/rescreen` | Growth+ only; plan-gated |
+| GET | `/cases/:id/report` | `?format=json\|pdf` (signed, D6) |
+| POST | `/cases/:id/report/verify` | recompute + compare content-integrity signature |
 | DELETE | `/cases/:id/erase` | GDPR hard delete |
 | GET | `/dashboard` | Metrics + recent cases |
-| GET | `/usage` | Monthly ROI summary |
+| GET | `/usage` | Current month summary + real 6-month history |
+| GET | `/billing` | Plan, subscription, usage meter, invoices (Phase D) |
+| POST | `/billing/portal` | Stripe Customer Portal session |
 | POST | `/webhooks` | Growth+ only |
 | GET | `/webhooks` | Masked URLs |
 | POST | `/webhooks/:id/test` | Queue test event |
@@ -209,8 +246,12 @@ Schema source: `src/db/schema.ts`.
 | Method | Path |
 |---|---|
 | GET | `/tenants` |
-| GET | `/tenants/:id/usage` |
+| GET | `/tenants/:id/usage` | real 6-month usage history |
 | POST | `/tenants/:id/plan` |
+| GET | `/users` | team list with roles + last login (🔔7) |
+| POST | `/users/invite` | create member with temp password |
+| PATCH | `/users/:id/role` | cannot change own role |
+| DELETE | `/users/:id` | soft-delete; cannot remove self |
 
 ### Auth modes
 
@@ -237,9 +278,9 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 | INV-002 | Guardrail strips uncited/invalid claims — never bypass | `src/graph/nodes/guardrail.ts` |
 | INV-003 | PII encrypted at rest; list endpoints return masks only | `encryptPii`/`decryptPii`, `*Mask` columns |
 | INV-004 | Audit logs append-only with hashed payloads | `src/services/audit/logger.ts` |
-| INV-005 | API keys bcrypt-hashed; raw key returned once at provision | `src/api/routes/auth.ts:L26-L29` |
+| INV-005 | API keys HMAC-SHA256 (fast) or bcrypt (legacy); raw key returned once at provision | `src/api/middleware/auth.ts`, `src/api/routes/auth.ts` |
 | INV-006 | Webhooks signed HMAC-SHA256 via `x-kyc-signature` header | `src/services/webhooks/dispatcher.ts:L9-L11` |
-| INV-007 | HITL cases (`pending_hitl`) never auto-approved — require `POST /cases/:id/approve` | `src/graph/nodes/guardrail.ts:L25-L26` |
+| INV-007 | HITL cases (`pending_hitl`) never auto-approved — require `POST /cases/:id/approve`; route 404s missing cases, 409s non-`pending_hitl` cases, and updates with `WHERE status = pending_hitl` so concurrent approves are atomic | `src/graph/nodes/guardrail.ts`, `src/api/routes/cases.ts` approve route |
 
 ## §9 File Responsibility Map
 
@@ -292,7 +333,7 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 
 | Service | Module | Notes |
 |---|---|---|
-| OpenCorporates | `src/services/kyc-data/opencorporates.ts` | Registry lookup |
+| OpenCorporates | `src/services/kyc-data/opencorporates.ts` | Registry lookup + officers (UBO extraction, soft-degrade ADR-014) |
 | ComplyAdvantage | `src/services/kyc-data/comply-advantage.ts` | Sanctions/PEP screening |
 | Playwright | `src/services/browser/pool.ts` | Browser fallback + proxy rotation |
 | OpenAI / Anthropic / Ollama | `src/services/llm/fallback.ts` | Structured dossier drafting |
@@ -352,17 +393,24 @@ Commands: `npm run test`, `npm run test:unit`, `npm run typecheck`.
 | Productization | Auth, usage, cases registry, reports, webhooks |
 | Brand layer | `landing.html`, `app.html` with 5 UX upgrades |
 | v1 production | Modular `src/`, Postgres, BullMQ, encryption, JWT, Stripe, tests, Docker |
+| **Business MVP (v1.1)** | **Stripe subscriptions + plan gates, self-serve signup, JWT dashboard auth, case search/detail UI, billing + team views, HMAC report signing, trial landing page, real E2E + contract tests, coverage 60%+** |
 
-Current repo is v1.0.0 at `/Users/kakashi3lite/kyc-copilot`. Do not confuse with earlier `aml-kyc-copilot` prototype.
+Current repo is v1.1.0 at `/Users/kakashi3lite/kyc-copilot`. Do not confuse with earlier `aml-kyc-copilot` prototype.
 
 ## §15 Open Gaps
 
 - ~~Wire `PostgresSaver` for true graph checkpoint/resume (exported but unused in run path)~~ — **resolved 2026-06-17**: removed per ADR-012 cleanup; the unused import was the source of a peer-dep conflict that forced `npm install --legacy-peer-deps`. Case row remains source of truth (ADR-002).
+- ~~Every zero-key case forced to `pending_hitl`~~ — **resolved 2026-08-03** (ADR-013): deterministic KYC fallback + relaxed HITL decision table; low-risk complete cases now complete, Volkov-style hits still pend for review.
+- ~~Webhook deliverer never started~~ — **resolved 2026-08-03**: `startWebhookDeliverer()` launched in `src/index.ts`.
 - Migrate imperative `KycGraph` to compiled LangGraph `StateGraph` (ADR-001)
-- Stripe billing enforcement in production
+- ~~Stripe billing enforcement in production~~ — **resolved 2026-08-04** (Business MVP): plan-gate middleware (402), signed webhooks, Checkout + Customer Portal, metered usage
+- ~~Hardcoded `kc_live_demo` key in dashboard~~ — **resolved 2026-08-04**: JWT dashboard auth (`fetchWithAuth`, silent refresh)
+- ~~PDF PKCS#7 signature placeholder~~ — **resolved 2026-08-04** (D6): HMAC-SHA256 content-integrity signing + verify endpoint
+- ~~`GET /tenants/:id/usage` empty stub + fake `/usage` history~~ — **resolved 2026-08-04**: real 6-month queries
 - SAML/SSO
 - Scheduled re-screening cron
-- `GET /tenants/:id/usage` returns empty array (stub)
+- ~~Real UBO extraction via OpenCorporates officers API~~ — **resolved 2026-08-03** (ADR-014): officers API extraction with soft-degrade; deterministic fallback still returns `ubos: []` (never fabricates)
+- Remaining stubs (Resend email, S3 offload, SSE live, PKCS#7) — see `docs/SHIPPING_STATUS.md`
 
 ## §16 Context Update Checklist
 

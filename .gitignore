@@ -13,10 +13,15 @@ dist/
 .session-state.yaml
 
 # Evidence / screenshots
+# Root-level transient captures stay ignored; the product screenshots that
+# ship in the README/docs are committed under docs/screenshots/.
 evidence/
 screenshots/
 *.png
 *.jpg
+!docs/screenshots/
+!docs/screenshots/*.png
+!docs/screenshots/*.jpg
 
 # OS
 .DS_Store

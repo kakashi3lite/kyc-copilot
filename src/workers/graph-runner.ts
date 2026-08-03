@@ -11,7 +11,7 @@ import { FallbackLlmClient } from "../services/llm/fallback.js";
 import { decryptPii, encryptPii } from "../services/encryption/at-rest.js";
 import { writeAuditLog } from "../services/audit/logger.js";
 import { enqueueWebhookEvent } from "../services/webhooks/dispatcher.js";
-import { incrementUsage } from "../services/billing/usage-meter.js";
+import { incrementUsage, reportMeteredUsageToStripe } from "../services/billing/usage-meter.js";
 import { newId } from "../utils/id.js";
 import { maskPiiInText } from "../utils/mask.js";
 import { childLogger } from "../config/logger.js";
@@ -41,6 +41,9 @@ export async function runCase(caseId: string, tenantId: string, graph = createGr
     await db.update(cases).set({ status: state.status === "completed" ? "completed" : "pending_hitl", riskScore: state.riskScore, requiresHuman: state.requiresHuman, uboVerified: state.uboVerified, browserFailed: state.browserFailed, dossier: state.dossier, graphState: state as unknown as Record<string, unknown>, completedAt: state.status === "completed" ? new Date() : null, updatedAt: new Date() }).where(eq(cases.id, caseId));
     await writeAuditLog({ tenantId, caseId, actor: "system", action: state.status === "completed" ? "case.completed" : "case.pending_hitl", newValue: { riskScore: state.riskScore, requiresHuman: state.requiresHuman } });
     await incrementUsage(tenantId, "casesProcessed");
+    // Metered billing — reports to Stripe when the tenant has a
+    // subscription and Stripe is configured; fail-soft otherwise.
+    await reportMeteredUsageToStripe(tenantId, caseId);
     await enqueueWebhookEvent(tenantId, state.status === "completed" ? "case.completed" : "case.pending_hitl", { caseId, status: state.status, riskScore: state.riskScore });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

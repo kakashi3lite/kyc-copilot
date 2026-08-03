@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Start your free trial — KYC Copilot</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --fg: #f1f5f9;
+      --card: #16161e;
+      --border: #1e1e2e;
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --muted: #94a3b8;
+      --red: #ef4444;
+      --emerald: #10b981;
+      --orange: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      -webkit-font-smoothing: antialiased;
+    }
+    .brand-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 64px;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(37, 99, 235, 0.18), transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(245, 158, 11, 0.08), transparent 50%),
+        var(--bg);
+      border-right: 1px solid var(--border);
+    }
+    .brand-panel h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+    .brand-panel p { color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 420px; margin: 0; }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; margin-bottom: 48px; }
+    .form-panel { padding: 40px 40px 40px 0; display: flex; justify-content: center; }
+    .form-card { width: 100%; max-width: 460px; }
+    .form-card h2 { font-size: 24px; margin: 0 0 8px; }
+    .form-card .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin: 14px 0 6px; }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--fg);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--blue); }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .plan-card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+    .plan-card:hover { border-color: #334155; }
+    .plan-card.selected { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+    .plan-card .p-name { font-weight: 600; font-size: 14px; }
+    .plan-card .p-price { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .plan-card .p-price strong { color: var(--fg); font-size: 15px; }
+    .plan-card .trial-tag {
+      position: absolute;
+      top: -8px;
+      right: 8px;
+      background: var(--emerald);
+      color: #062a16;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .plan-card input { display: none; }
+    .btn {
+      width: 100%;
+      margin-top: 22px;
+      padding: 13px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: var(--blue-hover); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--red);
+      font-size: 13px;
+    }
+    .links { margin-top: 18px; font-size: 13px; text-align: center; }
+    .links a { color: var(--blue); text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    @media (max-width: 900px) {
+      body { grid-template-columns: 1fr; }
+      .brand-panel { display: none; }
+      .form-panel { padding: 32px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="brand-panel">
+    <div class="logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      KYC Copilot
+    </div>
+    <h1>Start running due diligence in minutes — not days.</h1>
+    <p>14-day free trial on Starter. No credit card required to begin. Cancel anytime from the billing portal.</p>
+  </div>
+
+  <div class="form-panel">
+    <div class="form-card">
+      <h2>Create your account</h2>
+      <p class="sub">Self-serve provisioning — your workspace is live immediately.</p>
+
+      <div id="cancelled-banner" style="display:none; padding:10px 12px; border-radius:8px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:var(--orange); font-size:13px; margin-bottom:16px;">
+        Checkout was cancelled — your account is set up, just complete billing to activate your subscription.
+      </div>
+
+      <form id="signup-form">
+        <label for="company">Company name</label>
+        <input id="company" name="company" type="text" required autocomplete="organization">
+        <label for="email">Work email</label>
+        <input id="email" name="email" type="email" required autocomplete="email">
+        <label for="password">Password (min 12 characters)</label>
+        <input id="password" name="password" type="password" minlength="12" required autocomplete="new-password">
+        <label for="confirm">Confirm password</label>
+        <input id="confirm" name="confirm" type="password" minlength="12" required autocomplete="new-password">
+
+        <label>Choose your plan</label>
+        <div class="plans">
+          <label class="plan-card" data-plan="starter">
+            <input type="radio" name="plan" value="starter" checked>
+            <div class="trial-tag">14-day trial</div>
+            <div class="p-name">Starter</div>
+            <div class="p-price"><strong>€99</strong>/mo · 50 cases</div>
+          </label>
+          <label class="plan-card" data-plan="growth">
+            <input type="radio" name="plan" value="growth">
+            <div class="p-name">Growth</div>
+            <div class="p-price"><strong>€499</strong>/mo · 500 cases</div>
+          </label>
+          <label class="plan-card" data-plan="enterprise">
+            <input type="radio" name="plan" value="enterprise">
+            <div class="p-name">Enterprise</div>
+            <div class="p-price">Custom · unlimited</div>
+          </label>
+        </div>
+
+        <button class="btn" id="submit-btn" type="submit">Create account &amp; start trial</button>
+      </form>
+      <div class="error" id="error-box"></div>
+      <div class="links">Already have an account? <a href="/login.html">Log in</a></div>
+    </div>
+  </div>
+
+  <script>
+    // ?plan=starter pre-selects a plan (Phase F).
+    const planParam = new URLSearchParams(window.location.search).get('plan');
+    if (planParam) {
+      const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
+      if (radio) radio.checked = true;
+    }
+    if (new URLSearchParams(window.location.search).get('cancelled') === '1') {
+      document.getElementById('cancelled-banner').style.display = 'block';
+    }
+
+    function syncSelected() {
+      document.querySelectorAll('.plan-card').forEach((card) => {
+        card.classList.toggle('selected', card.querySelector('input').checked);
+      });
+    }
+    document.querySelectorAll('.plan-card input').forEach((input) => {
+      input.addEventListener('change', syncSelected);
+    });
+    syncSelected();
+
+    const form = document.getElementById('signup-form');
+    const errorBox = document.getElementById('error-box');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.style.display = 'none';
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      if (password !== confirm) {
+        errorBox.textContent = 'Passwords do not match.';
+        errorBox.style.display = 'block';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating your workspace…';
+      try {
+        const res = await fetch('/provision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('company').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            password,
+            plan: document.querySelector('input[name="plan"]:checked').value
+          })
+        });
+        if (res.status === 409) {
+          errorBox.textContent = 'An account with this email already exists. Log in instead.';
+          errorBox.style.display = 'block';
+          return;
+        }
+        if (!res.ok) {
+          errorBox.textContent = 'Signup failed — please check your details and try again.';
+          errorBox.style.display = 'block';
+          return;
+        }
+        const data = await res.json();
+        // Store credentials so the dashboard is authenticated immediately
+        // after checkout returns (Stripe success URL is /app?welcome=1).
+        const loginRes = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            password
+          })
+        });
+        if (loginRes.ok) {
+          const session = await loginRes.json();
+          localStorage.setItem('kyc_access_token', session.accessToken);
+          localStorage.setItem('kyc_refresh_token', session.refreshToken);
+        }
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl; // Stripe Checkout
+        } else {
+          window.location.href = '/app?welcome=1'; // dev / zero-key mode
+        }
+      } catch {
+        errorBox.textContent = 'Network error — please try again.';
+        errorBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create account & start trial';
+      }
+    });
+  </script>
+</body>
+</html>

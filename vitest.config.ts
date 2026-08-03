@@ -11,7 +11,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      thresholds: { lines: 30, branches: 20, functions: 25, statements: 30 },
+      // Phase G — production hardening targets (verified 2026-08-03:
+      // 61.4% stmts / 48.1% branch / 66.0% funcs / 62.5% lines).
+      thresholds: { lines: 60, branches: 40, functions: 55, statements: 60 },
       exclude: ["dist/**", "public/**", "tests/**", "src/index.ts"]
     },
     testTimeout: 120000
