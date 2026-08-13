@@ -1,0 +1,2 @@
+2026-08-13T08:35:17Z restore-drill PASS (postgres://kyc:drillpass@***) — schema + migrations verified
+2026-08-13T08:35:37Z restore-drill PASS (postgres://kyc:drillpass@***) — schema + migrations verified

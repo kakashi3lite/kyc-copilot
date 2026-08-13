@@ -606,4 +606,44 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
   - Re-running the case on replay — re-runs the graph pipeline and re-encrypts
     payloads; replay must only re-send what was originally queued.
 
+## ADR-023: Operational posture — backup drill, incident path, drift tripwire, provider refresh
+
+- **Status:** Accepted (2026-08-13)
+- **Context:** Phase 5 operational hardening. DORA (applied 17 Jan 2025) and
+  GDPR demand evidenced recovery, documented incident handling, and
+  dependency hygiene; the ML subsystems need a drift tripwire so the golden
+  datasets don't silently rot.
+- **Decision:**
+  1. **Backup/drill (DORA evidence):** Fly Postgres daily automatic backups +
+     PITR (RPO ≤ 5 min via PITR, RTO ≤ 30 min). `scripts/dr/restore-drill.sh`
+     verifies a restored DB (migrations apply + all 15 tables + DLQ columns);
+     drill runs **monthly** and after schema changes; results appended to
+     `docs/dr-drill-log.txt`. Runbook: `docs/DR_RUNBOOK.md`.
+  2. **Incident response:** `docs/INCIDENT_RUNBOOK.md` — severity matrix,
+     RACI, GDPR Art. 33/34 (≤ 72 h) and DORA reporting path (4h/24h/72h),
+     comms templates, post-incident review within 5 working days.
+  3. **Sub-processor register:** `docs/DPA_PACK.md` — every processor has a
+     DPA + EU-transfer mechanism; G1 pseudonymization shrinks the LLM blast
+     radius; register reviewed quarterly and on any new dependency.
+  4. **Drift tripwire (P8):** weekly snapshot of the golden datasets
+     (tier distribution, agreement, low-cost ratio, entity F1) vs committed
+     baseline (`tests/evaluation/drift-baseline.json`); `npm run bench:drift`
+     exits 1 on drift. Latency benchmark `npm run bench:latency` gates p95.
+  5. **Provider catalog refresh cadence:** quarterly, pinned via
+     `package-lock.json` + `src/config/llm-providers.ts`; deprecation check on
+     each refresh (ADR-021's model-selection decision re-evaluated then).
+  6. **Observability:** `OTEL_ENABLED` stays pinned (Phase 0); the OTEL
+     exporter is deferred until an endpoint/secret exists — pino structured
+     logs + `/health` + `/ready` probes are the current telemetry.
+- **Consequences:** `scripts/dr/restore-drill.sh`, `scripts/bench/dossier-latency.ts`,
+  `scripts/eval/drift-check.ts`, `tests/evaluation/drift*.ts|json`, three ops
+  runbooks, `bench:latency|drift` scripts.
+- **Do not undo unless:** the platform moves to a managed DR offering with an
+  equivalent evidence trail.
+- **Alternatives rejected:**
+  - "We'll back up manually" — un-evidenced; fails DORA Art. 11/12.
+  - Alerting on every metric — noise without a tripwire; the drift baseline
+    gives one actionable signal per subsystem.
+
+
 

@@ -29,6 +29,8 @@ related: [PLAN_PRODUCTION_READINESS.md §Phase 2, tests/evaluation/harness.ts, t
 | kyt-classifier | macro-f1 | > 0.85 | 1.000 | 24 synthetic wallets (6/class) |
 | kyt-classifier | false-positive-rate | < 0.05 | 0.000 | clean wallets stay clean |
 | kyt-classifier | per-class recall | ≥ 0.85 | 1.000 | all four typologies |
+| latency | dossier p95 (t0, in-memory) | < 10 s | < 1 ms | `bench:latency`; excludes LLM/network by design (deterministic path) |
+| drift | golden snapshot vs baseline | no alerts | ✓ no drift | `bench:drift`; committed baseline `drift-baseline.json` |
 
 ## What "measured" means
 
