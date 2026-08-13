@@ -5,6 +5,7 @@ import { ingestNode } from "./nodes/ingest.js";
 import { apiLookupNode, type ApiLookupDependencies } from "./nodes/api-lookup.js";
 import { browserFallbackNode, type BrowserFallbackDependencies } from "./nodes/browser-fallback.js";
 import { draftDossierNode, type DraftDossierDependencies } from "./nodes/draft-dossier.js";
+import { kytNode } from "./nodes/kyt.js";
 import { guardrailNode } from "./nodes/guardrail.js";
 import type { EntityInput } from "../types/index.js";
 import { withTimeout } from "../utils/retry.js";
@@ -21,6 +22,9 @@ export class KycGraph {
     if (afterApiLookup(state) === "browserFallback") {
       state = mergeState(state, await withTimeout(browserFallbackNode(state, this.deps), 60000, "browser"));
     }
+    // KYT runs before dossier drafting so the dossier can cite the typology
+    // evidence and the guardrail can escalate on it. No-op without wallet data.
+    state = mergeState(state, await withTimeout(kytNode(state), 10000, "kyt"));
     state = mergeState(state, await withTimeout(draftDossierNode(state, this.deps), 30000, "draft"));
     state = mergeState(state, await withTimeout(guardrailNode(state), 30000, "guardrail"));
     return state;

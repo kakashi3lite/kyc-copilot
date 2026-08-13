@@ -1,4 +1,5 @@
 import type { ApiCompanyData, BrowserResult, DossierClaim, EntityInput, EvidenceRecord, RiskScore } from "../types/index.js";
+import type { KytVerdict, WalletTransaction } from "../types/kyt.js";
 
 export interface AgentState extends EntityInput {
   caseId: string;
@@ -16,6 +17,10 @@ export interface AgentState extends EntityInput {
   guardrailFindings: string[];
   auditTrail: Array<{ actor: string; action: string; occurredAt: string; hash: string }>;
   llmSelection: Record<string, unknown> | null;
+  /** Wallet transaction history (KYT, Phase 3). Absent for KYC-only cases. */
+  transactionData?: WalletTransaction[] | null;
+  /** Deterministic KYT typology verdict (Phase 3). Null when not computed. */
+  kytVerdict?: KytVerdict | null;
 }
 
 export type AgentStatePatch = Partial<AgentState>;
@@ -35,7 +40,9 @@ export function initialState(input: EntityInput & { caseId: string; tenantId: st
     browserFailed: false,
     guardrailFindings: [],
     auditTrail: [],
-    llmSelection: null
+    llmSelection: null,
+    transactionData: null,
+    kytVerdict: null
   };
 }
 

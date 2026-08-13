@@ -91,3 +91,18 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD ["node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
 CMD ["node", "dist/src/index.js"]
+
+# ── Stage 4: Test runner (CI gate — `docker compose run --rm test`) ─────────
+# Inherits the `build` stage: FULL node_modules (including devDependencies:
+# vitest, tsx, drizzle-kit) plus compiled dist. Tests + vitest config are
+# copied here because they are intentionally excluded from the runtime image.
+# The `test` service in docker-compose.yml targets this stage so the canonical
+# CI gate runs the whole suite (unit + integration + e2e + eval + coverage
+# thresholds) against real Postgres + Redis.
+FROM build AS test
+
+COPY tests/ ./tests/
+COPY vitest.config.ts ./
+# Needed by `npm run db:migrate` (drizzle-kit) in the self-sufficient gate.
+COPY drizzle.config.ts ./
+

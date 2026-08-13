@@ -33,6 +33,9 @@ caseRoutes.post("/cases", requirePlanLimit("cases"), validateJson(createCaseSche
   const caseId = newId("case");
   await db.insert(cases).values({ id: caseId, tenantId: auth.tenantId, companyNameEncrypted: encryptPii(body.companyName), companyNameMask: maskName(body.companyName), registrationNumberEncrypted: encryptPii(body.registrationNumber), registrationNumberMask: maskRegistration(body.registrationNumber), jurisdiction: body.jurisdiction.toUpperCase(), status: "queued" });
   await writeAuditLog({ tenantId: auth.tenantId, caseId, actor: auth.userId ?? "api", action: "case.created", newValue: { jurisdiction: body.jurisdiction.toUpperCase() } });
+  // D5 (ADR-022): enqueue `case.created` on creation, before the sync/async
+  // branch — the event fires regardless. No-op when nothing subscribes.
+  await enqueueWebhookEvent(auth.tenantId, "case.created", { caseId, status: "queued" });
   if (c.req.query("sync") === "true") {
     const syncAllowed = env.LLM_SYNC_ALLOWED_TIERS.split(",").map((t: string) => t.trim());
     if (!syncAllowed.includes(env.LLM_TIER_PRIMARY)) {

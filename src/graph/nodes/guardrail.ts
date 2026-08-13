@@ -1,4 +1,5 @@
 import type { AgentState, AgentStatePatch } from "../state.js";
+import { KYT_ESCALATION_MIN_CONFIDENCE } from "../../services/kyt/typology.js";
 
 const citationPattern = /\[Source:\s*([A-Z0-9_:-]+)\]/g;
 
@@ -23,11 +24,20 @@ export async function guardrailNode(state: AgentState): Promise<AgentStatePatch>
   const highRisk = state.riskScore === "High" || sanctionsRisk;
   const mediumUnverified = state.riskScore === "Medium" && !state.uboVerified;
   const partialData = state.apiData?.completeness === "partial";
+  // KYT (Phase 3): a high-confidence non-clean typology on wallet data
+  // escalates to HITL. Absent transactionData, `kytVerdict` is null and this
+  // adds nothing — zero-key and current pipelines are byte-for-byte unchanged.
+  const kyt = state.kytVerdict ?? null;
+  const kytRisk = kyt !== null && kyt.typology !== "clean" && kyt.confidence >= KYT_ESCALATION_MIN_CONFIDENCE;
+  if (kytRisk) {
+    findings.push(`KYT typology ${kyt.typology} (confidence ${kyt.confidence.toFixed(2)}) requires human review`);
+  }
   // Decision table (ADR-013): HITL only on sanctions/PEP, High risk, Medium
-  // with unverified UBO, partial data, or a browser failure. Low + complete
-  // completes even when UBOs were not individually verified (the registry
-  // returned no UBO data — a documented limitation, not a fraud signal).
-  const hitl = sanctionsRisk || pepRisk || highRisk || mediumUnverified || partialData || state.browserFailed;
+  // with unverified UBO, partial data, a browser failure, or a KYT risk flag.
+  // Low + complete completes even when UBOs were not individually verified
+  // (the registry returned no UBO data — a documented limitation, not a
+  // fraud signal).
+  const hitl = sanctionsRisk || pepRisk || highRisk || mediumUnverified || partialData || state.browserFailed || kytRisk;
   return {
     dossier: sanitizedLines.join("\n"),
     guardrailFindings: findings,

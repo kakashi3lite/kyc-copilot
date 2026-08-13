@@ -33,6 +33,9 @@ export function stripPiiFromGraphState(state: Record<string, unknown>): Record<s
   const safe: Record<string, unknown> = { ...state };
   delete safe.companyName;
   delete safe.registrationNumber;
+  // Raw wallet transactions are case data (potentially sensitive) — persist
+  // only the aggregate KYT verdict, never the raw transaction stream.
+  delete safe.transactionData;
   return safe;
 }
 

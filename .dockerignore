@@ -16,6 +16,9 @@ node_modules/
 .idea/
 .DS_Store
 *.swp
+# macOS AppleDouble resource forks — break the Docker build context (xattr
+# send errors) and pollute due-diligence exports. Always excluded.
+._*
 
 # ── Version control ──────────────────────────────────────
 .git/
@@ -24,11 +27,13 @@ node_modules/
 # ── Docs & CI (not needed in image) ─────────────────────
 docs/
 demo-logs/
-tests/
 scripts/
 .github/
 *.md
 !README.md
+# NOTE: `tests/` is intentionally NOT excluded — the `test` Docker stage
+# (docker compose run --rm test) copies it. The runtime stage never copies
+# tests/, so the production image stays lean.
 
 # ── Docker recursion ─────────────────────────────────────
 Dockerfile
@@ -37,5 +42,5 @@ fly.toml
 
 # ── Session & config artifacts ───────────────────────────
 .session-state.yaml
-drizzle.config.ts
-vitest.config.ts
+# drizzle.config.ts is needed by the `test` Docker stage (`db:migrate`);
+# the runtime image never copies it.

@@ -169,6 +169,10 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   status: text("status").notNull().default("pending"),
   nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
   lastError: text("last_error"),
+  /** Set when the delivery reaches the terminal `failed` state (DLQ). Cleared on replay. */
+  failedAt: timestamp("failed_at", { withTimezone: true }),
+  /** HTTP status from the last delivery attempt — support triage (DLQ). */
+  lastHttpStatus: integer("last_http_status"),
   ...timestamps
 }, (table) => ({
   tenantIdx: index("deliveries_tenant_id_idx").on(table.tenantId),

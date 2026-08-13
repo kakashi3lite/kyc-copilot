@@ -17,6 +17,13 @@ kill_timeout = "10s"
   NODE_ENV = "production"
   PORT = "3000"
   LOG_LEVEL = "info"
+  # Production privacy/compliance flags — pinned explicitly so a missing
+  # secret can never silently downgrade PII protection or cost caching.
+  PII_REDACTION_ENABLED = "true"
+  LLM_CACHE_ENABLED = "true"
+  # Observability flag pinned for the Phase-5 OTEL exporter wiring; pino
+  # structured logs are the active telemetry today.
+  OTEL_ENABLED = "true"
   PLAYWRIGHT_BROWSERS_PATH = "/ms-playwright"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 

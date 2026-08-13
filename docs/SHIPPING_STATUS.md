@@ -49,6 +49,7 @@ related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEX
 | **PII redaction in LLM prompts** 🆕 | Deterministic pseudonyms via HMAC-SHA256 — LLM providers never see real identity data (G1) | `src/services/llm/pii-redactor.ts`, `src/services/llm/adapters/prompt.ts`, `src/config/env.ts` |
 | **Prompt injection defense** 🆕 | XML-tagged entity data + anti-injection preamble in every dossier prompt (G11) | `src/services/llm/adapters/prompt.ts` |
 | **Graph tenant isolation** 🆕 | All graph queries scoped by `tenantId`; cross-tenant entity resolution is opt-in via federation (G3) | `src/services/kyc-data/graph-query.ts`, `src/graph/nodes/draft-dossier.ts`, `src/db/schema.ts`, `src/db/migrations/0004_colossal_slayback.sql` |
+| **Webhook DLQ + replay** 🆕 | Failed deliveries are terminal with `failedAt` (ADR-022); delivery history + single/bulk replay (status-reset, never re-run); `case.created` now enqueued | `src/services/webhooks/replay.ts`, `src/api/routes/webhooks.ts`, `src/services/webhooks/worker.ts`, `src/db/migrations/0005_great_the_watchers.sql` |
 
 ## 🧩 Remaining stubs (documented, NOT deleted)
 

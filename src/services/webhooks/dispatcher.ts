@@ -25,6 +25,11 @@ export async function registerWebhookEndpoint(tenantId: string, url: string, eve
   return { id, secret };
 }
 
+/** Wake the deliverer worker so pending rows are processed immediately. */
+export async function enqueueDeliveryTrigger(): Promise<void> {
+  await webhookDelivererQueue.add("deliver", {});
+}
+
 export async function enqueueWebhookEvent(tenantId: string, event: WebhookEvent, payload: Record<string, unknown>): Promise<void> {
   const endpoints = await db.select().from(webhooks).where(and(eq(webhooks.tenantId, tenantId), eq(webhooks.active, true)));
   const deliveries = endpoints.filter((endpoint) => endpoint.events.includes(event));
@@ -32,8 +37,7 @@ export async function enqueueWebhookEvent(tenantId: string, event: WebhookEvent,
   for (const endpoint of deliveries) {
     await db.insert(webhookDeliveries).values({ id: newId("del"), webhookId: endpoint.id, tenantId, event, payload });
   }
-  // Wake the deliverer worker so the pending rows are processed immediately.
-  await webhookDelivererQueue.add("deliver", {});
+  await enqueueDeliveryTrigger();
 }
 
 export async function deliverWebhook(deliveryId: string): Promise<boolean> {
@@ -45,6 +49,6 @@ export async function deliverWebhook(deliveryId: string): Promise<boolean> {
   if (endpoint === undefined) return false;
   const body = JSON.stringify(delivery.payload);
   const response = await fetch(decryptPii(endpoint.urlEncrypted), { method: "POST", headers: { "content-type": "application/json", "x-kyc-signature": signWebhook(decryptPii(endpoint.secretEncrypted), body) }, body, signal: AbortSignal.timeout(10000) });
-  await db.update(webhookDeliveries).set({ attempts: delivery.attempts + 1, status: response.ok ? "delivered" : "pending", lastError: response.ok ? null : `HTTP ${response.status}`, updatedAt: new Date() }).where(eq(webhookDeliveries.id, delivery.id));
+  await db.update(webhookDeliveries).set({ attempts: delivery.attempts + 1, status: response.ok ? "delivered" : "pending", lastError: response.ok ? null : `HTTP ${response.status}`, lastHttpStatus: response.status, updatedAt: new Date() }).where(eq(webhookDeliveries.id, delivery.id));
   return response.ok;
 }

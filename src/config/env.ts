@@ -120,6 +120,53 @@ export const env = cleanEnv(process.env, {
   OTEL_ENABLED: bool({ default: false }),
 });
 
+/**
+ * ── Production Fail-Closed Guard (C2) ──────────────────────────────────────
+ * envalid's `default:` values above exist for local DX. Those same defaults
+ * are a security hole in production (hardcoded ENCRYPTION_KEY, dev JWT
+ * secrets, MinIO S3 credentials). This guard runs at module load — before the
+ * HTTP server or any worker starts — and refuses to boot when production
+ * would run on missing or development-only secrets.
+ */
+const PROD_REQUIRED_SECRETS = [
+  "ENCRYPTION_KEY",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
+  "API_KEY_LOOKUP_SECRET",
+  "PII_REDACTION_KEY",
+] as const satisfies readonly (keyof typeof env)[];
+
+/** Values that are only ever acceptable in development. */
+const DEV_ONLY_SECRETS: ReadonlyArray<{ name: keyof typeof env; value: string }> = [
+  { name: "ENCRYPTION_KEY", value: "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" },
+  { name: "JWT_SECRET", value: "dev-access-secret-change-me" },
+  { name: "JWT_REFRESH_SECRET", value: "dev-refresh-secret-change-me" },
+  // S3 vars default to MinIO local credentials — never acceptable in production.
+  { name: "S3_ACCESS_KEY", value: "minioadmin" },
+  { name: "S3_SECRET_KEY", value: "minioadmin" },
+];
+
+function assertProductionSecrets(e: typeof env): void {
+  if (e.NODE_ENV !== "production") return;
+
+  const problems: string[] = [];
+  for (const name of PROD_REQUIRED_SECRETS) {
+    if (!e[name]) problems.push(`${name} (missing)`);
+  }
+  for (const { name, value } of DEV_ONLY_SECRETS) {
+    if (e[name] === value) problems.push(`${name} (dev default)`);
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      "Refusing to boot in NODE_ENV=production with insecure configuration: " +
+        `${problems.join(", ")}. ` +
+        "Set real secrets via `infra/fly-secrets.sh` (or your secret manager) and redeploy.",
+    );
+  }
+}
+
+assertProductionSecrets(env);
+
 export function allowedOrigins(): string[] {
   return env.ALLOWED_ORIGINS.split(",")
     .map((origin: string) => origin.trim())

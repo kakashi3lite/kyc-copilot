@@ -1,0 +1,32 @@
+{
+  "name": "kyt-golden",
+  "version": 1,
+  "synthetic": true,
+  "description": "24 synthetic wallet profiles (6 per typology) for the KYT classifier gate. Deterministic seeds drive tests/fixtures/transactions-synthetic.ts. Synthetic only (ADR-013) — never enters production data.",
+  "wallets": [
+    { "walletId": "kc-001", "profile": "cybercrime_dispersion", "seed": 1001, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-002", "profile": "cybercrime_dispersion", "seed": 1002, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-003", "profile": "cybercrime_dispersion", "seed": 1003, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-004", "profile": "cybercrime_dispersion", "seed": 1004, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-005", "profile": "cybercrime_dispersion", "seed": 1005, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-006", "profile": "cybercrime_dispersion", "seed": 1006, "expectedTypology": "cybercrime_dispersion" },
+    { "walletId": "kc-011", "profile": "sanctions_evasion", "seed": 2001, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-012", "profile": "sanctions_evasion", "seed": 2002, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-013", "profile": "sanctions_evasion", "seed": 2003, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-014", "profile": "sanctions_evasion", "seed": 2004, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-015", "profile": "sanctions_evasion", "seed": 2005, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-016", "profile": "sanctions_evasion", "seed": 2006, "expectedTypology": "sanctions_evasion" },
+    { "walletId": "kc-021", "profile": "mixing", "seed": 3001, "expectedTypology": "mixing" },
+    { "walletId": "kc-022", "profile": "mixing", "seed": 3002, "expectedTypology": "mixing" },
+    { "walletId": "kc-023", "profile": "mixing", "seed": 3003, "expectedTypology": "mixing" },
+    { "walletId": "kc-024", "profile": "mixing", "seed": 3004, "expectedTypology": "mixing" },
+    { "walletId": "kc-025", "profile": "mixing", "seed": 3005, "expectedTypology": "mixing" },
+    { "walletId": "kc-026", "profile": "mixing", "seed": 3006, "expectedTypology": "mixing" },
+    { "walletId": "kc-031", "profile": "clean", "seed": 4001, "expectedTypology": "clean" },
+    { "walletId": "kc-032", "profile": "clean", "seed": 4002, "expectedTypology": "clean" },
+    { "walletId": "kc-033", "profile": "clean", "seed": 4003, "expectedTypology": "clean" },
+    { "walletId": "kc-034", "profile": "clean", "seed": 4004, "expectedTypology": "clean" },
+    { "walletId": "kc-035", "profile": "clean", "seed": 4005, "expectedTypology": "clean" },
+    { "walletId": "kc-036", "profile": "clean", "seed": 4006, "expectedTypology": "clean" }
+  ]
+}

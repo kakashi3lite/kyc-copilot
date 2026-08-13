@@ -526,3 +526,84 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
 - **Alternatives rejected:**
   - Fine-tuned model for injection resistance — not provider-agnostic.
   - Post-prompt validation only — reactive, not preventive.
+
+## ADR-021: KYT typology classifier — deterministic rule-based baseline first (Sprint 6 / Phase 3)
+
+- **Status:** Accepted (2026-08-13)
+- **Context:** Blue Ocean Phase 5 / Sprint 6 shipped a KYT classifier that
+  differentiates laundering typologies (cybercrime dispersion vs. sanctions
+  evasion vs. mixing). The original plan called for a LightGBM/XGBoost tree
+  ensemble exported to ONNX Runtime. Two blockers: (1) no real wallet
+  transaction data source exists yet (BD-negotiated pilots pending), and (2)
+  adding ONNX Runtime/LightGBM is a native dependency the team would have to
+  own in every deployment (Docker, Fly, CI).
+- **Decision:**
+  1. **Ship a deterministic, rule-based typology classifier FIRST**
+     (`src/services/kyt/typology.ts` + `features.ts`): interpretable (every
+     verdict carries per-signal contributions), CPU-only, zero new
+     dependencies, $0.00 marginal LLM cost.
+  2. **Golden-gate it** (`tests/evaluation/kyt-benchmark.test.ts` + the
+     synthetic wallet generator in `tests/fixtures/transactions-synthetic.ts`):
+     macro-F1 > 0.85 and false-positive rate < 5% on 24 synthetic profiles
+     (ADR-013 — fixtures never enter production data).
+  3. **Wire it into the graph** as `kytNode` (between api/browser lookup and
+     dossier drafting) and into the guardrail decision table (ADR-013) as a
+     HITL trigger — active only when a case carries `transactionData`, a
+     transparent no-op otherwise (zero-key behavior unchanged).
+  4. **Revisit ONNX/LightGBM only when** the golden benchmark fails OR a real
+     transaction-data pilot demonstrates the rule baseline is insufficient.
+     The interface is designed so the tree-ensemble slots in behind the same
+     `classify(KytFeatures) → KytVerdict` contract.
+- **Consequences:**
+  - `src/types/kyt.ts` (Zod contracts), `src/services/kyt/*`,
+    `src/graph/nodes/kyt.ts`, guardrail KYT escalation,
+    `graphState` strips raw `transactionData` (only the verdict persists).
+  - Unit + node + golden-gate tests; eval harness extended with
+    `KytGoldenSchema` + `kytMetrics`.
+- **Do not undo unless:** the tree-ensemble demonstrably beats the baseline on
+  real data with acceptable operational cost.
+- **Alternatives rejected:**
+  - ONNX Runtime + LightGBM now — native dependency before a data source or a
+    demonstrated need (the "dependency the team doesn't understand" trap).
+  - A black-box neural model — violates the interpretability requirement for
+    regulated environments (every classification must carry explanations).
+
+## ADR-022: Webhook dead-letter + replay (status-reset recovery)
+
+- **Status:** Accepted (2026-08-13)
+- **Context:** Failed webhook deliveries were terminal but invisible: no
+  `failedAt` timestamp, no history endpoint, no recovery path. A dead
+  endpoint permanently silenced an institution's compliance notifications
+  (case.completed / case.pending_hitl) with no operational signal. Also,
+  `case.created` was never enqueued.
+- **Decision:**
+  1. **D1 — Max attempts constant:** `MAX_ATTEMPTS = 3` (1 initial + 2 retries)
+     extracted in the deliverer worker; terminal `failed` after the third.
+  2. **D2 — Dead-letter marker:** `webhook_deliveries.failedAt` (nullable)
+     stamped on terminal failure, cleared on replay; `lastHttpStatus` added
+     for support triage (migration `0005`).
+  3. **D3 — Replay is a status reset, never a re-run:** sets
+     `status: pending, attempts: 0, nextAttemptAt: now, failedAt: null`,
+     reuses the stored `payload` (no re-fetch, no new decryption), and wakes
+     the deliverer. A `delivered` delivery is never replayed (409).
+  4. **D4 — API surface (growth+ gated):** `GET /webhooks/:id/deliveries`
+     (history, status filter, limit ≤ 100), `POST /webhooks/:id/deliveries/:deliveryId/replay`
+     (202 | 404 | 409), `POST /webhooks/:id/replay` (bulk, 202 `{replayed, skipped}`).
+  5. **D5 — `case.created` enqueue:** `POST /cases` enqueues
+     `case.created` after the insert (before the sync/async branch); no-op
+     when nothing subscribes.
+  6. **D6 — No destructive endpoints in v1** (retention is a future cron).
+- **Consequences:** `src/db/schema.ts` + migration `0005`; worker
+  dead-lettering in `src/services/webhooks/worker.ts`; new
+  `src/services/webhooks/replay.ts`; three new routes in `webhooks.ts`;
+  `case.created` in `cases.ts`; unit + integration tests; INV-006 signature
+  scheme unchanged.
+- **Do not undo unless:** a delivery-retention cron + idempotency keys replace
+  the DLQ model (future §7 of the plan).
+- **Alternatives rejected:**
+  - Auto-retry forever — unbounded pressure on dead endpoints and no terminal
+    state for auditors.
+  - Re-running the case on replay — re-runs the graph pipeline and re-encrypts
+    payloads; replay must only re-send what was originally queued.
+
+

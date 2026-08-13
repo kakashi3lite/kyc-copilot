@@ -13,9 +13,12 @@ services:
       timeout: 5s
       retries: 5
   # Phase G.4 — run the full test suite (incl. the real E2E lifecycle)
-  # against the same Postgres + Redis the app uses.
+  # against the same Postgres + Redis the app uses. Targets the `test`
+  # Docker stage (full devDependencies + tests), NOT the production runtime.
   test:
-    build: .
+    build:
+      context: .
+      target: test
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -26,7 +29,9 @@ services:
       - LLM_TIER_PRIMARY=t0
       - STRIPE_SECRET_KEY=
       - STRIPE_WEBHOOK_SECRET=
-    command: npm run test
+    # Self-sufficient gate: the compose Postgres starts empty, so migrate
+    # before running the suite (the e2e requires a migrated DB).
+    command: sh -c "npm run db:migrate && npm run test"
   postgres:
     image: postgres:16-alpine
     environment:

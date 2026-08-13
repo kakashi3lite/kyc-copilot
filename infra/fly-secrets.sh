@@ -51,12 +51,17 @@ fly secrets set \
 # ENCRYPTION_KEY: 32 bytes hex-encoded (AES-256-GCM for PII at-rest encryption)
 # Generate with: openssl rand -hex 32
 # JWT secrets: Use long random strings. Generate with: openssl rand -base64 48
+# PII_REDACTION_KEY: HMAC key for LLM-prompt pseudonymization (G1). MUST be
+# distinct from ENCRYPTION_KEY/JWT_SECRET — the app refuses to boot in
+# production when it is missing (C1/C2).
 echo "🔑 Setting Encryption & Auth secrets..."
 fly secrets set \
   ENCRYPTION_KEY="$(openssl rand -hex 32)" \
   JWT_SECRET="$(openssl rand -base64 48)" \
   JWT_REFRESH_SECRET="$(openssl rand -base64 48)" \
   API_KEY_LOOKUP_SECRET="$(openssl rand -hex 32)" \
+  PII_REDACTION_KEY="$(openssl rand -hex 32)" \
+  PII_REDACTION_ENABLED="true" \
   --app "${APP_NAME}"
 
 # ── 5. Object Storage (Cloudflare R2 / Tigris) ──────────────────────────────
@@ -94,7 +99,8 @@ fly secrets set \
   RATE_LIMIT_API_PER_MINUTE="100" \
   RATE_LIMIT_AUTH_PER_MINUTE="10" \
   LOG_LEVEL="info" \
-  OTEL_ENABLED="false" \
+  LLM_CACHE_ENABLED="true" \
+  OTEL_ENABLED="true" \
   --app "${APP_NAME}"
 
 echo ""
