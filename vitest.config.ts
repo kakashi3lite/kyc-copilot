@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup/llm-mock.ts"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html", "lcov"],
+      reporter: ["text", "json", "html", "lcov", "cobertura"],
       // Phase G — production hardening targets (verified 2026-08-03:
       // 61.4% stmts / 48.1% branch / 66.0% funcs / 62.5% lines).
       thresholds: { lines: 60, branches: 40, functions: 55, statements: 60 },

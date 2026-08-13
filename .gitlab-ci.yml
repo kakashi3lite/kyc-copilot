@@ -164,8 +164,9 @@ full-gate:
     expire_in: 7 days
     reports:
       coverage_report:
-        coverage_format: lcov
-        path: coverage/lcov.info
+        # GitLab supports cobertura/jacoco in coverage_report — NOT lcov.
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
     paths:
       - coverage/
   rules: !reference [.default-rules, rules]
