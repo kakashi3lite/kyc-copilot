@@ -30,8 +30,10 @@
 | Report / signing change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/reports/{signer,generator,pdf-renderer}.ts` | 1k |
 | LLM routing / cost / cache | IMPLEMENTER | IS-002 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §1-4,13 → `src/services/llm/{router,budget,difficulty-classifier,cache,cost-tracker,audit}.ts` → adapters | 2.5k |
 | RAG-Graph / entity resolution | IMPLEMENTER | IS-004 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §5-6,13 → `src/db/schema.ts` → `src/services/kyc-data/{entity-resolver,graph-query}.ts` → `src/graph/nodes/draft-dossier.ts` | 2k |
-| Security hardening / ZKP | IMPLEMENTER | IS-002 | `docs/PLAN_SECURITY_HARDENING.md` → `SECURITY.md` → `src/services/llm/pii-redactor.ts` → `src/services/encryption/at-rest.ts` | 2.5k |
+| Security hardening / ZKP | IMPLEMENTER | IS-002 | `docs/PLAN_SECURITY_HARDENING.md` → `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` → `SECURITY.md` → `src/services/llm/pii-redactor.ts` → `src/services/encryption/at-rest.ts` | 2.5k |
 | Production run / ops | — | — | `docs/OPERATIONS.md` → `SECURITY.md` → `infra/*` | 2k |
+| Crypto hardening (Phase 1, next) | ZK/Privacy Guardian | IS-002 | `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` → `docs/PLAN_SECURITY_HARDENING.md` §2–§12 → `src/services/encryption/at-rest.ts` | 3k |
+| Ops readiness (Phase 5, shipped) | — | — | `docs/DR_RUNBOOK.md` → `docs/INCIDENT_RUNBOOK.md` → `docs/DPA_PACK.md` → `docs/dr-drill-log.txt` | 1.5k |
 
 ## Anti-patterns
 
@@ -50,7 +52,9 @@
 | API routes | `docs/ARCHITECTURE_CONTEXT.md` §7 |
 | DB tables | `docs/ARCHITECTURE_CONTEXT.md` §6 |
 | Why a choice was made | `docs/DECISIONS.md` |
-| Active shipping plan | `docs/PLAN_MVP_SHIP.md` (approved for implementation) |
+| Active roadmap / phase status | `docs/PLAN_PRODUCTION_READINESS.md` (§Phase Status — Phases 0–5 shipped, Phase 1 next) |
+| Next phase execution (crypto hardening) 🆕 | `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` (approved for implementation) |
+| MVP shipping plan (shipped) | `docs/PLAN_MVP_SHIP.md` (Phases done 2026-08-03) |
 | AI subsystems plan + execution log | `docs/PLAN_BLUE_OCEAN_IMPLEMENTATION.md` (Sprints 1–5 shipped, §13) |
 | Business MVP (shipped) | `docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md` — Phases A–G done 2026-08-04 |
 | Operations runbook | `docs/OPERATIONS.md` |

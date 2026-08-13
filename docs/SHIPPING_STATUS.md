@@ -4,9 +4,9 @@ path: /Users/kakashi3lite/kyc-copilot
 doc: SHIPPING_STATUS
 title: Shipping Status — Sellable Product Capability Matrix
 status: current
-updated: 2026-08-04
-scope: Business MVP (Phases A–G) · zero-key demo · sellable product surface · Phase 0 security hardening
-related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEXT.md, OPERATIONS.md, PLAN_SECURITY_HARDENING.md]
+updated: 2026-08-13
+scope: Business MVP (Phases A–G) · zero-key demo · sellable product surface · Phases 0–5 hardening/ops shipped · Phase 1 (crypto hardening) next
+related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEXT.md, OPERATIONS.md, PLAN_SECURITY_HARDENING.md, PLAN_CRYPTO_HARDENING_EXECUTION.md]
 ---
 
 # Shipping Status
@@ -50,6 +50,16 @@ related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEX
 | **Prompt injection defense** 🆕 | XML-tagged entity data + anti-injection preamble in every dossier prompt (G11) | `src/services/llm/adapters/prompt.ts` |
 | **Graph tenant isolation** 🆕 | All graph queries scoped by `tenantId`; cross-tenant entity resolution is opt-in via federation (G3) | `src/services/kyc-data/graph-query.ts`, `src/graph/nodes/draft-dossier.ts`, `src/db/schema.ts`, `src/db/migrations/0004_colossal_slayback.sql` |
 | **Webhook DLQ + replay** 🆕 | Failed deliveries are terminal with `failedAt` (ADR-022); delivery history + single/bulk replay (status-reset, never re-run); `case.created` now enqueued | `src/services/webhooks/replay.ts`, `src/api/routes/webhooks.ts`, `src/services/webhooks/worker.ts`, `src/db/migrations/0005_great_the_watchers.sql` |
+| **DR/PITR restore drill** 🆕 | `scripts/dr/restore-drill.sh` restores to a temp DB, applies migrations, verifies 15 tables + DLQ columns; PASS logged to `docs/dr-drill-log.txt` (DORA Art. 11/12 evidence) | `docs/DR_RUNBOOK.md`, `scripts/dr/restore-drill.sh` |
+| **Incident runbook** 🆕 | SEV1/2/3 matrix, RACI, GDPR Art. 33/34 (≤72h) + DORA 4h/24h/72h reporting path, comms templates | `docs/INCIDENT_RUNBOOK.md` |
+| **Sub-processor DPA pack** 🆕 | Register (OpenAI, Google, Anthropic, Ollama, ComplyAdvantage, OpenCorporates, Stripe, Resend, Fly.io, Upstash, Cloudflare R2, Playwright) + EU transfer mechanisms + Art. 28 template | `docs/DPA_PACK.md` |
+| **Latency benchmark** 🆕 | `bench:latency` — p95 gate <10s on the t0 deterministic pipeline (measured <1ms) | `scripts/bench/dossier-latency.ts` |
+| **Drift tripwire** 🆕 | `bench:drift` — weekly golden-dataset snapshot vs committed baseline; exits 1 on drift (agreement, low-cost ratio, entity F1, tier distribution) | `tests/evaluation/drift*.ts|json`, `scripts/eval/drift-check.ts` |
+
+## ▶️ Next up — Phase 1: Cryptographic Hardening (G2, G4–G10, G12)
+
+Self-contained (no external API keys — deploy/UBO/S3/Resend are all key-gated; Phase 6
+is BD-gated). Execute `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` (ADR-024).
 
 ## 🧩 Remaining stubs (documented, NOT deleted)
 

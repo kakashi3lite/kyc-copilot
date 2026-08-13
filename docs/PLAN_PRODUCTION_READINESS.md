@@ -3,8 +3,8 @@ repo: kyc-copilot
 path: /Users/kakashi3lite/kyc-copilot
 doc: PLAN_PRODUCTION_READINESS
 title: Production Readiness Plan — Verified Gap Analysis & Phased Execution
-status: proposed
-updated: 2026-08-12
+status: active — Phases 0–5 shipped (2026-08-13); Phase 1 (crypto hardening) is NEXT
+updated: 2026-08-13
 scope: Close the gap between "sellable MVP" and "production-grade, DORA/GDPR-defensible, fully tested platform", then unlock Blue Ocean Phases 2–6
 authors: Vector/Graph Architect (ML/Data) + RegTech Partner Architect (BD)
 related:
@@ -31,6 +31,25 @@ target_agents: [Principal AI Architect, Vector/Graph Architect, ZK/Privacy Guard
 > verified state of the repo (not assumptions — every claim below has a file
 > reference), lists what still needs to be built, and sequences it in phases so
 > that compliance foundations land before features that depend on them.
+
+---
+
+## §Phase Status (2026-08-13)
+
+| Phase | Status | Evidence |
+|---|---|---|
+| **0** — Compliance & Config Foundation | ✅ Shipped | `src/config/env.ts` fail-closed, `infra/fly-secrets.sh`, `fly.toml`, `._*` hygiene |
+| **1** — Cryptographic Hardening (G2, G4–G10, G12) | ▶️ **NEXT** | Execution plan: `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` (self-contained, no external keys) |
+| **2** — Evaluation Infrastructure | ✅ Shipped | golden datasets, harness v2, `test:eval` green |
+| **3** — KYTClassifier | ✅ Shipped | `src/services/kyt/*`, ADR-021, macro-F1=1.000/FPR=0.000 |
+| **4** — Feature Completion | 🔶 Partial (DLQ done; UBO/S3/Resend/SSE/human-review open) | webhook DLQ + replay shipped (ADR-022) |
+| **5** — Operations & Continuous-Evaluation Readiness | ✅ Shipped | `docs/DR_RUNBOOK.md`, `docs/INCIDENT_RUNBOOK.md`, `docs/DPA_PACK.md`, `bench:latency`, `bench:drift`, ADR-023 |
+| **6** — Blue Ocean Integrations | ⛔ Gated (BD: QTSP sandbox + design partner) | do not pre-build on guesses |
+| Deploy (manual) | ⏸ Gated on `FLY_API_TOKEN` (operator deferred) | `deploy-production` job manual in GitLab |
+
+**Next phase rationale (ADR-024):** deploy, UBO real-key, S3, and Resend all need an
+API key; Phase 6 needs BD. Phase 1 is the only remaining phase with zero external
+credential dependency — execute it while the deploy key is pending.
 
 ---
 
@@ -208,7 +227,11 @@ Gates: no prod boot without all C1/C2 secrets (test proves it) · zero-key demo 
 
 Rollback: `git revert` the Phase-0 commit; `fly secrets unset` any added secret.
 
-### Phase 1 — Cryptographic Hardening Completion (est. 2–3 weeks)
+### Phase 1 — Cryptographic Hardening Completion (est. 2–3 weeks) — ▶️ NEXT
+
+> **Execution plan:** `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` (waves, exact file
+> targets, tests, gates, rollback). Self-contained — no external API keys required;
+> proceed while the deploy key is pending (ADR-024).
 
 **Objective:** finish the 9 open G-items, highest-exploit-risk first.
 

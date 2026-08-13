@@ -645,5 +645,36 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
   - Alerting on every metric — noise without a tripwire; the drift baseline
     gives one actionable signal per subsystem.
 
+## ADR-024: Phase sequencing — deploy key-gated; Phase 1 crypto hardening is next
+
+- **Status:** Accepted (2026-08-13)
+- **Context:** Phases 0–5 of `PLAN_PRODUCTION_READINESS.md` shipped and the GitLab
+  pipeline is green end-to-end (09 automated jobs + manual `deploy-production`). The
+  operator is **not** provisioning the production API key (`FLY_API_TOKEN`) yet, which
+  gates the first deploy. Roadmap must stay productive and compliant without it.
+- **Decision:**
+  1. **Deploy stays manual & pending** until `FLY_API_TOKEN` (masked, protected,
+     env scope `production`) is added and `bash infra/fly-secrets.sh` runs once.
+     No deploy work is blocked — the pipeline's `docker-build` already proves the
+     image; `deploy-production` is a one-click manual job.
+  2. **Next phase = Phase 1: Cryptographic Hardening** (G2, G4–G10, G12). It is the
+     only remaining phase with **zero external credential dependency** — everything
+     else needs a key (UBO real-key → OpenCorporates; S3 → R2; Resend → API key) or
+     BD (Phase 6 → QTSP sandbox). Execution plan: `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md`.
+  3. **Wave 4 of Phase 1 (G6 threshold decryption, G10 differential privacy) needs
+     policy ADRs first** (key custody for the 3rd share; ε-budget). Draft ADRs are
+     written at sign-off, not pre-built.
+- **Consequences:** `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` is the load block for the
+  next IMPLEMENTER/ZK session; `SHIPPING_STATUS.md` marks Phase 1 as next-up; the
+  phase-status matrix in `PLAN_PRODUCTION_READINESS.md` stays authoritative.
+- **Do not undo unless:** a key-gated phase becomes unblocked before Phase 1 finishes
+  (e.g. operator provisions `FLY_API_TOKEN` + secrets → reorder deploy first, then
+  resume Phase 1).
+- **Alternatives rejected:**
+  - "Start Phase 6 anyway" — pre-building on un-signed QTSP/design-partner guesses
+    violates the plan's own go/no-go gate.
+  - "Wait idle for the key" — Phase 1 is fully self-contained and highest security
+    value; idle time is free hardening.
+
 
 
