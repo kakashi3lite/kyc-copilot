@@ -218,8 +218,18 @@ deploy-production:
   script:
     - flyctl deploy --app kyc-copilot --remote-only --strategy rolling
   rules:
+    # Docs-only pushes must not offer a deploy (mirrors .default-rules).
+    - changes:
+        - "docs/**/*"
+        - "*.md"
+        - "README.md"
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
   needs:
-    - full-gate
-    - docker-build
+    # optional:true — a docs/CI-only push may exclude full-gate/docker-build;
+    # a hard need on a non-existent job rejects the whole pipeline.
+    - job: full-gate
+      optional: true
+    - job: docker-build
+      optional: true
