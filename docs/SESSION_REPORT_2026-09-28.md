@@ -33,6 +33,7 @@ related:
 | 4 | GitHub `ci.yml` ran the full suite (incl. real E2E) **without** `npm run db:migrate` | GitHub Actions red on every push; the e2e requires a migrated DB (per `tests/e2e/kyc-lifecycle.test.ts`) | Added migrate step + `LLM_TIER_PRIMARY=t0` / `LLM_SYNC_ALLOWED_TIERS=t0` (mirrors GitLab `full-gate` and compose `test`) | Workflow YAML validated; host suite (same steps) green |
 | 5 | Docs drift | `ARCHITECTURE_CONTEXT` §1 showed v1.0.0 (package is 1.1.0); README said ADR-001→017 (max is ADR-024); `MARKET_INTELLIGENCE.md` contained agent-wrapper artifacts | Version fixed; ADR range fixed; wrapper artifacts ("Save this as…", outer fence, "enable file-writing tools" tail) removed | `grep` + render check |
 | 6 | `.env.example` hostnames ambiguous | Host-run dev (`localhost`) vs compose (`postgres`/`redis`) confusion | Added a comment block documenting when to use which file; env defaults already point at localhost | — |
+| 7 | 6 npm advisories (1 high: `nanoid`; moderate: `hono`, `qs`, `vitest`) | GitHub Dependabot flagged 11 alerts on the public repo | `npm audit fix --legacy-peer-deps` — lockfile-only, semver-compatible bumps | `npm audit`: **0 vulnerabilities**; typecheck + 223/223 re-run green |
 
 ## 2. README Refresh (previous session, committed here)
 
