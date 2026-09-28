@@ -1,8 +1,10 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # KYC Copilot — Deploy Pipeline (parallel DAG)
 #
-# Trigger: push to main. Runs checks + SAST + SBOM in parallel; deploys
-# to Fly.io only when all gates pass.
+# Trigger: manual (workflow_dispatch) only — ADR-024: deploy is key-gated
+# until the operator provisions FLY_API_TOKEN + Fly secrets. Push coverage
+# stays with the `ci` workflow. Runs checks + SAST + SBOM in parallel;
+# deploys to Fly.io only when all gates pass.
 #
 # DAG:
 #
@@ -32,8 +34,10 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  # ADR-024: deploy stays key-gated and manual until FLY_API_TOKEN + Fly
+  # secrets are provisioned. Push-triggered deploys would run and fail on
+  # every commit without them.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}

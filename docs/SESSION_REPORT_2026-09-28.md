@@ -85,8 +85,10 @@ related:
 
 ## 6. Risks / Deferred
 
-- GitHub Actions itself unverified until the next push runs it (steps validated
-  structurally and locally end-to-end).
+- GitHub Actions is blocked by an account-level billing lock (jobs never start:
+  "The job was not started because your account is locked due to a billing
+  issue"). Not a repo defect — resolve billing at github.com/settings/billing;
+  the workflow config is validated locally. The GitLab pipeline is the primary CI.
 - `bench:drift` baseline is from 2026-08-13 — re-run before any model/classifier change.
 - Phase 1 (cryptographic hardening, ADR-024) remains the next feature track.
 
@@ -94,4 +96,10 @@ related:
 
 - **Pushed:** `main` → `origin` (GitHub) and `gitlab` — GitHub was 5 commits
   behind at session start; this push brings it current.
+- **GitHub Actions:** account-level billing lock blocks all runs (not a repo
+  defect). The `Deploy` workflow was switched to manual `workflow_dispatch`
+  (ADR-024 alignment — deploy is key-gated); push coverage stays with `ci.yml`.
+- **Demo package (same day):** Canadian prospect package added —
+  `docs/DEMO_PACKAGE_CANADA_2026-09-28.md` (repo scan + Loom script + checklist + FAQ)
+  and `docs/CANADIAN_MARKET_IMPACT_BRIEF.md` (standalone one-pager).
 - **Next:** Phase 1 crypto hardening per `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md`.

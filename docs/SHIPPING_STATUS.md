@@ -4,7 +4,7 @@ path: /Users/kakashi3lite/kyc-copilot
 doc: SHIPPING_STATUS
 title: Shipping Status — Sellable Product Capability Matrix
 status: current
-updated: 2026-08-13
+updated: 2026-09-28
 scope: Business MVP (Phases A–G) · zero-key demo · sellable product surface · Phases 0–5 hardening/ops shipped · Phase 1 (crypto hardening) next
 related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEXT.md, OPERATIONS.md, PLAN_SECURITY_HARDENING.md, PLAN_CRYPTO_HARDENING_EXECUTION.md]
 ---
@@ -45,6 +45,7 @@ related: [PLAN_BUSINESS_MVP_IMPLEMENTATION.md, DECISIONS.md, ARCHITECTURE_CONTEX
 | Difficulty-aware routing | Deterministic classifier: sanctions/PEP/blacklist → t4, clean+complete → t0, standard → t2, huge context → t3 | `src/services/llm/difficulty-classifier.ts` |
 | Semantic LLM cache | Redis-backed, graph-aware keys, TTL tiers (1h sanctions/PEP, 24h registry); bypassed for high-risk/test | `src/services/llm/cache.ts`, `src/config/env.ts` (`LLM_CACHE_ENABLED`) |
 | RAG-Graph (entity resolution) | `graph_entities`/`graph_edges`/`case_entities` tables + deterministic resolver + cross-case graph context in dossier prompts | `src/db/schema.ts`, `migrations/0003`, `src/services/kyc-data/{entity-resolver,graph-query}.ts` |
+| KYT typology baseline (deterministic) | CPU-only rule-based classifier (`cybercrime_dispersion` / `sanctions_evasion` / `mixing` / `clean`) with per-signal contributions; wired as `kytNode` before dossier drafting; $0.00 marginal LLM cost; escalates via guardrail (ADR-021) | `src/services/kyt/`, `src/graph/nodes/kyt.ts` |
 | Evaluation harness | F1 / tier-ratio / cache-hit / cost-delta primitives for the three AI subsystems | `tests/evaluation/harness.ts` |
 | **PII redaction in LLM prompts** 🆕 | Deterministic pseudonyms via HMAC-SHA256 — LLM providers never see real identity data (G1) | `src/services/llm/pii-redactor.ts`, `src/services/llm/adapters/prompt.ts`, `src/config/env.ts` |
 | **Prompt injection defense** 🆕 | XML-tagged entity data + anti-injection preamble in every dossier prompt (G11) | `src/services/llm/adapters/prompt.ts` |
@@ -68,7 +69,7 @@ is BD-gated). Execute `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` (ADR-024).
 | `EmailService` / Resend | `src/services/notifications/` | Password-reset links logged in dev; wire Resend for prod email |
 | S3 object storage | env vars only | `S3_*` configured + MinIO in compose but no S3 code; evidence lives in Postgres |
 | `human-review.ts` node | `src/graph/nodes/` | Not in `KycGraph.run()`; approval is an API route |
-| SSE live streaming | `GET /cases/stream` | Single snapshot then close |
+| SSE ONNX tree-ensemble (Sprint 6) | — | Deferred: the deterministic rule-based baseline shipped first (ADR-021; gates green in `tests/evaluation/BASELINES.md`); the ONNX model waits on real transaction data + graph > 1,000 entities
 | KYT typology classifier (Sprint 6) | — | Deferred: needs graph >1,000 entities + a wallet transaction data source (see `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §7) |
 | Entity-resolution golden dataset | — | F1 benchmark dataset of 50 entities is a follow-up |
 | PKCS#7 (CA-issued) signatures | — | Deferred to Enterprise (D6 — HMAC signing is the MVP) |
