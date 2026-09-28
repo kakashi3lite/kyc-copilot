@@ -107,7 +107,7 @@ compliance alignment, reproducibility) for readers who have never seen the repo.
 
 ### Post-record
 
-- [ ] GitHub Actions status: blocked by an account-level billing lock as of 2026-09-28 — jobs never start (annotation: "The job was not started because your account is locked due to a billing issue"). Not a repo defect; resolve at github.com/settings/billing. The GitLab pipeline remains the primary CI; the GitHub workflow config is validated locally.
+- [ ] GitHub Actions: green — CI run 36390332209 succeeded on commit `ec84aa2` (38 test files in CI, coverage 71.26% lines vs the 60% gate; docker-build passed). Commits after `ccbbba4` touch workflows/docs only — product code unchanged. Billing lock resolved 2026-09-28.
 
 ## Deliverable D — Prospect FAQ
 
@@ -122,7 +122,6 @@ compliance alignment, reproducibility) for readers who have never seen the repo.
 - Corporations Canada integration is not live at this HEAD (roadmap; the demo runs the zero-key synthetic path).
 - 30-day beneficial-ownership discrepancy reporting is not a product feature yet (the evidence ledger is the substrate, not the feature).
 - PIPEDA-specific legal review has not been performed; describe controls as mapped from the repo's privacy posture, not certified compliance.
-- Do not claim "GitHub CI is green" until the account billing lock is resolved (jobs do not start); cite the GitLab pipeline or the local verification gates instead.
 - CAD figures are illustrative conversions (1 EUR ≈ 1.47 CAD), not verified rates.
 
 ## Self-Check

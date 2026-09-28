@@ -34,6 +34,7 @@ related:
 | 5 | Docs drift | `ARCHITECTURE_CONTEXT` §1 showed v1.0.0 (package is 1.1.0); README said ADR-001→017 (max is ADR-024); `MARKET_INTELLIGENCE.md` contained agent-wrapper artifacts | Version fixed; ADR range fixed; wrapper artifacts ("Save this as…", outer fence, "enable file-writing tools" tail) removed | `grep` + render check |
 | 6 | `.env.example` hostnames ambiguous | Host-run dev (`localhost`) vs compose (`postgres`/`redis`) confusion | Added a comment block documenting when to use which file; env defaults already point at localhost | — |
 | 7 | 6 npm advisories (1 high: `nanoid`; moderate: `hono`, `qs`, `vitest`) | GitHub Dependabot flagged 11 alerts on the public repo | `npm audit fix --legacy-peer-deps` — lockfile-only, semver-compatible bumps | `npm audit`: **0 vulnerabilities**; typecheck + 223/223 re-run green |
+| 8 | GitHub `ci.yml` missing `--legacy-peer-deps` (the only pipeline without it; no `.npmrc`) | First real GitHub run would fail at `npm install` with ERESOLVE on the @langchain/* peer graph | Added `--legacy-peer-deps` + lockfile cache key | CI green: run 36390332209 on `ec84aa2` (38 files, 71.26% lines, docker-build pass) |
 
 ## 2. README Refresh (previous session, committed here)
 
@@ -59,6 +60,7 @@ related:
 | Compose gate | `docker compose run --rm test` | ✅ **EXIT 0** — migrate + full suite (37 files) against compose Postgres + Redis |
 | Live demo | `npm run db:seed` + `npm run dev` + curl | ✅ `/health` ok (db+redis true) · landing 200 · Acme → `completed` · Volkov → `pending_hitl` |
 | Router (live logs) | dev server | Acme → **t2** "complete data, low risk"; Volkov → **t4** "sanctions or PEP flag"; deterministic fallback without keys |
+| GitHub CI | `gh run watch` run 36390332209 | **success** — 38 files in CI, coverage 71.26% lines, docker-build pass |
 
 ## 4. Environment Note (local machine only — no repo change needed)
 
@@ -76,15 +78,18 @@ related:
 | `README.md` | Business Impact + Architecture + Tech Stack; ADR range → 024 |
 | `package.json` | `demo` script: `db redis` → `postgres redis` |
 | `src/db/seed.ts` | Close Redis/pool handles on exit (demo-blocker fix) |
-| `src/db/migrations/meta/_journal.json` | Added `0005_great_the_watchers` entry |
+| `src/db/migrations/meta/_journal.json` | Added `0005_great_the_w; install with `--legacy-peer-deps` + lockfile cache key |
+| `.github/workflows/deploy.yml` | Push trigger → `workflow_dispatch` (ADR-024: deploy is key-gated) |
+| `docs/DEMO_PACKAGE_CANADA_2026-09-28.md` | Canadian demo package (scan, Loom script, checklist, FAQ) |
+| `docs/CANADIAN_MARKET_IMPACT_BRIEF.md` | Standalone prospect-facing one-pageratchers` entry |
 | `.github/workflows/ci.yml` | Added DB migrate step + t0 tier env |
 | `.env.example` | Compose-vs-host hostname note |
 | `docs/ARCHITECTURE_CONTEXT.md` | §1 version 1.0.0 → 1.1.0; updated date |
 | `docs/MARKET_INTELLIGENCE.md` | Removed wrapper artifacts; normalized front matter |
-| `docs/CONTEXT_INDEX.md` | Added evaluation + market-intelligence load rows |
-
-## 6. Risks / Deferred
-
+| `docs/CONTEXT_Ibilling lock (jobs never starting) was resolved 2026-09-28;
+  `ci.yml` is green on `ec84aa2` (run 36390332209). An install-flags defect
+  (`--legacy-peer-deps` missing) was fixed in the same pass. Dependabot open
+  alerts: 0
 - GitHub Actions is blocked by an account-level billing lock (jobs never start:
   "The job was not started because your account is locked due to a billing
   issue"). Not a repo defect — resolve billing at github.com/settings/billing;
@@ -93,9 +98,9 @@ related:
 - Phase 1 (cryptographic hardening, ADR-024) remains the next feature track.
 
 ## 7. Handoff
-
-- **Pushed:** `main` → `origin` (GitHub) and `gitlab` — GitHub was 5 commits
-  behind at session start; this push brings it current.
+billing lock resolved; `ci.yml` green on `ec84aa2`.
+  The `Deploy` workflow is manual `workflow_dispatch` (ADR-024 alignment —
+ art; this push brings it current.
 - **GitHub Actions:** account-level billing lock blocks all runs (not a repo
   defect). The `Deploy` workflow was switched to manual `workflow_dispatch`
   (ADR-024 alignment — deploy is key-gated); push coverage stays with `ci.yml`.
