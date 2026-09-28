@@ -88,17 +88,36 @@ variables:
     - name: redis:7-alpine
       alias: redis
 
-# Skip all jobs when the change touches only docs (no code impact).
+# Branch pipelines run only when code/CI-relevant files change; docs-only
+# pushes skip every job below. History note (2026-09-28): the previous rule
+# matched ANY changed .md file, so the full gate was skipped on every push
+# that touched docs e.g. pipeline #8 at ccbbba4 ran only SAST + secret
+# detection. Fixed by inverting the rule to a code-path whitelist.
 .default-rules:
   rules:
-    - changes:
-        - "docs/**/*"
-        - "*.md"
-        - "README.md"
-      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes: &code-paths
+        - "src/**/*"
+        - "tests/**/*"
+        - "scripts/**/*"
+        - "public/**/*"
+        - "infra/**/*"
+        - "package.json"
+        - "package-lock.json"
+        - "tsconfig.json"
+        - "tsconfig.build.json"
+        - "vitest.config.ts"
+        - "drizzle.config.ts"
+        - "Dockerfile"
+        - "docker-compose.yml"
+        - "fly.toml"
+        - ".env.example"
+        - ".gitlab-ci.yml"
+    # Default-branch push with no code changes (docs-only): skip.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: never
 
 # ── 1. validate ──────────────────────────────────────────────────────────────
 
@@ -129,6 +148,7 @@ eval-golden:
     expire_in: 30 days
     paths:
       - tests/evaluation/reports/latest.json
+      - tests/evaluation/BASELINES.md
   rules: !reference [.default-rules, rules]
 
 # ── 3. security (supply-chain + SAST + secrets, parallel) ────────────────────
@@ -218,13 +238,11 @@ deploy-production:
   script:
     - flyctl deploy --app kyc-copilot --remote-only --strategy rolling
   rules:
-    # Docs-only pushes must not offer a deploy (mirrors .default-rules).
-    - changes:
-        - "docs/**/*"
-        - "*.md"
-        - "README.md"
-      when: never
+    # if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes: *code-paths
+      when: manual
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: neverIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
   needs:
     # optional:true — a docs/CI-only push may exclude full-gate/docker-build;

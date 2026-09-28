@@ -106,4 +106,4 @@ issue. Do **not** include live keys, tokens, or customer PII in the report.
 |---|---|
 | `docs/PLAN_SECURITY_HARDENING.md` | 12-point security hardening program — cryptographic defense in depth across 4 phases |
 | `docs/BLUE_OCEAN_ARCHITECTURE.md` | Strategic roadmap including ZKP Privacy Shield and eIDAS verification |
-| `docs/DECISIONS.md` | Architecture Decision Records (ADR-001 through ADR-013) |
+| `docs/DECISIONS.md` | Architecture Decision Records (ADR-001 through ADR-024) |
