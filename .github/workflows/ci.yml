@@ -11,8 +11,11 @@ permissions:
   contents: read
 
 concurrency:
+  # Do not cancel in-flight runs: a cancelled run reads as a failure in the
+  # Actions UI, and an unbroken green history matters more for this repo
+  # than saving runner minutes.
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:
