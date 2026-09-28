@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { db } from "./index.js";
+import { db, pool, redis } from "./index.js";
 import { amld6Articles, auditLogs, cases, evidence, plans, tenants, users } from "./schema.js";
 import { encryptPii } from "../services/encryption/at-rest.js";
 import { newId, sha256Hex } from "../utils/id.js";
@@ -232,12 +232,20 @@ export async function seed(): Promise<{ tenantId: string; apiKey: string; email:
 }
 
 if (process.argv[1]?.endsWith("seed.ts") || process.argv[1]?.endsWith("seed.js")) {
+  // Close the DB pool + Redis handles on BOTH paths: an open ioredis client
+  // keeps Node's event loop alive, which would hang the `&&` chain in
+  // `npm run demo` forever after a successful seed.
   void seed()
-    .then((result) => {
+    .then(async (result) => {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+      redis.disconnect();
+      await pool.end().catch(() => {});
+      process.exit(0);
     })
-    .catch((error: unknown) => {
+    .catch(async (error: unknown) => {
       process.stderr.write(error instanceof Error ? error.message : String(error));
+      redis.disconnect();
+      await pool.end().catch(() => {});
       process.exit(1);
     });
 }

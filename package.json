@@ -29,7 +29,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx src/db/seed.ts",
-    "demo": "docker compose up -d db redis && npm run db:migrate && npm run db:seed && npm run dev"
+    "demo": "docker compose up -d postgres redis && npm run db:migrate && npm run db:seed && npm run dev"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",

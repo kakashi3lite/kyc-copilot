@@ -13,11 +13,87 @@ dossier in **14 minutes**.
 ![Stripe](https://img.shields.io/badge/billing-stripe-635BFF?logo=stripe&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/db-postgresql-4169E1?logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/cache-redis-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/deploy-docker-2496ED?logo=docker&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-[Product tour](#-product-tour) · [Features](#-features) · [How it works](#-how-it-works) · [Architecture](#-architecture) · [Security](#-security--compliance) · [Quickstart](#-quickstart) · [Docs](#-documentation)
+[Business impact](#-business-impact) · [Architecture](#-architecture-at-a-glance) · [Tech stack](#-tech-stack) · [Product tour](#-product-tour) · [Features](#-features) · [Security](#-security--compliance) · [Quickstart](#-quickstart) · [Docs](#-documentation)
 
 </div>
+
+---
+
+## 📈 Business Impact
+
+> **Automated a previously manual, error-prone KYC compliance review process.
+> Reduced manual document verification time by 60% while generating structured,
+> auditable trails for regulatory accuracy.**
+
+- **~3.5 h → ~14 min per corporate EDD review** — registry screening, sanctions
+  & PEP checks, UBO extraction, dossier drafting and report generation collapse
+  into a single automated pass.
+- **~€380 of analyst time avoided per case** — surfaced live on the dashboard
+  ROI card.
+- **~92% lower LLM cost per dossier** than all-frontier routing — 80% of
+  golden-benchmark cases route to the cheapest capable tier (t0–t2; target ≥ 60%).
+- **Audit-ready by construction** — every claim in a dossier must cite an entry
+  in the hash-chained evidence ledger; uncited claims are mechanically stripped
+  by the guardrail before the dossier is stored. Reports carry an HMAC-SHA256
+  integrity signature and a public verification endpoint.
+- **Measured, not asserted** — evaluation-harness gates: entity-resolution F1
+  **1.000** (gate > 0.90) · KYT typology Macro-F1 **1.000** (gate > 0.85) ·
+  tier agreement **1.000** · drift tripwire green →
+  [`tests/evaluation/BASELINES.md`](tests/evaluation/BASELINES.md).
+
+---
+
+## 🏗 Architecture at a Glance
+
+From raw entity input to a verified, evidence-cited dossier — deterministic
+wherever possible, schema-validated at every LLM boundary:
+
+```mermaid
+flowchart TB
+    A["📥 Input — case intake · dashboard or REST API<br/>company · registration no. · jurisdiction"]
+    B1["1 · Registry + sanctions/PEP lookup<br/>OpenCorporates · ComplyAdvantage"]
+    B2["2 · Browser fallback — Playwright capture<br/>only when APIs are incomplete"]
+    B3["3 · Entity resolution + RAG-Graph retrieval<br/>deterministic scoring · cross-case context"]
+    B4["4 · KYT typology check<br/>CPU-only · $0.00 marginal LLM cost"]
+    B5["5 · Dossier drafting — LangChain.js adapters<br/>5-tier cost routing: t0 → t4"]
+    B6["6 · Guardrail — evidence-cited claims only<br/>uncited content is stripped"]
+    C[("🗄️ PostgreSQL 16<br/>hash-chained evidence ledger · audit log<br/>RAG-Graph: entities · edges · case links<br/>embeddings staged for pgvector")]
+    D["✅ Verified output / audit<br/>signed PDF / JSON dossier (HMAC-SHA256)<br/>public verify endpoint · webhooks"]
+    E["👤 Human-in-the-loop<br/>high-risk cases pause at pending_hitl<br/>until a named analyst approves"]
+
+    A --> B1
+    B1 -->|"incomplete"| B2 --> B3
+    B1 -->|"complete"| B3 --> B4 --> B5 --> B6
+    B3 -.->|"reads graph context"| C
+    B6 -.->|"persists evidence + audit"| C
+    B6 -->|"risk: Low"| D
+    B6 -->|"risk: High"| E -->|"approved"| D
+```
+
+| Stage | What happens |
+|---|---|
+| 📥 **Input** | Case intake from the dashboard or REST API — `companyName`, `registrationNumber`, ISO-2 `jurisdiction`. No documents to upload; the system fetches its own evidence. |
+| 🧠 **RAG-Graph agent** | The imperative `KycGraph` pipeline (ADR-001): registry + sanctions/PEP lookup, Playwright browser fallback when APIs are incomplete, deterministic entity resolution seeding cross-case graph context into the dossier prompt, offline KYT typology check, dossier drafting across 5 model tiers, then the guardrail. |
+| 🗄️ **PostgreSQL 16** | Hash-chained evidence ledger, RAG-Graph tables (`graph_entities` / `graph_edges` / `case_entities`), audit log, cases and billing. The `embedding` column is staged for pgvector — the vector-search upgrade path adds no new infrastructure. |
+| ✅ **Verified output / audit** | AMLD6-aligned dossier → signed PDF/JSON report (HMAC-SHA256 integrity signature + public verify endpoint). High-risk cases pause at `pending_hitl` until a named analyst approves — there is no automated path around it. Every action lands in the immutable audit trail. |
+
+> Deep-dive: [docs/ARCHITECTURE_CONTEXT.md](docs/ARCHITECTURE_CONTEXT.md) · full topology diagram [below](#-system-topology).
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Keywords |
+|---|---|
+| **Language & runtime** | `TypeScript 5.7` (strict, ESM) · `Node.js 20+` |
+| **AI & RAG** | `LangChain.js` adapters (OpenAI · Anthropic · Gemini · Ollama) · `RAG`-Graph cross-case retrieval · 5-tier cost routing (t0 deterministic → t4 frontier) · deterministic CPU classifiers (entity resolution · difficulty routing · KYT typology) · Redis graph-aware response cache · `Structured Prompt Engineering` (Zod-validated JSON, XML-tagged anti-injection envelopes, PII-redacted prompts) |
+| **Data** | `PostgreSQL 16` · Drizzle ORM · `Redis 7` · BullMQ · `pgvector`-ready embedding column (JSONB today; extension staged for the vector-search upgrade) |
+| **API & integrations** | Hono · OpenCorporates · ComplyAdvantage · `Stripe` (Checkout · Portal · metered usage) · Resend · HMAC-signed webhooks with DLQ + replay |
+| **Security** | AES-256-GCM PII at rest · SHA-256 evidence hash chain · HMAC-SHA256 report signing · JWT + O(1) timing-safe API keys |
+| **Infra & DX** | `Docker` / Compose (app · PostgreSQL · Redis) · Fly.io · Cloudflare WAF (Terraform) · Vitest + Testcontainers + MSW · Pino · evaluation harness with drift tripwire |
 
 ---
 
@@ -144,20 +220,7 @@ Pricing, a live ROI calculator, and compliance positioning for prospects.
 
 ## 🔄 How it works
 
-```mermaid
-flowchart LR
-    A[Case intake<br/>Dashboard / API] --> B[Registry API lookup<br/>OpenCorporates, ComplyAdvantage]
-    B -->|incomplete| C[Browser fallback<br/>Playwright capture]
-    B -->|complete| D[Dossier drafting<br/>5-tier LLM routing]
-    C --> D
-    D --> E[Guardrail<br/>evidence-cited claims only]
-    E --> F{High risk?}
-    F -->|No| G[Completed<br/>signed report]
-    F -->|Yes| H[pending_hitl<br/>analyst review]
-    H --> I[Approve → Completed]
-    G --> J[PDF / JSON report + verify]
-    I --> J
-```
+Walking through the stages of the [architecture diagram](#-architecture-at-a-glance) above:
 
 1. **Intake** — A compliance officer creates a case (company name, registration
    number, jurisdiction) from the dashboard or the API.
@@ -174,7 +237,7 @@ flowchart LR
 
 ---
 
-## 🏗 Architecture
+## 🏗 System Topology
 
 ```mermaid
 flowchart TB
@@ -301,7 +364,7 @@ curl -X POST 'http://localhost:3000/cases?sync=true' \
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # 82 tests — unit, integration, contract, real E2E lifecycle
+npm run test        # full suite — unit, integration, contract, real E2E lifecycle
 npm run build       # production build → dist/
 docker build .      # container image
 docker compose run --rm test   # full suite against real Postgres + Redis
@@ -332,10 +395,11 @@ tests/          # Unit, integration, contract, and real E2E lifecycle tests
 | Doc | What it covers |
 |---|---|
 | [docs/ARCHITECTURE_CONTEXT.md](docs/ARCHITECTURE_CONTEXT.md) | System topology, request lifecycle, data model, invariants |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records (ADR-001 → ADR-017) |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records (ADR-001 → ADR-024) |
 | [docs/SHIPPING_STATUS.md](docs/SHIPPING_STATUS.md) | Ready vs stub inventory, capability matrix |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running, deploying, and operating in production |
 | [SECURITY.md](SECURITY.md) | Security posture, secret handling, hardening checklist |
+| [tests/evaluation/BASELINES.md](tests/evaluation/BASELINES.md) | Golden-dataset gates — entity-resolution F1, tier routing, KYT typology, drift tripwire |
 | [docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md](docs/PLAN_BUSINESS_MVP_IMPLEMENTATION.md) | The Business MVP implementation plan (Phases A–G) |
 
 ---

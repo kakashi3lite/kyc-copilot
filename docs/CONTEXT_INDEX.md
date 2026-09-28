@@ -30,6 +30,7 @@
 | Report / signing change | IMPLEMENTER | IS-003 | ARCHITECTURE_CONTEXT §7 → `src/services/reports/{signer,generator,pdf-renderer}.ts` | 1k |
 | LLM routing / cost / cache | IMPLEMENTER | IS-002 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §1-4,13 → `src/services/llm/{router,budget,difficulty-classifier,cache,cost-tracker,audit}.ts` → adapters | 2.5k |
 | RAG-Graph / entity resolution | IMPLEMENTER | IS-004 | `PLAN_BLUE_OCEAN_IMPLEMENTATION.md` §5-6,13 → `src/db/schema.ts` → `src/services/kyc-data/{entity-resolver,graph-query}.ts` → `src/graph/nodes/draft-dossier.ts` | 2k |
+| Evaluation / model benchmark | IMPLEMENTER | IS-002 | `tests/evaluation/BASELINES.md` → `tests/evaluation/harness.ts` → `tests/evaluation/datasets/*.json` | 1k |
 | Security hardening / ZKP | IMPLEMENTER | IS-002 | `docs/PLAN_SECURITY_HARDENING.md` → `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` → `SECURITY.md` → `src/services/llm/pii-redactor.ts` → `src/services/encryption/at-rest.ts` | 2.5k |
 | Production run / ops | — | — | `docs/OPERATIONS.md` → `SECURITY.md` → `infra/*` | 2k |
 | Crypto hardening (Phase 1, next) | ZK/Privacy Guardian | IS-002 | `docs/PLAN_CRYPTO_HARDENING_EXECUTION.md` → `docs/PLAN_SECURITY_HARDENING.md` §2–§12 → `src/services/encryption/at-rest.ts` | 3k |
@@ -63,6 +64,8 @@
 | Next feature: UBO extraction | `docs/PLAN_UBO_EXTRACTION.md` (draft-ready) |
 | Next feature: webhook DLQ + replay | `docs/PLAN_WEBHOOK_DLQ_REPLAY.md` (draft-ready) |
 | Shipping status / stubs | `docs/SHIPPING_STATUS.md` |
+| Evaluation gates / golden datasets | `tests/evaluation/BASELINES.md` |
+| Market & BD intelligence | `docs/MARKET_INTELLIGENCE.md` |
 | Session report (this ship) | `docs/SESSION_REPORT_2026-08-03.md` |
 | Product screenshots | `docs/screenshots/*.png` |
 | Last session state | `.session-state.yaml` (project root, gitignored) |

@@ -68,6 +68,8 @@ jobs:
       RATE_LIMIT_AUTH_PER_MINUTE: 10
       LOG_LEVEL: error
       OTEL_ENABLED: false
+      LLM_TIER_PRIMARY: t0
+      LLM_SYNC_ALLOWED_TIERS: t0
 
     steps:
       - name: Checkout
@@ -85,6 +87,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Migrate database
+        run: npm run db:migrate
 
       - name: Test with coverage
         run: npm run test

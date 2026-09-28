@@ -2,7 +2,7 @@
 repo: kyc-copilot
 path: /Users/kakashi3lite/kyc-copilot
 version: 1.1.0
-updated: 2026-08-04
+updated: 2026-09-28
 stack: [Hono, Drizzle, PostgreSQL, Redis, BullMQ, Playwright, Puppeteer, Zod, Pino]
 compliance: AMLD6
 entry_points:
@@ -30,7 +30,7 @@ security:
 | Product | Agentic AML/KYC compliance copilot for EU payments institutions |
 | Value prop | 14-min evidence-backed dossier vs 3.5h manual / €380 per case |
 | Repo | `github.com/kakashi3lite/kyc-copilot` |
-| Version | 1.0.0 |
+| Version | 1.1.0 |
 | Runtime | Node 20+, `docker compose up --build` |
 | Brand tagline | "Compliance at the speed of intelligence" |
 
