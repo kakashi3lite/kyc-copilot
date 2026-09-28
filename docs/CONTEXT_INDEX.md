@@ -67,7 +67,8 @@
 | Shipping status / stubs | `docs/SHIPPING_STATUS.md` |
 | Evaluation gates / golden datasets | `tests/evaluation/BAS
 | Canada demo package (Loom script + checklist + FAQ) | `docs/DEMO_PACKAGE_CANADA_2026-09-28.md` |
-| Canada market brief (prospect one-pager) | `docs/CANADIAN_MARKET_IMPACT_BRIEF.md` |ELINES.md` |
+| Canada market brief (prospect one-pager) | `docs/CANADIAN_MARKET_IMPACT_BRIEF.md` |
+| Canadian readiness (FINTRAC/PCMLTFA gaps) | `docs/CANADIAN_READINESS.md` |ELINES.md` |
 | Market & BD intelligence | `docs/MARKET_INTELLIGENCE.md` |
 | Session report (this ship) | `docs/SESSION_REPORT_2026-08-03.md` |
 | Product screenshots | `docs/screenshots/*.png` |

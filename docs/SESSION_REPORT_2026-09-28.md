@@ -35,6 +35,7 @@ related:
 | 6 | `.env.example` hostnames ambiguous | Host-run dev (`localhost`) vs compose (`postgres`/`redis`) confusion | Added a comment block documenting when to use which file; env defaults already point at localhost | — |
 | 7 | 6 npm advisories (1 high: `nanoid`; moderate: `hono`, `qs`, `vitest`) | GitHub Dependabot flagged 11 alerts on the public repo | `npm audit fix --legacy-peer-deps` — lockfile-only, semver-compatible bumps | `npm audit`: **0 vulnerabilities**; typecheck + 223/223 re-run green |
 | 8 | GitHub `ci.yml` missing `--legacy-peer-deps` (the only pipeline without it; no `.npmrc`) | First real GitHub run would fail at `npm install` with ERESOLVE on the @langchain/* peer graph | Added `--legacy-peer-deps` + lockfile cache key | CI green: run 36390332209 on `ec84aa2` (38 files, 71.26% lines, docker-build pass) |
+| 9 | GitLab `.default-rules` docs-skip matched ANY `.md` change | The full gate (typecheck/unit/eval/full-gate/build) was skipped on every push touching docs — pipelines #6/#8/#11 ran only SAST + secret detection | Inverted to a code-path whitelist; deploy rules aligned; YAML splice repaired (`glab ci lint` validated) | Pipeline #13 (`e701bd6`): all ten automated jobs green — full-gate pass, eval + coverage artifacts uploaded |
 
 ## 2. README Refresh (previous session, committed here)
 
