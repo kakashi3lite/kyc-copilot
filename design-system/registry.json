@@ -1,0 +1,1855 @@
+{
+  "meta": {
+    "version": "1.0",
+    "updatedAt": "2026-09-30T06:39:00.000Z"
+  },
+  "tokens": [
+    {
+      "name": "--color-slate-50",
+      "value": "#f7f9fc",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing (page bg)"
+      ]
+    },
+    {
+      "name": "--color-slate-100",
+      "value": "#f1f5f9",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "login",
+        "forgot-password",
+        "app"
+      ]
+    },
+    {
+      "name": "--color-slate-200",
+      "value": "#e2e8f0",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing (border)"
+      ]
+    },
+    {
+      "name": "--color-slate-300",
+      "value": "#cbd5e1",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--color-slate-400",
+      "value": "#94a3b8",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app",
+        "landing (muted text)"
+      ]
+    },
+    {
+      "name": "--color-slate-500",
+      "value": "#64748b",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": []
+    },
+    {
+      "name": "--color-slate-700",
+      "value": "#334155",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (avatar, risk-bar bg)",
+        "signup",
+        "landing"
+      ]
+    },
+    {
+      "name": "--color-slate-800",
+      "value": "#1e293b",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (border, card-hover)",
+        "landing (dark variant)"
+      ]
+    },
+    {
+      "name": "--color-slate-850",
+      "value": "#151e32",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (card bg)",
+        "landing (dark variant)"
+      ]
+    },
+    {
+      "name": "--color-slate-900",
+      "value": "#0f172a",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": []
+    },
+    {
+      "name": "--color-slate-950",
+      "value": "#0b1120",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (page bg)",
+        "landing (dark variant)"
+      ]
+    },
+    {
+      "name": "--color-zinc-800",
+      "value": "#1e1e2e",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth (border)"
+      ]
+    },
+    {
+      "name": "--color-zinc-900",
+      "value": "#16161e",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth (card bg)"
+      ]
+    },
+    {
+      "name": "--color-zinc-950",
+      "value": "#0a0a0f",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth (page bg)"
+      ]
+    },
+    {
+      "name": "--color-blue-50",
+      "value": "#eef2ff",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--color-blue-100",
+      "value": "#dbe5ff",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--color-blue-500",
+      "value": "#3b82f6",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (primary blue)"
+      ]
+    },
+    {
+      "name": "--color-blue-600",
+      "value": "#2563eb",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "landing",
+        "app (hover)"
+      ]
+    },
+    {
+      "name": "--color-blue-700",
+      "value": "#1d4ed8",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth (hover)",
+        "landing (hover)"
+      ]
+    },
+    {
+      "name": "--color-blue-900",
+      "value": "#1f2d4a",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--color-emerald-500",
+      "value": "#10b981",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces (emerald)"
+      ]
+    },
+    {
+      "name": "--color-emerald-950",
+      "value": "#062a16",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "signup (trial tag)"
+      ]
+    },
+    {
+      "name": "--color-orange-500",
+      "value": "#f59e0b",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "signup",
+        "app"
+      ]
+    },
+    {
+      "name": "--color-red-500",
+      "value": "#ef4444",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "reset-password",
+        "login",
+        "signup",
+        "app"
+      ]
+    },
+    {
+      "name": "--color-white",
+      "value": "#ffffff",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing (card bg)",
+        "all surfaces"
+      ]
+    },
+    {
+      "name": "--color-black",
+      "value": "#000000",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": []
+    },
+    {
+      "name": "--space-2",
+      "value": "2px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "signup (padding)",
+        "app (radius)"
+      ]
+    },
+    {
+      "name": "--space-3",
+      "value": "3px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app (padding, radius)"
+      ]
+    },
+    {
+      "name": "--space-4",
+      "value": "4px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-6",
+      "value": "6px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-8",
+      "value": "8px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-10",
+      "value": "10px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-12",
+      "value": "12px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-13",
+      "value": "13px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-14",
+      "value": "14px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-16",
+      "value": "16px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-18",
+      "value": "18px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-20",
+      "value": "20px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-22",
+      "value": "22px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-24",
+      "value": "24px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-28",
+      "value": "28px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-32",
+      "value": "32px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-40",
+      "value": "40px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--space-48",
+      "value": "48px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-56",
+      "value": "56px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--space-64",
+      "value": "64px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--space-72",
+      "value": "72px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--space-80",
+      "value": "80px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--font-sans",
+      "value": "'Inter', system-ui, sans-serif",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ]
+    },
+    {
+      "name": "--font-mono",
+      "value": "monospace",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-10",
+      "value": "10px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "signup"
+      ]
+    },
+    {
+      "name": "--text-11",
+      "value": "11px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-12",
+      "value": "12px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-12-5",
+      "value": "12.5px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-13",
+      "value": "13px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-14",
+      "value": "14px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-15",
+      "value": "15px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--text-16",
+      "value": "16px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-18",
+      "value": "18px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-20",
+      "value": "20px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-22",
+      "value": "22px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "forgot-password",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-24",
+      "value": "24px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-26",
+      "value": "26px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-28",
+      "value": "28px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-32",
+      "value": "32px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "app"
+      ]
+    },
+    {
+      "name": "--text-36",
+      "value": "36px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--text-40",
+      "value": "40px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--weight-400",
+      "value": "400",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "app"
+      ]
+    },
+    {
+      "name": "--weight-500",
+      "value": "500",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--weight-600",
+      "value": "600",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--weight-700",
+      "value": "700",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--leading-1",
+      "value": "1",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--leading-1-05",
+      "value": "1.05",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--leading-1-15",
+      "value": "1.15",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--leading-1-5",
+      "value": "1.5",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "forgot-password",
+        "app"
+      ]
+    },
+    {
+      "name": "--leading-1-6",
+      "value": "1.6",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--tracking-tight",
+      "value": "-0.03em",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--tracking-snug",
+      "value": "-0.02em",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--tracking-wide",
+      "value": "0.06em",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-2",
+      "value": "2px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-3",
+      "value": "3px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-6",
+      "value": "6px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-8",
+      "value": "8px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-10",
+      "value": "10px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "auth"
+      ]
+    },
+    {
+      "name": "--radius-12",
+      "value": "12px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "signup",
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-16",
+      "value": "16px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "forgot-password",
+        "app"
+      ]
+    },
+    {
+      "name": "--radius-20",
+      "value": "20px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--radius-24",
+      "value": "24px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--radius-full",
+      "value": "999px",
+      "layer": "primitive",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "signup",
+        "app"
+      ]
+    },
+    {
+      "name": "--surface-page",
+      "value": "var(--color-slate-50)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--surface-card",
+      "value": "var(--color-white)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--border-subtle",
+      "value": "var(--color-slate-200)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--text-primary",
+      "value": "var(--color-slate-950)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--text-muted",
+      "value": "var(--color-slate-500)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ],
+      "notes": "Darkened from slate-400 to meet WCAG AA (4.51:1 on surface-page) — contrast-check.mjs, 2026-09-30."
+    },
+    {
+      "name": "--action-primary",
+      "value": "var(--color-blue-600)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--action-primary-hover",
+      "value": "var(--color-blue-700)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--surface-card-hover",
+      "value": "var(--color-slate-100)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--surface-field",
+      "value": "var(--color-white)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--surface-hover",
+      "value": "var(--color-slate-100)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--surface-sunken",
+      "value": "var(--color-slate-50)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ]
+    },
+    {
+      "name": "--border-strong",
+      "value": "var(--color-slate-300)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "signup"
+      ]
+    },
+    {
+      "name": "--action-primary-active",
+      "value": "var(--color-blue-700)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--action-primary-soft",
+      "value": "color-mix(in srgb, var(--color-blue-600) 10%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ],
+      "notes": "Derived tint for ghost/selected states."
+    },
+    {
+      "name": "--focus-ring",
+      "value": "var(--color-blue-600)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ]
+    },
+    {
+      "name": "--surface-page",
+      "value": "var(--color-slate-950)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "landing dark variant",
+        "auth"
+      ]
+    },
+    {
+      "name": "--surface-card",
+      "value": "var(--color-slate-850)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "landing dark variant",
+        "auth"
+      ]
+    },
+    {
+      "name": "--surface-card-hover",
+      "value": "var(--color-slate-800)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--surface-field",
+      "value": "var(--color-slate-950)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "auth",
+        "app"
+      ]
+    },
+    {
+      "name": "--surface-hover",
+      "value": "var(--color-slate-800)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ]
+    },
+    {
+      "name": "--surface-sunken",
+      "value": "color-mix(in srgb, var(--color-black) 20%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Inset / table-header tint (replicates rgba(0,0,0,0.2))."
+    },
+    {
+      "name": "--border-subtle",
+      "value": "var(--color-slate-800)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--border-strong",
+      "value": "var(--color-slate-700)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "signup",
+        "landing dark variant"
+      ]
+    },
+    {
+      "name": "--text-primary",
+      "value": "var(--color-slate-100)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--text-muted",
+      "value": "var(--color-slate-400)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--action-primary",
+      "value": "var(--color-blue-600)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--action-primary-hover",
+      "value": "var(--color-blue-500)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--action-primary-active",
+      "value": "var(--color-blue-700)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--action-primary-soft",
+      "value": "color-mix(in srgb, var(--color-blue-500) 15%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Derived tint for ghost/selected states."
+    },
+    {
+      "name": "--focus-ring",
+      "value": "var(--color-blue-500)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ]
+    },
+    {
+      "name": "--status-positive",
+      "value": "var(--color-emerald-500)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Status scale (verified) — theme-invariant, DESIGN.md §3."
+    },
+    {
+      "name": "--status-positive-bg",
+      "value": "color-mix(in srgb, var(--color-emerald-500) 10%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth",
+        "signup"
+      ],
+      "notes": "Derived tint — replicates rgba(16,185,129,0.1)."
+    },
+    {
+      "name": "--status-positive-border",
+      "value": "color-mix(in srgb, var(--color-emerald-500) 20%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth",
+        "signup"
+      ],
+      "notes": "Derived tint — replicates rgba(16,185,129,0.2)."
+    },
+    {
+      "name": "--status-warning",
+      "value": "var(--color-orange-500)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Status scale (pending) — theme-invariant, DESIGN.md §3."
+    },
+    {
+      "name": "--status-warning-bg",
+      "value": "color-mix(in srgb, var(--color-orange-500) 10%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "signup"
+      ],
+      "notes": "Derived tint — replicates rgba(245,158,11,0.1)."
+    },
+    {
+      "name": "--status-warning-border",
+      "value": "color-mix(in srgb, var(--color-orange-500) 20%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "signup"
+      ],
+      "notes": "Derived tint — replicates rgba(245,158,11,0.2)."
+    },
+    {
+      "name": "--status-danger",
+      "value": "var(--color-red-500)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Status scale (blocked) — theme-invariant, DESIGN.md §3."
+    },
+    {
+      "name": "--status-danger-bg",
+      "value": "color-mix(in srgb, var(--color-red-500) 10%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ],
+      "notes": "Derived tint — replicates rgba(239,68,68,0.1)."
+    },
+    {
+      "name": "--status-danger-border",
+      "value": "color-mix(in srgb, var(--color-red-500) 20%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ],
+      "notes": "Derived tint — replicates rgba(239,68,68,0.2)."
+    },
+    {
+      "name": "--status-neutral",
+      "value": "var(--color-slate-400)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Status scale (neutral/info) — theme-invariant, DESIGN.md §3."
+    },
+    {
+      "name": "--status-neutral-bg",
+      "value": "color-mix(in srgb, var(--color-slate-400) 10%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Derived tint — replicates rgba(148,163,184,0.1)."
+    },
+    {
+      "name": "--status-neutral-border",
+      "value": "color-mix(in srgb, var(--color-slate-400) 20%, transparent)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Derived tint — replicates rgba(148,163,184,0.2)."
+    },
+    {
+      "name": "--text-on-action",
+      "value": "var(--color-white)",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Foreground for filled action elements (buttons, active chips)."
+    },
+    {
+      "name": "--border-width",
+      "value": "1px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Hairline structural border width."
+    },
+    {
+      "name": "--focus-ring-width",
+      "value": "2px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "Focus outline stroke width."
+    },
+    {
+      "name": "--bp-sm",
+      "value": "600px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "@media reference constant — @media cannot consume var(); token-lint permits exactly this px value inside @media preludes."
+    },
+    {
+      "name": "--bp-md",
+      "value": "860px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "@media reference constant — @media cannot consume var(); token-lint permits exactly this px value inside @media preludes."
+    },
+    {
+      "name": "--bp-lg",
+      "value": "1200px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "all surfaces"
+      ],
+      "notes": "@media reference constant — @media cannot consume var(); token-lint permits exactly this px value inside @media preludes."
+    },
+    {
+      "name": "--layout-max-page",
+      "value": "1400px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "app"
+      ],
+      "notes": "Product page max width (ds-layout-* patterns)."
+    },
+    {
+      "name": "--layout-max-content",
+      "value": "1120px",
+      "layer": "semantic",
+      "themes": [
+        "all"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ],
+      "notes": "Content max width (dossier/document patterns)."
+    },
+    {
+      "name": "--action-text",
+      "value": "var(--color-blue-600)",
+      "layer": "semantic",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing",
+        "auth"
+      ],
+      "notes": "Interactive text (ghost/selected buttons) — AA-verified >= 4.5:1 (contrast-check.mjs)."
+    },
+    {
+      "name": "--action-text",
+      "value": "var(--color-blue-500)",
+      "layer": "semantic",
+      "themes": [
+        "dark"
+      ],
+      "sourceSurfaces": [
+        "app",
+        "auth"
+      ],
+      "notes": "Interactive text (ghost/selected buttons) — AA-verified >= 4.5:1 (contrast-check.mjs)."
+    },
+    {
+      "name": "--exception-shadow-light-1",
+      "value": "#17203318",
+      "layer": "primitive",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ],
+      "notes": "Phase-3 exception: Legacy 8-digit hex alpha for landing shadow. Will migrate to rgba tokens."
+    },
+    {
+      "name": "--exception-shadow-light-2",
+      "value": "#2563eb14",
+      "layer": "primitive",
+      "themes": [
+        "light"
+      ],
+      "sourceSurfaces": [
+        "landing"
+      ],
+      "notes": "Phase-3 exception: Legacy 8-digit hex alpha for landing glow. Will migrate to rgba tokens."
+    }
+  ],
+  "components": [
+    {
+      "name": "button",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/button.css",
+      "classes": ["ds-btn", "ds-btn--primary", "ds-btn--secondary", "ds-btn--ghost", "ds-btn--sm", "is-loading", "is-selected", "is-error"],
+      "states": ["default", "hover", "focus", "active", "disabled", "loading", "error", "empty"],
+      "notes": "Required states accounted (per-state HTML in file header); empty n/a — collection state, see ds-table-empty. Extra implemented: .is-selected toggle.",
+      "html": "<button class=\"ds-btn ds-btn--primary\" type=\"button\">New Case</button>"
+    },
+    {
+      "name": "input",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/input.css",
+      "classes": ["ds-input", "is-error"],
+      "states": ["default", "hover", "focus", "disabled", "readonly", "error", "empty"],
+      "notes": "Per-state HTML in file header; empty = placeholder rendering; active = :focus; loading n/a (async validation is form state).",
+      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"you@company.com\">"
+    },
+    {
+      "name": "card",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/card.css",
+      "classes": ["ds-card", "ds-card--flush", "ds-card--interactive", "is-selected"],
+      "states": ["default", "hover", "focus", "active", "selected"],
+      "notes": "Per-state HTML in file header; disabled/loading/error/empty n/a for a container (empty composes ds-stack + ds-text).",
+      "html": "<section class=\"ds-card\">…</section>"
+    },
+    {
+      "name": "badge",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/badge.css",
+      "classes": ["ds-badge", "ds-badge--success", "ds-badge--warning", "ds-badge--danger", "ds-badge--neutral"],
+      "states": ["success", "warning", "danger", "neutral"],
+      "notes": "Status scale per DESIGN.md §3 — verified/pending/blocked/neutral. Non-interactive — required interaction states n/a; the variants ARE its states.",
+      "html": "<span class=\"ds-badge ds-badge--success\">Verified</span>"
+    },
+    {
+      "name": "table",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/table.css",
+      "classes": ["ds-table-shell", "ds-table", "ds-table-num", "ds-table-center", "ds-table-mono", "ds-table-empty", "is-selected"],
+      "states": ["default", "row-hover", "row-selected", "empty"],
+      "notes": "Financial-grade: tabular numerals, 36–40px rows (8px vertical padding + 14px text). Empty via .ds-table-empty; cell alignment via .ds-table-num / .ds-table-center; focus/active/disabled/loading/error n/a (static table).",
+      "html": "<div class=\"ds-table-shell\"><table class=\"ds-table\">…</table></div>"
+    },
+    {
+      "name": "stack",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/stack.css",
+      "classes": ["ds-stack", "ds-stack--xs", "ds-stack--sm", "ds-stack--md", "ds-stack--lg", "ds-stack--xl", "ds-stack--2xl", "ds-stack--row", "ds-stack--center", "ds-stack--between", "ds-stack--wrap"],
+      "states": [],
+      "notes": "Non-interactive — required interaction states n/a.",
+      "html": "<div class=\"ds-stack ds-stack--md\">…</div>"
+    },
+    {
+      "name": "grid",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/grid.css",
+      "classes": ["ds-grid", "ds-grid--2", "ds-grid--3", "ds-grid--4"],
+      "states": [],
+      "notes": "Non-interactive; responsive collapse arrives with 04-css-layouts (breakpoint system, I7).",
+      "html": "<div class=\"ds-grid ds-grid--3\">…</div>"
+    },
+    {
+      "name": "text",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/text.css",
+      "classes": ["ds-text-heading-xl", "ds-text-body-md", "ds-text-caption-sm", "ds-text-muted", "ds-text-mono"],
+      "states": [],
+      "notes": "Non-interactive — required interaction states n/a.",
+      "html": "<h2 class=\"ds-text-heading-xl\">Compliance Overview</h2>"
+    },
+    {
+      "name": "layouts",
+      "type": "css-class",
+      "status": "shipped",
+      "file": "design-system/css/layouts.css",
+      "classes": ["ds-layout-dashboard", "ds-layout-dashboard__metrics", "ds-layout-dashboard__filters", "ds-layout-dashboard__table", "ds-layout-case-detail", "ds-layout-case-detail__sidebar", "ds-layout-case-detail__main", "ds-layout-dossier", "ds-layout-dossier__header", "ds-layout-dossier__body", "ds-layout-dossier__footer", "ds-layout-dossier__uncited-claim"],
+      "states": [],
+      "notes": "Three core layout patterns (Dashboard, CaseDetail, Dossier). Built exclusively with registered components and tokens; files on disk + oracle-verified 2026-09-30 (token-lint PASS; responsive via --bp-* breakpoint policy).",
+      "html": "<div class=\"ds-layout-dashboard\">…</div>"
+    },
+    {
+      "name": "ds-data-table",
+      "type": "lit-component",
+      "status": "shipped",
+      "file": "design-system/components/ds-data-table.js",
+      "classes": [],
+      "states": ["default", "hover", "selected", "empty"],
+      "notes": "Sortable, filterable data table with bulk actions and checkbox column. Built using existing CSS table, button, and badge components via Shadow DOM.",
+      "html": "<ds-data-table></ds-data-table>"
+    },
+    {
+      "name": "ds-evidence-ledger",
+      "type": "lit-component",
+      "status": "shipped",
+      "file": "design-system/components/ds-evidence-ledger.js",
+      "classes": [],
+      "states": ["default", "uncited"],
+      "notes": "Real-time claim to hash to timestamp linking. Uncited claims render struck-through with a red left border.",
+      "html": "<ds-evidence-ledger></ds-evidence-ledger>"
+    },
+    {
+      "name": "ds-case-timeline",
+      "type": "lit-component",
+      "status": "shipped",
+      "file": "design-system/components/ds-case-timeline.js",
+      "classes": [],
+      "states": ["pending", "in-progress", "done", "error"],
+      "notes": "Vertical stepper tracking the case journey.",
+      "html": "<ds-case-timeline></ds-case-timeline>"
+    },
+    {
+      "name": "ds-reason-code-panel",
+      "type": "lit-component",
+      "status": "shipped",
+      "file": "design-system/components/ds-reason-code-panel.js",
+      "classes": [],
+      "states": ["default"],
+      "notes": "Panel integrating match field context with true/false positive feedback and approve/reject actions.",
+      "html": "<ds-reason-code-panel></ds-reason-code-panel>"
+    },
+    {
+      "name": "ds-dossier-viewer",
+      "type": "lit-composite",
+      "status": "shipped",
+      "file": "design-system/components/ds-dossier-viewer.js",
+      "classes": [],
+      "states": ["default", "invalid-signature"],
+      "notes": "Three-column structure wrapping the evidence ledger with HMAC-SHA256 signature badge.",
+      "html": "<ds-dossier-viewer></ds-dossier-viewer>"
+    },
+    {
+      "name": "ds-four-eyes-approval",
+      "type": "lit-composite",
+      "status": "shipped",
+      "file": "design-system/components/ds-four-eyes-approval.js",
+      "classes": [],
+      "states": ["reviewer-path", "approver-path"],
+      "notes": "Decision-support composite rendering strict branching read paths based on role. No shortcut to merge paths visually.",
+      "html": "<ds-four-eyes-approval></ds-four-eyes-approval>"
+    }
+  ]
+}

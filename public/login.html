@@ -1,147 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Log in — KYC Copilot</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link rel="stylesheet" href="/design-system/css/text.css">
+  <link rel="stylesheet" href="/design-system/css/stack.css">
+  <link rel="stylesheet" href="/design-system/css/card.css">
+  <link rel="stylesheet" href="/design-system/css/button.css">
+  <link rel="stylesheet" href="/design-system/css/input.css">
   <style>
-    :root {
-      --bg: #0a0a0f;
-      --fg: #f1f5f9;
-      --card: #16161e;
-      --border: #1e1e2e;
-      --blue: #2563eb;
-      --blue-hover: #1d4ed8;
-      --muted: #94a3b8;
-      --red: #ef4444;
-      --emerald: #10b981;
-    }
-    * { box-sizing: border-box; }
+    /* Page shell — structural rules only; every value binds to a token. */
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: 'Inter', system-ui, sans-serif;
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-24);
+      padding: var(--space-24);
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
     }
-    .brand-panel {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 64px;
-      background:
-        radial-gradient(ellipse at 20% 20%, rgba(37, 99, 235, 0.18), transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.08), transparent 50%),
-        var(--bg);
-      border-right: 1px solid var(--border);
-    }
-    .brand-panel h1 {
-      font-size: 40px;
-      line-height: 1.15;
-      margin: 0 0 16px;
-      letter-spacing: -0.02em;
-    }
-    .brand-panel p { color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 420px; margin: 0; }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 48px;
-    }
-    .form-panel {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-    }
-    .form-card {
-      width: 100%;
-      max-width: 400px;
-    }
-    .form-card h2 { font-size: 24px; margin: 0 0 8px; }
-    .form-card .sub { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
-    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin: 16px 0 6px; }
-    input {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--fg);
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input:focus { border-color: var(--blue); }
-    .btn {
-      width: 100%;
-      margin-top: 24px;
-      padding: 13px;
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: var(--blue-hover); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .error {
-      display: none;
-      margin-top: 14px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: var(--red);
-      font-size: 13px;
-    }
-    .links { display: flex; justify-content: space-between; margin-top: 20px; font-size: 13px; }
-    .links a { color: var(--blue); text-decoration: none; }
-    .links a:hover { text-decoration: underline; }
-    .note { margin-top: 24px; font-size: 12px; color: var(--muted); }
+    body > .ds-card { grid-column: 2; }
+    svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: var(--action-primary); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; }
+    a { color: var(--action-text); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    #login-form .ds-btn { width: 100%; }
+    #error-box { display: none; padding: var(--space-10) var(--space-12); border-radius: var(--radius-8); background: var(--status-danger-bg); border: var(--border-width) solid var(--status-danger-border); color: var(--status-danger); font-size: var(--text-13); }
     @media (max-width: 860px) {
-      body { grid-template-columns: 1fr; }
-      .brand-panel { display: none; }
+      body { grid-template-columns: minmax(0, 1fr); }
+      body > .ds-card { grid-column: 1; }
     }
   </style>
 </head>
 <body>
-  <div class="brand-panel">
-    <div class="logo">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-      KYC Copilot
-    </div>
-    <h1>Evidence-backed AML/KYC dossiers in 14 minutes.</h1>
-    <p>Automated EDD workflows with verifiable evidence chains, human-in-the-loop review, and audit-grade reports — built for EU payments institutions under AMLD6.</p>
-  </div>
-
-  <div class="form-panel">
-    <div class="form-card">
-      <h2>Welcome back</h2>
-      <p class="sub">Log in to your compliance dashboard.</p>
-      <form id="login-form">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-        <button class="btn" id="submit-btn" type="submit">Log in</button>
-      </form>
-      <div class="error" id="error-box"></div>
-      <div class="links">
-        <a href="/forgot-password.html">Forgot password?</a>
-        <a href="/signup.html">Don't have an account? Sign up</a>
+  <main class="ds-card ds-stack ds-stack--lg">
+    <div class="ds-stack ds-stack--sm">
+      <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span class="ds-text-body-md"><strong>KYC Copilot</strong></span>
       </div>
-      <p class="note">Demo: admin@example.test / ChangeMe-123456</p>
+      <h1 class="ds-text-heading-xl">Welcome back</h1>
+      <p class="ds-text-body-md ds-text-muted">Log in to your compliance dashboard.</p>
     </div>
-  </div>
+    <form id="login-form" class="ds-stack ds-stack--lg">
+      <div class="ds-stack ds-stack--xs">
+        <label class="ds-text-caption-sm" for="email">Email</label>
+        <input class="ds-input" id="email" name="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="ds-stack ds-stack--xs">
+        <label class="ds-text-caption-sm" for="password">Password</label>
+        <input class="ds-input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="ds-btn ds-btn--primary" id="submit-btn" type="submit">Log in</button>
+    </form>
+    <div id="error-box"></div>
+    <div class="ds-stack ds-stack--xs">
+      <a href="/forgot-password.html">Forgot password?</a>
+      <a href="/signup.html">Don't have an account? Sign up</a>
+    </div>
+    <p class="ds-text-caption-sm">Demo: admin@example.test / ChangeMe-123456</p>
+  </main>
 
   <script>
     // Already logged in → straight to the dashboard.

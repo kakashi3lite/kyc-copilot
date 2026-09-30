@@ -678,3 +678,18 @@ Format: Context → Decision → Consequences → Do not undo unless → Alterna
 
 
 
+
+## ADR-025: Adopt Hybrid CSS-First + Lit Architecture for the Design System
+
+- **Status:** Ratified (2026-09-30)
+- **Context:** The product currently uses vanilla HTML surfaces (`public/app.html`, `public/landing.html`) with hardcoded styles, divergent palettes, and no component model. Continuing with vanilla HTML will lead to unmanageable drift, but migrating the entire frontend to React (violating ADR-006) introduces heavy build tooling and deployment complexity.
+- **Decision:** Adopt a hybrid design system architecture: 80% CSS-first (vanilla CSS classes utilizing custom properties) for layout, typography, and pure UI, and 20% Lit (Web Components) for complex, stateful behavioral components. Lit ships as browser-ready ESM modules via a vendored import map (`/vendor/<pkg>/*`, Lit 3.3.3 non-decorator API) — no build step, consistent with ADR-006.
+- **Consequences:**
+  - `design-system/tokens/tokens.css` becomes the single canonical source of truth for all visual tokens.
+  - CI must enforce strict token discipline (no raw hex/px outside `tokens.css`).
+  - Lit is introduced as a lightweight dependency for stateful components (respecting the no-build-step philosophy by using ESM imports).
+  - Four gates are enforced on both CI platforms via `design-system-gates` (GitHub Actions + GitLab CI): `token-lint`, `contrast-check` (WCAG AA), `registry-check`, and `ds-vr`; raw values outside `tokens.css` are mechanically rejected.
+- **Do not undo unless:** The product scales to a point where a fully unified framework (like React/Next.js) is justified and the team is ready to take on the associated build/infrastructure complexity.
+- **Alternatives rejected:**
+  - Stay purely vanilla: Rejected because maintaining complex interactivity in vanilla JS becomes unmaintainable and buggy.
+  - Migrate to React: Rejected because it violates ADR-006, requiring a heavy build step and slowing down the currently fast iteration cycle.

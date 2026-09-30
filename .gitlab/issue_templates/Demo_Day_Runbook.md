@@ -30,9 +30,9 @@ labels: "demo, canada, fintrac, priority::high"
 
 ## Post-record
 
-- [ ] GitLab pipeline green on the recorded HEAD with all gate jobs run (typecheck, unit-test, eval-golden, full-gate, build-ts, docker-build — see `docs/CANADIAN_READINESS.md` section 3).
-- [ ] Artifacts downloadable: `eval-golden` → `tests/evaluation/reports/latest.json`; `full-gate` → `coverage/`.
-- [ ] Release tagged at the session commit (e.g. `v0.9.0-demo-canada`) with notes linking the Wiki.
+- [ ] GitLab pipeline green at `v0.9.0-demo-canada` (frozen demo snapshot) with all gate jobs run (typecheck, unit-test, eval-golden, design-system-gates, full-gate, build-ts, docker-build — see `docs/CANADIAN_READINESS.md` section 3).
+- [ ] Artifacts downloadable: `eval-golden` → `tests/evaluation/reports/latest.json`; `design-system-gates` → `design-system-artifacts/` + `design-system/visual-regression/current/`; `full-gate` → `coverage/`.
+- [ ] Release tagged at `v0.9.0-demo-canada` (demo snapshot frozen 2026-09-30) with notes linking the Wiki.
 
 ## Prospect FAQ (reference)
 
@@ -51,3 +51,5 @@ labels: "demo, canada, fintrac, priority::high"
 ## Labels
 
 `demo`, `canada`, `fintrac`, `priority::high`
+
+> Updated from `ccbbba4` on 2026-09-30 — the design system and CI gates landed after the original demo commit.

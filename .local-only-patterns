@@ -1,0 +1,23 @@
+# Local-only patterns — single canonical list for demo-Canada strategic materials.
+# Consumed by humans + kept in sync with: .gitignore, .githooks/pre-push, and the
+# `local-only-verification` CI jobs (GitHub Actions + GitLab CI).
+#
+# Committed patterns are fine — they say WHAT is local, not WHAT'S in it.
+# Do not remove entries without security review.
+
+.design-loop/
+docs/CANADIAN_READINESS.md
+docs/MARKET_INTELLIGENCE.md
+docs/PLAN_*.md
+docs/SESSION_REPORT_*.md
+docs/CANADIAN_MARKET_IMPACT_BRIEF.md
+docs/DEMO_PACKAGE_*.md
+demo/
+demo-package/
+prospects/
+wiki/
+scratch/
+.security-sweep/
+*.loom-script.md
+*.canadian-brief.md
+*.demo-runbook.md

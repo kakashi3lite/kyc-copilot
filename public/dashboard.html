@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — KYC Copilot</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link rel="stylesheet" href="/design-system/css/text.css">
+  <link rel="stylesheet" href="/design-system/css/stack.css">
+  <link rel="stylesheet" href="/design-system/css/grid.css">
+  <link rel="stylesheet" href="/design-system/css/card.css">
+  <link rel="stylesheet" href="/design-system/css/badge.css">
+  <link rel="stylesheet" href="/design-system/css/button.css">
+  <link rel="stylesheet" href="/design-system/css/input.css">
+  <link rel="stylesheet" href="/design-system/css/layouts.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "lit": "/vendor/lit/index.js",
+      "lit/": "/vendor/lit/",
+      "lit-html": "/vendor/lit-html/lit-html.js",
+      "lit-html/": "/vendor/lit-html/",
+      "lit-element": "/vendor/lit-element/lit-element.js",
+      "lit-element/": "/vendor/lit-element/",
+      "@lit/reactive-element": "/vendor/@lit/reactive-element/reactive-element.js",
+      "@lit/reactive-element/": "/vendor/@lit/reactive-element/"
+    }
+  }
+  </script>
+  <style>
+    /* Page shell — structural rules only; every value binds to a token. */
+    body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding: var(--space-16) var(--space-24); background: var(--surface-card); border-bottom: var(--border-width) solid var(--border-subtle); }
+    header svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: var(--action-primary); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; }
+    select { background: var(--surface-field); border: var(--border-width) solid var(--border-subtle); border-radius: var(--radius-10); color: var(--text-primary); padding: var(--space-8) var(--space-10); font-family: var(--font-sans); font-size: var(--text-13); }
+    [data-skeleton] { display: block; background: linear-gradient(90deg, var(--surface-card) 25%, var(--border-subtle) 50%, var(--surface-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite ease-in-out; border-radius: var(--radius-6); }
+    [data-skeleton="value"] { block-size: var(--space-40); inline-size: 30%; }
+    [data-skeleton="text"] { block-size: var(--space-20); inline-size: 60%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    #toast-container { position: fixed; bottom: var(--space-32); right: var(--space-32); display: flex; flex-direction: column; gap: var(--space-12); z-index: 1000; }
+    [data-toast] { background: var(--surface-card); border: var(--border-width) solid var(--border-subtle); padding: var(--space-16) var(--space-20); border-radius: var(--radius-12); box-shadow: 0 var(--space-10) var(--space-40) var(--surface-sunken); display: flex; align-items: center; gap: var(--space-12); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    [data-toast][data-show] { transform: translateX(0); }
+    [data-toast] svg { width: var(--space-20); height: var(--space-20); }
+    [data-toast="success"] { border-left: var(--space-4) solid var(--status-positive); }
+    [data-toast="success"] svg { color: var(--status-positive); }
+    [data-toast="error"] { border-left: var(--space-4) solid var(--status-danger); }
+    [data-toast="error"] svg { color: var(--status-danger); }
+    [data-ceremony] { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999; }
+    [data-ceremony][data-active] { opacity: 1; background: radial-gradient(circle at center, var(--status-positive-bg) 0%, transparent 60%); }
+    [data-ceremony] svg { width: var(--space-80); height: var(--space-80); fill: none; stroke: var(--status-positive); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 0 var(--space-32) var(--status-positive-border)); }
+    [data-ceremony][data-active] svg { transform: scale(1); }
+    [data-modal-overlay] { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); backdrop-filter: blur(var(--space-4)); z-index: 2000; }
+    [data-modal-overlay][hidden] { display: none; }
+    [data-modal-overlay] > .ds-card { inline-size: 100%; max-inline-size: 38vw; }
+    @media (max-width: 860px) {
+      [data-modal-overlay] > .ds-card { max-inline-size: 92vw; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      <span class="ds-text-body-md"><strong>KYC Copilot</strong></span>
+    </div>
+    <div class="ds-stack ds-stack--row ds-stack--md ds-stack--center">
+      <span id="user-plan" class="ds-badge ds-badge--neutral" hidden>-</span>
+      <span id="user-email" class="ds-text-caption-sm">…</span>
+      <button id="logout-btn" class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Log out</button>
+    </div>
+  </header>
+
+  <main class="ds-layout-dashboard">
+    <div class="ds-layout-dashboard__metrics" id="metrics-grid">
+      <div class="ds-card ds-stack ds-stack--sm"><span data-skeleton="value"></span><span data-skeleton="text"></span></div>
+      <div class="ds-card ds-stack ds-stack--sm"><span data-skeleton="value"></span><span data-skeleton="text"></span></div>
+      <div class="ds-card ds-stack ds-stack--sm"><span data-skeleton="value"></span><span data-skeleton="text"></span></div>
+      <div class="ds-card ds-stack ds-stack--sm"><span data-skeleton="value"></span><span data-skeleton="text"></span></div>
+    </div>
+
+    <div class="ds-layout-dashboard__filters">
+      <select id="filter-status">
+        <option value="">All statuses</option>
+        <option value="processing">Processing</option>
+        <option value="pending_hitl">Pending HITL</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+      </select>
+      <select id="filter-risk">
+        <option value="">All risks</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+      <button id="refresh-btn" class="ds-btn ds-btn--secondary" type="button">Refresh</button>
+      <button id="new-case-btn" class="ds-btn ds-btn--primary" type="button">New Case</button>
+    </div>
+
+    <div class="ds-layout-dashboard__table">
+      <ds-data-table id="cases-table"></ds-data-table>
+      <div id="cases-empty" class="ds-card ds-stack ds-stack--center ds-stack--lg" hidden>
+        <span class="ds-text-heading-xl">No active cases</span>
+        <span class="ds-text-body-md ds-text-muted">The queue is currently empty. Start a new review to see it appear here.</span>
+        <div class="ds-stack ds-stack--row ds-stack--sm">
+          <button id="empty-new-case" class="ds-btn ds-btn--primary" type="button">New Case +</button>
+          <button id="empty-refresh" class="ds-btn ds-btn--secondary" type="button">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <div id="welcome-modal" data-modal-overlay hidden>
+    <div class="ds-card ds-stack ds-stack--md">
+      <h2 class="ds-text-heading-xl">Welcome to KYC Copilot 🎉</h2>
+      <p class="ds-text-body-md ds-text-muted">Your account is ready. Let's run your first compliance check.</p>
+      <div class="ds-stack ds-stack--sm">
+        <p class="ds-text-caption-sm ds-text-muted">Try it with a test company:</p>
+        <input class="ds-input" value="Acme Logistics BV" disabled>
+        <input class="ds-input" value="NL12345678" disabled>
+        <select class="ds-input" disabled><option>Netherlands (NL)</option></select>
+      </div>
+      <button id="demo-case-btn" class="ds-btn ds-btn--primary" type="button">Run Your First Check (14 seconds)</button>
+      <button id="welcome-skip" class="ds-btn ds-btn--ghost" type="button">Skip — I'll explore on my own</button>
+    </div>
+  </div>
+
+  <div id="app-modal" data-modal-overlay hidden>
+    <div class="ds-card ds-stack ds-stack--md">
+      <h2 id="app-modal-title" class="ds-text-heading-xl"></h2>
+      <p id="app-modal-sub" class="ds-text-body-md ds-text-muted" hidden></p>
+      <div id="app-modal-body" class="ds-stack ds-stack--sm"></div>
+      <button id="app-modal-submit" class="ds-btn ds-btn--primary" type="button">Submit</button>
+      <button id="app-modal-cancel" class="ds-btn ds-btn--ghost" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <div id="ceremony" data-ceremony aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  </div>
+
+  <script type="module">
+    import "/design-system/components/ds-data-table.js";
+
+    // ── Auth (JWT dashboard auth) ──────────────────────────────────────────
+    const TOKEN_KEY = 'kyc_access_token';
+    const REFRESH_KEY = 'kyc_refresh_token';
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+
+    function setTokens(access, refresh) {
+      localStorage.setItem(TOKEN_KEY, access);
+      localStorage.setItem(REFRESH_KEY, refresh);
+    }
+
+    function clearTokens() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+    }
+
+    function redirectToLogin() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    function decodeToken(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); }
+      catch { return null; }
+    }
+
+    function isLoggedIn() {
+      const t = getToken();
+      if (!t) return false;
+      const p = decodeToken(t);
+      return p !== null && p.exp * 1000 > Date.now();
+    }
+
+    async function tryRefresh() {
+      const rt = localStorage.getItem(REFRESH_KEY);
+      if (!rt) return false;
+      try {
+        const res = await fetch('/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt })
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch { return false; }
+    }
+
+    // Auth-aware fetch: attaches the Bearer token, silently refreshes on 401,
+    // and redirects to login when the session can no longer be recovered.
+    async function fetchWithAuth(url, opts = {}) {
+      const token = getToken();
+      if (!token) { redirectToLogin(); throw new Error('Not authenticated'); }
+      const headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+      let res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) {
+        if (!(await tryRefresh())) { redirectToLogin(); throw new Error('Session expired'); }
+        headers.Authorization = `Bearer ${getToken()}`;
+        res = await fetch(url, { ...opts, headers });
+        if (res.status === 401) { redirectToLogin(); throw new Error('Session expired'); }
+      }
+      return res;
+    }
+
+    function logout() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    async function populateUser() {
+      const token = getToken();
+      const p = decodeToken(token || '');
+      if (p && p.email) {
+        const emailEl = document.getElementById('user-email');
+        if (emailEl) emailEl.textContent = p.email;
+      }
+      // Plan badge comes from /billing (JWT deliberately carries no plan —
+      // the DB is the source of truth; see src/api/routes/billing.ts).
+      try {
+        const res = await fetchWithAuth('/billing');
+        if (res.ok) {
+          const b = await res.json();
+          const planEl = document.getElementById('user-plan');
+          if (planEl && b.plan) {
+            planEl.hidden = false;
+            planEl.textContent = b.plan.name;
+            planEl.className = `ds-badge ${b.subscriptionStatus === 'active' ? 'ds-badge--success' : 'ds-badge--neutral'}`;
+          }
+        }
+      } catch { /* banner is non-critical */ }
+    }
+
+    // Gate the whole dashboard behind auth.
+    if (!isLoggedIn()) {
+      redirectToLogin();
+    } else {
+      const p = decodeToken(getToken());
+      if (p && p.exp * 1000 < Date.now() + 60000) { tryRefresh(); }
+      populateUser();
+    }
+
+    // ── Toasts + ceremony (presentation plumbing on data attributes) ───────
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.dataset.toast = type;
+
+      const icon = type === 'success'
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+
+      toast.innerHTML = `${icon}<span class="ds-text-body-md">${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.setAttribute('data-show', '');
+        setTimeout(() => {
+          toast.removeAttribute('data-show');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      });
+    }
+
+    function showCeremony() {
+      const el = document.getElementById('ceremony');
+      el.setAttribute('data-active', '');
+      setTimeout(() => el.removeAttribute('data-active'), 1500);
+    }
+
+    // ── Generic in-page modal (replaces native prompt()/confirm()) ──────────
+    let appModalSubmitHandler = null;
+
+    function openAppModal({ title, sub = '', fields = [], submitLabel = 'Submit', onSubmit }) {
+      const overlay = document.getElementById('app-modal');
+      document.getElementById('app-modal-title').textContent = title;
+      const subEl = document.getElementById('app-modal-sub');
+      subEl.textContent = sub;
+      subEl.hidden = !sub;
+      document.getElementById('app-modal-body').innerHTML = fields.map(f => `
+        <p class="ds-text-caption-sm ds-text-muted">${f.label}</p>
+        ${f.type === 'select'
+          ? `<select id="app-field-${f.id}" class="ds-input">${(f.options || []).map(o => `<option value="${o.value}">${o.label}</option>`).join('')}</select>`
+          : `<input id="app-field-${f.id}" class="ds-input" type="${f.type || 'text'}" placeholder="${f.placeholder || ''}" autocomplete="off">`}
+      `).join('');
+      document.getElementById('app-modal-submit').textContent = submitLabel;
+      appModalSubmitHandler = onSubmit;
+      overlay.hidden = false;
+      const first = overlay.querySelector('input, select');
+      if (first) first.focus();
+    }
+
+    function closeAppModal() {
+      document.getElementById('app-modal').hidden = true;
+      appModalSubmitHandler = null;
+    }
+
+    function submitAppModal() {
+      if (appModalSubmitHandler) appModalSubmitHandler();
+    }
+
+    // Close the generic modal on Escape, matching native dialog behaviour.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !document.getElementById('app-modal').hidden) {
+        closeAppModal();
+      }
+    });
+
+    // Wire "New Case": collect entity details via an in-page modal,
+    // create via POST /cases, then reload so the new case appears.
+    async function newCase() {
+      openAppModal({
+        title: 'New Case',
+        sub: 'Create a new compliance review for an entity.',
+        fields: [
+          { id: 'companyName', label: 'Company name', placeholder: 'e.g. Acme Logistics BV' },
+          { id: 'registrationNumber', label: 'Registration number', placeholder: 'e.g. NL12345678' },
+          { id: 'jurisdiction', label: 'Jurisdiction (2-letter country code)', placeholder: 'e.g. NL' }
+        ],
+        submitLabel: 'Create Case',
+        onSubmit: async () => {
+          const companyName = document.getElementById('app-field-companyName').value.trim();
+          const registrationNumber = document.getElementById('app-field-registrationNumber').value.trim();
+          const jurisdiction = document.getElementById('app-field-jurisdiction').value.trim().toUpperCase();
+          if (!companyName || !registrationNumber || jurisdiction.length !== 2) {
+            showToast('Company name, registration number, and a 2-letter jurisdiction are required', 'error');
+            return;
+          }
+          closeAppModal();
+          try {
+            const res = await fetchWithAuth('/cases', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ companyName, registrationNumber, jurisdiction })
+            });
+            if (!res.ok) throw new Error('Failed to create case');
+            const data = await res.json();
+            showToast(`Case created (${data.status}) — ${data.caseId}`);
+            loadDashboard();
+            loadCases();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    // ── Dashboard metrics (real data from /dashboard API) ─────────────────
+    async function loadDashboard() {
+      try {
+        const dashRes = await fetchWithAuth('/dashboard');
+        if (!dashRes.ok) throw new Error('Failed to load data');
+        const dashData = await dashRes.json();
+
+        let total = 0, completed = 0, hitl = 0;
+        (dashData.metrics || []).forEach(m => {
+          total += m.count;
+          if (m.status === 'completed') completed += m.count;
+          if (m.status === 'pending_hitl') hitl += m.count;
+        });
+        const highRisk = dashData.riskBreakdown?.High ?? 0;
+
+        document.getElementById('metrics-grid').innerHTML = `
+          <div class="ds-card ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Total Cases</span>
+            <span class="ds-text-heading-xl">${total}</span>
+            <span class="ds-text-caption-sm">cases in pipeline</span>
+          </div>
+          <div class="ds-card ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Pending HITL</span>
+            <span class="ds-text-heading-xl">${hitl}</span>
+            <span class="ds-text-caption-sm">awaiting analyst approval</span>
+          </div>
+          <div class="ds-card ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Completed</span>
+            <span class="ds-text-heading-xl">${completed}</span>
+            <span class="ds-text-caption-sm">cases cleared</span>
+          </div>
+          <div class="ds-card ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">High Risk</span>
+            <span class="ds-text-heading-xl">${highRisk}</span>
+            <span class="ds-text-caption-sm">elevated to HITL</span>
+          </div>
+        `;
+      } catch {
+        showToast('Error loading dashboard data', 'error');
+      }
+    }
+
+    // ── Case table (ds-data-table; rows navigate to the case surface) ──────
+    const STATUS_VARIANT = {
+      completed: 'success',
+      pending_hitl: 'warning',
+      failed: 'danger',
+      processing: 'neutral',
+      queued: 'neutral'
+    };
+
+    async function loadCases() {
+      const status = document.getElementById('filter-status').value || '';
+      const risk = document.getElementById('filter-risk').value || '';
+      const params = new URLSearchParams({ limit: '100', offset: '0', sort: 'createdAt', order: 'desc' });
+      if (status) params.set('status', status);
+      if (risk) params.set('risk', risk);
+
+      try {
+        const res = await fetchWithAuth(`/cases?${params}`);
+        if (!res.ok) throw new Error('Failed to load cases');
+        const data = await res.json();
+
+        const table = document.getElementById('cases-table');
+        const empty = document.getElementById('cases-empty');
+        const cases = data.cases || [];
+
+        table.hidden = cases.length === 0;
+        empty.hidden = cases.length > 0;
+
+        table.columns = [
+          { key: 'companyName', label: 'Company' },
+          { key: 'registrationNumber', label: 'Registration' },
+          { key: 'jurisdiction', label: 'Jurisdiction' },
+          { key: 'riskDisplay', label: 'Risk Score', align: 'right' },
+          { key: 'status', label: 'Status', type: 'badge' },
+          { key: 'createdDisplay', label: 'Date Created' }
+        ];
+        table.data = cases.map(c => ({
+          id: c.id,
+          companyName: c.companyName,
+          registrationNumber: c.registrationNumber || '-',
+          jurisdiction: c.jurisdiction || '-',
+          riskDisplay: c.riskScore && c.riskScore !== 'Pending' ? c.riskScore : '-',
+          status: {
+            variant: STATUS_VARIANT[c.status] || 'neutral',
+            label: (c.status || '').replace('_', ' ')
+          },
+          createdDisplay: new Date(c.createdAt).toISOString().split('T')[0]
+        }));
+      } catch {
+        showToast('Error loading cases', 'error');
+      }
+    }
+
+    function reload() {
+      loadDashboard();
+      loadCases();
+    }
+
+    // ── Guided onboarding (first-case ceremony; /app?welcome=1) ────────────
+    if (new URLSearchParams(window.location.search).get('welcome') === '1') {
+      document.getElementById('welcome-modal').hidden = false;
+    }
+
+    function closeWelcome() {
+      document.getElementById('welcome-modal').hidden = true;
+      history.replaceState(null, '', '/app');
+    }
+
+    async function runDemoCase() {
+      const btn = document.getElementById('demo-case-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running your first check…';
+      try {
+        const res = await fetchWithAuth('/cases?sync=true', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: 'Acme Logistics BV', registrationNumber: 'NL12345678', jurisdiction: 'NL' })
+        });
+        const problem = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(problem?.detail || 'Failed to run check');
+        }
+        closeWelcome();
+        if (problem?.status === 'completed') {
+          showCeremony();
+          showToast('Your first dossier is ready! 🎉');
+        } else {
+          showToast(`Case created (${problem?.status || 'queued'}) — it will appear in the list.`);
+        }
+        loadDashboard();
+        loadCases();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Run Your First Check (14 seconds)';
+      }
+    }
+
+    // ── Wiring ─────────────────────────────────────────────────────────────
+    document.getElementById('logout-btn').addEventListener('click', logout);
+    document.getElementById('new-case-btn').addEventListener('click', newCase);
+    document.getElementById('empty-new-case').addEventListener('click', newCase);
+    document.getElementById('refresh-btn').addEventListener('click', reload);
+    document.getElementById('empty-refresh').addEventListener('click', reload);
+    document.getElementById('filter-status').addEventListener('change', loadCases);
+    document.getElementById('filter-risk').addEventListener('change', loadCases);
+    document.getElementById('app-modal-submit').addEventListener('click', submitAppModal);
+    document.getElementById('app-modal-cancel').addEventListener('click', closeAppModal);
+    document.getElementById('demo-case-btn').addEventListener('click', runDemoCase);
+    document.getElementById('welcome-skip').addEventListener('click', closeWelcome);
+    document.getElementById('cases-table').addEventListener('row-click', (e) => {
+      if (e.detail?.row?.id) window.location.href = `/case/${e.detail.row.id}`;
+    });
+
+    reload();
+  </script>
+</body>
+</html>

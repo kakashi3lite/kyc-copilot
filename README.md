@@ -125,40 +125,33 @@ PDFs with no integrity              Tamper-evident signed reports
 
 ### Dashboard — compliance overview at a glance
 
-Real-time metrics, searchable case list with status/risk filters, sorting and
-pagination. One-click actions: **New Case**, **View**, **Approve**.
+Real-time metrics, a searchable case table with status/risk filters, and
+one-click **New Case**. Click any row to open the full case workspace.
 
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="KYC Copilot dashboard" width="720">
 </p>
 
-### Case detail — dossier, evidence chain, audit trail
+### Case review — timeline, match reasons, four-eyes approval
 
-Every case opens a slide-in panel with the full dossier, the hashed evidence
-chain, the audit trail, and one-click **Download PDF / JSON** and **GDPR
-export**. High-risk cases show an **Approve** action.
+High-risk cases route to a dedicated review workspace: the processing timeline,
+the hashed evidence chain, the match-reason panel, and a four-eyes approval
+gate. Only a named analyst can approve — there is no automated path around
+`pending_hitl`.
 
 <p align="center">
-  <img src="docs/screenshots/case-detail.png" alt="Case detail panel" width="720">
+  <img src="docs/screenshots/case-detail.png" alt="Case review workspace — timeline, match reasons, four-eyes approval" width="720">
 </p>
 
-### Billing & usage — plans, metering, ROI
+### Dossier — audit-ready, every claim cited
 
-Plan badge, live subscription status, usage meter with quota warnings, ROI
-summary, and invoice history. **Manage Subscription** opens the Stripe Customer
-Portal.
-
-<p align="center">
-  <img src="docs/screenshots/billing.png" alt="Billing and usage view" width="720">
-</p>
-
-### Team — roles, invites, last active
-
-Admin-controlled team management: invite members, assign admin/analyst roles,
-and track last-login activity.
+Each dossier claim links to an entry in the immutable, hash-chained evidence
+ledger; uncited claims are struck through. Reports carry an HMAC-SHA256
+signature with content-integrity verification (the zero-key demo runs unsigned
+and shows that state honestly), downloadable as PDF or JSON.
 
 <p align="center">
-  <img src="docs/screenshots/team.png" alt="Team management view" width="720">
+  <img src="docs/screenshots/dossier.png" alt="Audit-ready dossier with cited evidence ledger" width="720">
 </p>
 
 ### Self-serve onboarding
@@ -383,6 +376,7 @@ src/
   workers/      # BullMQ graph-runner + webhook-deliverer
   utils/        # id, mask, date, retry
 public/         # Vanilla HTML product: landing, login, signup, dashboard, resets
+design-system/  # Canonical tokens, CSS, registry, Lit runtime (gates: token-lint · contrast · registry-check · ds-vr; CI-enforced)
 docs/           # Architecture, decisions (ADRs), shipping status, screenshots
 infra/          # Fly secrets, Cloudflare WAF (Terraform)
 tests/          # Unit, integration, contract, and real E2E lifecycle tests
@@ -395,7 +389,7 @@ tests/          # Unit, integration, contract, and real E2E lifecycle tests
 | Doc | What it covers |
 |---|---|
 | [docs/ARCHITECTURE_CONTEXT.md](docs/ARCHITECTURE_CONTEXT.md) | System topology, request lifecycle, data model, invariants |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records (ADR-001 → ADR-024) |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture Decision Records (ADR-001 → ADR-025) |
 | [docs/SHIPPING_STATUS.md](docs/SHIPPING_STATUS.md) | Ready vs stub inventory, capability matrix |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running, deploying, and operating in production |
 | [SECURITY.md](SECURITY.md) | Security posture, secret handling, hardening checklist |

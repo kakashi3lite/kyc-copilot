@@ -1,0 +1,57 @@
+/* ==========================================================================
+   ds-card — Card                                     design-system/css/card.css
+   --------------------------------------------------------------------------
+   Usage:
+     <section class="ds-card"> … </section>
+     <article class="ds-card ds-card--interactive" tabindex="0"> … </article>
+     <label class="ds-card ds-card--interactive is-selected"> … </label>
+
+   Variants : default | --flush (no padding) | --interactive (hover + focus)
+
+   State reference — one example per required state (on --interactive cards):
+     default : <section class="ds-card"> … </section>
+     hover   : same markup — :hover → background var(--surface-card-hover)
+     focus   : same markup + tabindex="0" — keyboard :focus-visible → ring var(--focus-ring)
+     active  : same markup — :active → background var(--surface-hover)
+     disabled: n/a — containers are not disabled; omit --interactive instead
+     loading : n/a
+     error   : n/a — surface validation within the card (ds-input.is-error)
+     empty   : n/a — compose empty content from ds-stack + ds-text; collection-empty → ds-table-empty
+     selected: <label class="ds-card ds-card--interactive is-selected"> … </label>
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-card {
+  background: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  padding: var(--space-24);
+  color: var(--text-primary);
+}
+
+.ds-card--flush {
+  padding: 0;
+}
+
+.ds-card--interactive {
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.ds-card--interactive:hover {
+  background: var(--surface-card-hover);
+  border-color: var(--border-strong);
+}
+.ds-card--interactive:active {
+  background: var(--surface-hover);
+}
+.ds-card--interactive:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--space-2);
+}
+
+.ds-card.is-selected,
+.ds-card[aria-selected="true"] {
+  border-color: var(--action-primary);
+  outline: var(--border-width) solid var(--action-primary);
+}

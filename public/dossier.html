@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dossier — KYC Copilot</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link rel="stylesheet" href="/design-system/css/text.css">
+  <link rel="stylesheet" href="/design-system/css/stack.css">
+  <link rel="stylesheet" href="/design-system/css/grid.css">
+  <link rel="stylesheet" href="/design-system/css/card.css">
+  <link rel="stylesheet" href="/design-system/css/badge.css">
+  <link rel="stylesheet" href="/design-system/css/button.css">
+  <link rel="stylesheet" href="/design-system/css/layouts.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "lit": "/vendor/lit/index.js",
+      "lit/": "/vendor/lit/",
+      "lit-html": "/vendor/lit-html/lit-html.js",
+      "lit-html/": "/vendor/lit-html/",
+      "lit-element": "/vendor/lit-element/lit-element.js",
+      "lit-element/": "/vendor/lit-element/",
+      "@lit/reactive-element": "/vendor/@lit/reactive-element/reactive-element.js",
+      "@lit/reactive-element/": "/vendor/@lit/reactive-element/"
+    }
+  }
+  </script>
+  <style>
+    /* Page shell — structural rules only; every value binds to a token. */
+    body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding: var(--space-16) var(--space-24); background: var(--surface-card); border-bottom: var(--border-width) solid var(--border-subtle); }
+    header svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: var(--action-primary); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; }
+    #toast-container { position: fixed; bottom: var(--space-32); right: var(--space-32); display: flex; flex-direction: column; gap: var(--space-12); z-index: 1000; }
+    [data-toast] { background: var(--surface-card); border: var(--border-width) solid var(--border-subtle); padding: var(--space-16) var(--space-20); border-radius: var(--radius-12); box-shadow: 0 var(--space-10) var(--space-40) var(--surface-sunken); display: flex; align-items: center; gap: var(--space-12); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    [data-toast][data-show] { transform: translateX(0); }
+    [data-toast] svg { width: var(--space-20); height: var(--space-20); }
+    [data-toast="success"] { border-left: var(--space-4) solid var(--status-positive); }
+    [data-toast="success"] svg { color: var(--status-positive); }
+    [data-toast="error"] { border-left: var(--space-4) solid var(--status-danger); }
+    [data-toast="error"] svg { color: var(--status-danger); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      <span class="ds-text-body-md"><strong>KYC Copilot</strong></span>
+    </div>
+    <div class="ds-stack ds-stack--row ds-stack--md ds-stack--center">
+      <a id="case-link" class="ds-btn ds-btn--ghost ds-btn--sm" href="/app">← Case detail</a>
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="/app">← Dashboard</a>
+    </div>
+  </header>
+
+  <main class="ds-layout-dossier">
+    <section class="ds-layout-dossier__body ds-stack ds-stack--lg">
+      <ds-dossier-viewer id="viewer"></ds-dossier-viewer>
+      <section class="ds-card ds-stack ds-stack--sm">
+        <span class="ds-text-caption-sm">Dossier narrative</span>
+        <div id="dossier-text" class="ds-stack ds-stack--sm"></div>
+      </section>
+    </section>
+    <footer class="ds-layout-dossier__footer">
+      <span class="ds-text-caption-sm ds-text-mono" id="ledger-count">evidence ledger</span>
+      <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+        <button id="download-pdf" class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Download PDF</button>
+        <button id="download-json" class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Download JSON</button>
+      </div>
+    </footer>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script type="module">
+    import "/design-system/components/ds-dossier-viewer.js";
+
+    // ── Minimal auth bootstrap (same contract as the dashboard surface) ────
+    const TOKEN_KEY = 'kyc_access_token';
+    const REFRESH_KEY = 'kyc_refresh_token';
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+
+    function setTokens(access, refresh) {
+      localStorage.setItem(TOKEN_KEY, access);
+      localStorage.setItem(REFRESH_KEY, refresh);
+    }
+
+    function clearTokens() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+    }
+
+    function redirectToLogin() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    function decodeToken(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); }
+      catch { return null; }
+    }
+
+    function isLoggedIn() {
+      const t = getToken();
+      if (!t) return false;
+      const p = decodeToken(t);
+      return p !== null && p.exp * 1000 > Date.now();
+    }
+
+    async function tryRefresh() {
+      const rt = localStorage.getItem(REFRESH_KEY);
+      if (!rt) return false;
+      try {
+        const res = await fetch('/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt })
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch { return false; }
+    }
+
+    async function fetchWithAuth(url, opts = {}) {
+      const token = getToken();
+      if (!token) { redirectToLogin(); throw new Error('Not authenticated'); }
+      const headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+      let res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) {
+        if (!(await tryRefresh())) { redirectToLogin(); throw new Error('Session expired'); }
+        headers.Authorization = `Bearer ${getToken()}`;
+        res = await fetch(url, { ...opts, headers });
+        if (res.status === 401) { redirectToLogin(); throw new Error('Session expired'); }
+      }
+      return res;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.dataset.toast = type;
+      const icon = type === 'success'
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+      toast.innerHTML = `${icon}<span class="ds-text-body-md">${message}</span>`;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.setAttribute('data-show', '');
+        setTimeout(() => {
+          toast.removeAttribute('data-show');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      });
+    }
+
+    // ── Dossier loading ────────────────────────────────────────────────────
+    const CASE_ID = decodeURIComponent(window.location.pathname.split('/').filter(Boolean)[1] || '');
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
+    }
+
+    // Minimal, escape-first markdown rendering for the dossier narrative
+    // (headings → bold paragraphs, `- ` → bullets, `**bold**` → strong).
+    // Output uses registered design-system classes only.
+    function renderDossier(text) {
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const bold = (s) => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      const blocks = [];
+      for (const raw of String(text).split('\n')) {
+        const line = raw.trim();
+        if (!line) continue;
+        if (line.startsWith('## ')) blocks.push(`<p class="ds-text-body-md"><strong>${bold(esc(line.slice(3)))}</strong></p>`);
+        else if (line.startsWith('# ')) blocks.push(`<p class="ds-text-body-md"><strong>${bold(esc(line.slice(2)))}</strong></p>`);
+        else if (line.startsWith('- ')) blocks.push(`<p class="ds-text-body-md ds-text-muted">• ${bold(esc(line.slice(2)))}</p>`);
+        else blocks.push(`<p class="ds-text-body-md">${bold(esc(line))}</p>`);
+      }
+      return blocks.join('');
+    }
+
+    function buildClaims(c) {
+      const evidence = c.evidence || [];
+      const byKey = {};
+      evidence.forEach(e => { byKey[e.key] = e; });
+      const audit = (c.audit || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const stamp = audit.length ? fmtTime(audit[audit.length - 1].createdAt) : '';
+
+      const graphClaims = c.graphState?.claims;
+      if (Array.isArray(graphClaims) && graphClaims.length > 0) {
+        return graphClaims.map(cl => ({
+          id: cl.id,
+          claim: cl.text,
+          hash: byKey[cl.sourceKey]?.hash || '',
+          timestamp: stamp,
+          source: byKey[cl.sourceKey]?.summary || cl.sourceKey,
+          isCited: true
+        }));
+      }
+      // Seed-shape fallback: evidence rows become the ledger entries.
+      return evidence.map(e => ({
+        id: e.key,
+        claim: e.summary || e.key,
+        hash: e.hash || '',
+        timestamp: stamp,
+        source: e.sourceUrl || '',
+        isCited: true
+      }));
+    }
+
+    async function loadDossier() {
+      try {
+        const caseRes = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}`);
+        if (!caseRes.ok) throw new Error('Failed to load case');
+        const data = await caseRes.json();
+        const c = data.case || data;
+
+        const claims = buildClaims(c);
+        const viewer = document.getElementById('viewer');
+        viewer.entityName = c.companyName || '';
+        viewer.claims = claims;
+        document.getElementById('dossier-text').innerHTML = renderDossier(c.dossier || 'Dossier not yet generated.');
+        document.getElementById('ledger-count').textContent = `evidence ledger · ${claims.length} entr${claims.length === 1 ? 'y' : 'ies'}`;
+        document.getElementById('case-link').href = `/case/${encodeURIComponent(CASE_ID)}`;
+
+        // Signature: prefer the signed report payload; verify integrity for
+        // signed reports only (unsigned captures stay neutral in the viewer).
+        let signature = 'unsigned';
+        let valid = false;
+        try {
+          const reportRes = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/report?format=json`);
+          if (reportRes.ok) {
+            const report = await reportRes.json();
+            const rawSignature = report?.signature?.signature || '';
+            const signed = rawSignature && !rawSignature.startsWith('unsigned');
+            // Unsigned reports carry a content hash that changes per generation —
+            // display the stable status text; the hash itself lives in the report.
+            signature = signed ? rawSignature : 'unsigned';
+            if (signed) {
+              const verifyRes = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/report/verify`, { method: 'POST' });
+              if (verifyRes.ok) {
+                const v = await verifyRes.json();
+                valid = !!v.valid;
+              }
+            }
+          }
+        } catch { /* signature is non-critical for rendering */ }
+        viewer.signature = signature;
+        viewer.isSignatureValid = valid;
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    document.getElementById('download-pdf').addEventListener('click', () => downloadReport('pdf'));
+    document.getElementById('download-json').addEventListener('click', () => downloadReport('json'));
+
+    async function downloadReport(format) {
+      try {
+        const res = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/report?format=${format}`);
+        if (!res.ok) throw new Error('Report generation failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kyc-report-${CASE_ID}.${format === 'pdf' ? 'pdf' : 'json'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Report downloaded. Evidence chain is verifiable.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    if (!isLoggedIn()) {
+      redirectToLogin();
+    } else {
+      const p = decodeToken(getToken());
+      if (p && p.exp * 1000 < Date.now() + 60000) { tryRefresh(); }
+      loadDossier();
+    }
+  </script>
+</body>
+</html>

@@ -18,7 +18,8 @@
 | Graph / pipeline change | IMPLEMENTER | IS-002 | kyc-graph.mdc → ARCHITECTURE_CONTEXT §5 → `src/graph/graph.ts` → affected node | 1.5k |
 | API route change | IMPLEMENTER | IS-003 | kyc-api.mdc → ARCHITECTURE_CONTEXT §7 → `src/api/routes/*.ts` | 1.2k |
 | DB / schema change | IMPLEMENTER | IS-004 | ARCHITECTURE_CONTEXT §6 → `src/db/schema.ts` → migrations | 1k |
-| Frontend / UX change | IMPLEMENTER | IS-005 | kyc-frontend.mdc → ARCHITECTURE_CONTEXT §11 → `public/*.html` | 800 |
+| Frontend / UX change | IMPLEMENTER | IS-005 | kyc-frontend.mdc → ARCHITECTURE_CONTEXT §11 → `public/*.html` → `design-system/registry.json` | 800 |
+| Design system change | IMPLEMENTER | IS-005 | `.design-loop/DESIGN.md` (contract) → `design-system/tokens/tokens.css` → `design-system/registry.json` → `design-system/css/*` → run `npm run token-lint` | 1.5k |
 | Compliance / audit review | COMPLIANCE_OFFICER | IS-001 | kyc-compliance.mdc → INV-001..007 → DECISIONS ADR-002,005,007 | 1.5k |
 | Code review / PR | REVIEWER | IS-001 | DECISIONS → invariants → changed files only | 1k |
 | Update context docs | CONTEXT_WRITER | IS-006 | All `docs/` → diff against codebase | 3k |
@@ -65,14 +66,15 @@
 | Next feature: UBO extraction | `docs/PLAN_UBO_EXTRACTION.md` (draft-ready) |
 | Next feature: webhook DLQ + replay | `docs/PLAN_WEBHOOK_DLQ_REPLAY.md` (draft-ready) |
 | Shipping status / stubs | `docs/SHIPPING_STATUS.md` |
-| Evaluation gates / golden datasets | `tests/evaluation/BAS
+| Evaluation gates / golden datasets | `tests/evaluation/BASELINES.md` |
 | Canada demo package (Loom script + checklist + FAQ) | `docs/DEMO_PACKAGE_CANADA_2026-09-28.md` |
 | Canada market brief (prospect one-pager) | `docs/CANADIAN_MARKET_IMPACT_BRIEF.md` |
-| Canadian readiness (FINTRAC/PCMLTFA gaps) | `docs/CANADIAN_READINESS.md` |ELINES.md` |
+| Canadian readiness (FINTRAC/PCMLTFA gaps) | `docs/CANADIAN_READINESS.md` |
 | Market & BD intelligence | `docs/MARKET_INTELLIGENCE.md` |
 | Session report (this ship) | `docs/SESSION_REPORT_2026-08-03.md` |
 | Product screenshots | `docs/screenshots/*.png` |
 | Last session state | `.session-state.yaml` (project root, gitignored) |
+| Design system (tokens · components · registry) | `design-system/` — loop state: `.design-loop/STATE.md` (local) |
 | Cursor rules | `.cursor/rules/kyc-*.mdc` |
 
 ## Repo

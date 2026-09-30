@@ -1,0 +1,190 @@
+/* design-system/tokens/tokens.css */
+/* 
+  KYC Copilot Canonical Tokens
+  Layer 1: Primitives
+*/
+
+:root {
+  --color-slate-50: #f7f9fc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-850: #151e32;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #0b1120;
+  --color-zinc-800: #1e1e2e;
+  --color-zinc-900: #16161e;
+  --color-zinc-950: #0a0a0f;
+  --color-blue-50: #eef2ff;
+  --color-blue-100: #dbe5ff;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-900: #1f2d4a;
+  --color-emerald-500: #10b981;
+  --color-emerald-950: #062a16;
+  --color-orange-500: #f59e0b;
+  --color-red-500: #ef4444;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --space-2: 2px;
+  --space-3: 3px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-13: 13px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-22: 22px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+  --space-72: 72px;
+  --space-80: 80px;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: monospace;
+  --text-10: 10px;
+  --text-11: 11px;
+  --text-12: 12px;
+  --text-12-5: 12.5px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-22: 22px;
+  --text-24: 24px;
+  --text-26: 26px;
+  --text-28: 28px;
+  --text-32: 32px;
+  --text-36: 36px;
+  --text-40: 40px;
+  --weight-400: 400;
+  --weight-500: 500;
+  --weight-600: 600;
+  --weight-700: 700;
+  --leading-1: 1;
+  --leading-1-05: 1.05;
+  --leading-1-15: 1.15;
+  --leading-1-5: 1.5;
+  --leading-1-6: 1.6;
+  --tracking-tight: -0.03em;
+  --tracking-snug: -0.02em;
+  --tracking-wide: 0.06em;
+  --radius-2: 2px;
+  --radius-3: 3px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-full: 999px;
+}
+
+/* 
+  Layer 2: Semantic — shared (theme-invariant)
+  The status scale is inviolable across themes (DESIGN.md §3):
+  verified=emerald, pending=orange, blocked=red, neutral=slate.
+  Tints are derived with color-mix so no raw rgba values enter the source.
+*/
+:root {
+  --status-positive: var(--color-emerald-500);
+  --status-positive-bg: color-mix(in srgb, var(--color-emerald-500) 10%, transparent);
+  --status-positive-border: color-mix(in srgb, var(--color-emerald-500) 20%, transparent);
+  --status-warning: var(--color-orange-500);
+  --status-warning-bg: color-mix(in srgb, var(--color-orange-500) 10%, transparent);
+  --status-warning-border: color-mix(in srgb, var(--color-orange-500) 20%, transparent);
+  --status-danger: var(--color-red-500);
+  --status-danger-bg: color-mix(in srgb, var(--color-red-500) 10%, transparent);
+  --status-danger-border: color-mix(in srgb, var(--color-red-500) 20%, transparent);
+  --status-neutral: var(--color-slate-400);
+  --status-neutral-bg: color-mix(in srgb, var(--color-slate-400) 10%, transparent);
+  --status-neutral-border: color-mix(in srgb, var(--color-slate-400) 20%, transparent);
+  --text-on-action: var(--color-white);
+  --border-width: 1px;
+  --focus-ring-width: 2px;
+}
+
+/* 
+  Layer 2: Semantic — layout & media reference (shared)
+  --bp-* are reference constants: @media cannot consume var(), so the oracle
+  (scripts/token-lint.ts) permits exactly these px values inside @media preludes.
+*/
+:root {
+  --bp-sm: 600px;
+  --bp-md: 860px;
+  --bp-lg: 1200px;
+  --layout-max-page: 1400px;
+  --layout-max-content: 1120px;
+}
+
+/* 
+  Layer 2: Semantic (Light Theme - default marketing) 
+*/
+:root, [data-theme="light"] {
+  --surface-page: var(--color-slate-50);
+  --surface-card: var(--color-white);
+  --surface-card-hover: var(--color-slate-100);
+  --surface-field: var(--color-white);
+  --surface-hover: var(--color-slate-100);
+  --surface-sunken: var(--color-slate-50);
+  --border-subtle: var(--color-slate-200);
+  --border-strong: var(--color-slate-300);
+  --text-primary: var(--color-slate-950);
+  --text-muted: var(--color-slate-500);
+  --action-primary: var(--color-blue-600);
+  --action-primary-hover: var(--color-blue-700);
+  --action-primary-active: var(--color-blue-700);
+  --action-primary-soft: color-mix(in srgb, var(--color-blue-600) 10%, transparent);
+  --action-text: var(--color-blue-600);
+  --focus-ring: var(--color-blue-600);
+}
+
+/* 
+  Layer 2: Semantic (Dark Theme - unified product) 
+*/
+[data-theme="dark"] {
+  --surface-page: var(--color-slate-950);
+  --surface-card: var(--color-slate-850);
+  --surface-card-hover: var(--color-slate-800);
+  --surface-field: var(--color-slate-950);
+  --surface-hover: var(--color-slate-800);
+  --surface-sunken: color-mix(in srgb, var(--color-black) 20%, transparent);
+  --border-subtle: var(--color-slate-800);
+  --border-strong: var(--color-slate-700);
+  --text-primary: var(--color-slate-100);
+  --text-muted: var(--color-slate-400);
+  --action-primary: var(--color-blue-600);
+  --action-primary-hover: var(--color-blue-500);
+  --action-primary-active: var(--color-blue-700);
+  --action-primary-soft: color-mix(in srgb, var(--color-blue-500) 15%, transparent);
+  --action-text: var(--color-blue-500);
+  --focus-ring: var(--color-blue-500);
+}
+
+/* 
+  Layer 3: Components
+  Added on demand by component phases; none required yet — CSS components
+  bind directly to semantic tokens.
+*/
+
+/* 
+  Exceptions to be resolved in Phase 3
+  - --exception-shadow-light-1: #17203318 (Phase-3 exception: Legacy 8-digit hex alpha for landing shadow. Will migrate to rgba tokens.)
+  - --exception-shadow-light-2: #2563eb14 (Phase-3 exception: Legacy 8-digit hex alpha for landing glow. Will migrate to rgba tokens.)
+*/

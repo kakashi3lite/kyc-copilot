@@ -36,8 +36,48 @@ export function createApp(): Hono {
   app.route("/", stripeWebhookRoutes);
   app.route("/", healthRoutes);
   app.route("/", authRoutes);
+  app.get("/design-system/tokens.css", (c) => {
+    c.header("Content-Type", "text/css; charset=utf-8");
+    return c.body(readFileSync(resolve(process.cwd(), "design-system", "tokens", "tokens.css")));
+  });
+  // Design-system component stylesheets — filename allowlisted (no traversal).
+  app.get("/design-system/css/:file", (c) => {
+    const file = c.req.param("file");
+    if (!/^[a-z0-9-]+\.css$/.test(file)) return c.text("Not found", 404);
+    c.header("Content-Type", "text/css; charset=utf-8");
+    return c.body(readFileSync(resolve(process.cwd(), "design-system", "css", file)));
+  });
+  app.get("/design-system/state/store.js", (c) => {
+    c.header("Content-Type", "text/javascript; charset=utf-8");
+    return c.body(readFileSync(resolve(process.cwd(), "design-system", "state", "store.js")));
+  });
+  app.get("/design-system/layouts.html", (c) => c.html(readFileSync(resolve(process.cwd(), "design-system", "layouts.html"), "utf8")));
+  app.get("/design-system/components.html", (c) => c.html(readFileSync(resolve(process.cwd(), "design-system", "components.html"), "utf8")));
+  // Design-system Lit components (browser-ready ESM).
+  app.get("/design-system/components/:file", (c) => {
+    const file = c.req.param("file");
+    if (!/^ds-[a-z0-9-]+\.js$/.test(file)) return c.text("Not found", 404);
+    c.header("Content-Type", "text/javascript; charset=utf-8");
+    return c.body(readFileSync(resolve(process.cwd(), "design-system", "components", file)));
+  });
+  // Vendor ESM for the Lit import map — allowlisted packages, traversal-guarded.
+  for (const pkg of ["lit", "lit-html", "lit-element", "@lit/reactive-element"]) {
+    app.get(`/vendor/${pkg}/*`, (c) => {
+      const rel = c.req.path.slice(`/vendor/${pkg}/`.length);
+      const root = resolve(process.cwd(), "node_modules", pkg);
+      const file = resolve(root, rel);
+      if (rel.includes("..") || rel.includes("%2f") || rel.includes("%2F") || !file.startsWith(root)) {
+        return c.text("Not found", 404);
+      }
+      c.header("Content-Type", file.endsWith(".js") || file.endsWith(".mjs") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8");
+      return c.body(readFileSync(file));
+    });
+  }
   app.get("/", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "landing.html"), "utf8")));
-  app.get("/app", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "app.html"), "utf8")));
+  app.get("/app", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "dashboard.html"), "utf8")));
+  // Product surfaces split from app.html — human-review flow (HTML; auth is client-side + API-side).
+  app.get("/case/:id", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "case-detail.html"), "utf8")));
+  app.get("/case/:id/dossier", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "dossier.html"), "utf8")));
   app.get("/login", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "login.html"), "utf8")));
   app.get("/signup", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "signup.html"), "utf8")));
   app.get("/login.html", (c) => c.html(readFileSync(resolve(process.cwd(), "public", "login.html"), "utf8")));

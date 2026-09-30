@@ -1,0 +1,32 @@
+/* ==========================================================================
+   ds-stack — Stack                                   design-system/css/stack.css
+   --------------------------------------------------------------------------
+   Usage:
+     <div class="ds-stack ds-stack--md"> … </div>
+     <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center"> … </div>
+
+   Vertical by default (column). Gaps use the spacing scale:
+     --xs (4) · --sm (8) · --md (12, default) · --lg (16) · --xl (24) · --2xl (32)
+   Modifiers: --row (horizontal), --center, --between, --wrap
+   States   : n/a — non-interactive spacing primitive.
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.ds-stack--xs  { gap: var(--space-4); }
+.ds-stack--sm  { gap: var(--space-8); }
+.ds-stack--md  { gap: var(--space-12); }
+.ds-stack--lg  { gap: var(--space-16); }
+.ds-stack--xl  { gap: var(--space-24); }
+.ds-stack--2xl { gap: var(--space-32); }
+
+.ds-stack--row     { flex-direction: row; }
+.ds-stack--center  { align-items: center; }
+.ds-stack--between { justify-content: space-between; }
+.ds-stack--wrap    { flex-wrap: wrap; }

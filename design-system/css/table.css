@@ -1,0 +1,100 @@
+/* ==========================================================================
+   ds-table — Table                                   design-system/css/table.css
+   --------------------------------------------------------------------------
+   Usage:
+     <div class="ds-table-shell">
+       <table class="ds-table">
+         <thead>
+           <tr><th>Company</th><th>Status</th><th class="ds-table-num">Risk</th></tr>
+         </thead>
+         <tbody>
+           <tr>
+             <td>Acme Logistics BV</td>
+             <td><span class="ds-badge ds-badge--success">Verified</span></td>
+             <td class="ds-table-num">92</td>
+           </tr>
+         </tbody>
+       </table>
+     </div>
+
+   Financial-grade details : tabular numerals throughout, 36–40px row height
+   (8px vertical cell padding + 14px text), dense mono variant for ids/hashes.
+
+   State reference — one example per required state (row-level):
+     default : <tr><td>Acme Logistics BV</td><td>…</td></tr>
+     hover   : same markup — tr:hover td → background var(--surface-hover)
+     focus   : n/a — rows are not focusable; interactive sorting arrives with the Lit phase
+     active  : n/a
+     disabled: n/a
+     loading : n/a — use skeleton rows (ds-btn.is-loading pattern) during fetches
+     error   : n/a
+     empty   : <tr><td colspan="7" class="ds-table-empty">No cases yet — create your first case.</td></tr>
+     selected: <tr class="is-selected"> … </tr>
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-table-shell {
+  background: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  overflow: hidden;
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-14);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.ds-table th {
+  padding: var(--space-8) var(--space-16);
+  background: var(--surface-sunken);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: var(--text-13);
+  font-weight: var(--weight-500);
+}
+
+.ds-table td {
+  padding: var(--space-8) var(--space-16);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.ds-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ds-table tbody tr:hover td {
+  background: var(--surface-hover);
+}
+
+.ds-table tbody tr.is-selected td {
+  background: var(--action-primary-soft);
+}
+
+.ds-table .ds-table-empty {
+  padding: var(--space-32) var(--space-16);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-14);
+}
+
+.ds-table-num {
+  text-align: right;
+}
+
+.ds-table-center {
+  text-align: center;
+}
+
+.ds-table-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+  color: var(--text-muted);
+}

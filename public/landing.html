@@ -5,156 +5,121 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KYC-Copilot — AML/KYC dossiers in 14 minutes</title>
 <meta name="description" content="Evidence-backed AMLD6 agentic workflow for EU payments institutions. From manual €380 corporate reviews to automated dossiers in 14 minutes.">
+<link rel="stylesheet" href="/design-system/tokens.css">
+<link rel="stylesheet" href="/design-system/css/text.css">
+<link rel="stylesheet" href="/design-system/css/stack.css">
+<link rel="stylesheet" href="/design-system/css/grid.css">
+<link rel="stylesheet" href="/design-system/css/card.css">
+<link rel="stylesheet" href="/design-system/css/badge.css">
+<link rel="stylesheet" href="/design-system/css/button.css">
+<link rel="stylesheet" href="/design-system/css/input.css">
+<link rel="stylesheet" href="/design-system/css/layouts.css">
 <style>
-  :root {
-    --b: #2563eb;
-    --b-hover: #1d4ed8;
-    --t: #0b1120;
-    --fg: #f1f5f9;
-    --m: #94a3b8;
-    --bg: #f7f9fc;
-    --card: #ffffff;
-    --border: #e2e8f0;
-    --emerald: #10b981;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--t); background: var(--bg); -webkit-font-smoothing: antialiased; }
-  header, section { max-width: 1120px; margin: auto; padding: 56px 20px; }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
-  .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; padding-top: 72px; }
-  h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.05; margin: 0 0 20px; letter-spacing: -0.03em; }
-  .sub { font-size: 18px; color: var(--m); line-height: 1.6; margin: 0 0 32px; max-width: 520px; }
-  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; }
-  .cta { display: inline-block; background: var(--b); color: white; padding: 14px 22px; border-radius: 12px; text-decoration: none; font-weight: 600; }
-  .cta:hover { background: var(--b-hover); }
-  .cta.ghost { background: transparent; color: var(--t); border: 1px solid var(--border); }
-  .cta.ghost:hover { background: rgba(0,0,0,0.04); }
-  .pipe { display: flex; gap: 10px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: 0 20px 60px #17203318; }
-  .pipe span { padding: 10px 14px; background: #eef2ff; border-radius: 999px; font-size: 13px; font-weight: 600; animation: pulse 2s infinite; }
-  .pipe span:nth-child(2) { animation-delay: .2s; } .pipe span:nth-child(3) { animation-delay: .4s; } .pipe span:nth-child(4) { animation-delay: .6s; }
-  @keyframes pulse { 50% { transform: translateY(-4px); background: #dbe5ff; } }
-  h2 { font-size: 32px; margin: 0 0 12px; letter-spacing: -0.02em; }
-  .section-sub { color: var(--m); font-size: 16px; margin: 0 0 32px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
-  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
-  input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; outline: none; }
-  input:focus { border-color: var(--b); }
-  #roi { font-size: 22px; font-weight: 700; margin-top: 16px; min-height: 30px; }
-  #roi .muted { font-size: 14px; color: var(--m); font-weight: 400; display: block; margin-top: 4px; }
-  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .plan { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; }
-  .plan.featured { border-color: var(--b); box-shadow: 0 0 0 1px var(--b), 0 20px 60px #2563eb14; }
-  .plan h3 { margin: 0 0 6px; font-size: 20px; }
-  .plan .price { font-size: 32px; font-weight: 700; margin: 8px 0; }
-  .plan .price span { font-size: 14px; color: var(--m); font-weight: 400; }
-  .plan ul { list-style: none; padding: 0; margin: 16px 0 24px; flex: 1; }
-  .plan li { padding: 6px 0; color: #334155; font-size: 14px; }
-  .plan li::before { content: "✓ "; color: var(--emerald); font-weight: 700; }
-  .plan .cta { text-align: center; }
-  .badges { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 600; }
-  footer { text-align: center; color: var(--m); font-size: 13px; padding: 32px 20px; }
+  /* Page shell — structural rules only; every value binds to a token
+     (token-lint oracle enforces zero raw values on this surface). */
+  body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  header svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: var(--action-primary); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { padding: var(--space-6) 0; }
+  li::before { content: "✓ "; color: var(--status-positive); font-weight: var(--weight-700); }
+  section ul { flex: 1; }
   @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; padding-top: 40px; }
-    .pricing-grid { grid-template-columns: 1fr; }
-  }
-  @media (prefers-color-scheme: dark) {
-    body { background: #0b1120; color: var(--fg); }
-    .card, .plan { background: #151e32; border-color: #1e293b; }
-    .plan li { color: #cbd5e1; }
-    .cta.ghost { color: var(--fg); border-color: #334155; }
-    .cta.ghost:hover { background: rgba(255,255,255,0.06); }
-    .pipe { background: #151e32; border-color: #1e293b; }
-    .pipe span { background: #1f2d4a; }
-    .badge { background: #151e32; border-color: #1e293b; color: var(--fg); }
-    input { background: #0b1120; border-color: #334155; color: var(--fg); }
-    .section-sub, .sub { color: #94a3b8; }
+    .ds-grid--2, .ds-grid--3 { grid-template-columns: minmax(0, 1fr); }
   }
 </style>
 </head>
 <body>
-<header class="hero">
-  <div>
-    <div class="logo">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-      KYC-Copilot
+<div class="ds-layout-dashboard">
+  <header class="ds-grid ds-grid--2 ds-stack--center">
+    <div class="ds-stack ds-stack--lg">
+      <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span class="ds-text-body-md"><strong>KYC-Copilot</strong></span>
+      </div>
+      <h1 class="ds-text-heading-xl">AML/KYC dossiers in 14 minutes.</h1>
+      <p class="ds-text-body-md ds-text-muted">KYC-Copilot replaces manual €380 corporate reviews with an evidence-backed AMLD6 agentic workflow for EU payments institutions. Verifiable evidence chains, human-in-the-loop review, audit-grade reports.</p>
+      <div class="ds-stack ds-stack--row ds-stack--md ds-stack--wrap">
+        <a class="ds-btn ds-btn--primary" href="/signup">Start free trial →</a>
+        <a class="ds-btn ds-btn--secondary" href="#pricing">See how it works</a>
+      </div>
     </div>
-    <h1>AML/KYC dossiers in 14 minutes.</h1>
-    <p class="sub">KYC-Copilot replaces manual €380 corporate reviews with an evidence-backed AMLD6 agentic workflow for EU payments institutions. Verifiable evidence chains, human-in-the-loop review, audit-grade reports.</p>
-    <div class="cta-row">
-      <a class="cta" href="/signup">Start free trial →</a>
-      <a class="cta ghost" href="#pricing">See how it works</a>
+    <div class="ds-card ds-stack ds-stack--md">
+      <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--wrap ds-stack--center" aria-label="Pipeline animation">
+        <span class="ds-badge ds-badge--neutral">Ingest</span>
+        <span class="ds-badge ds-badge--neutral">Registry APIs</span>
+        <span class="ds-badge ds-badge--neutral">Guardrail</span>
+        <span class="ds-badge ds-badge--neutral">Report</span>
+      </div>
     </div>
-  </div>
-  <div class="pipe" aria-label="Pipeline animation">
-    <span>Ingest</span><span>Registry APIs</span><span>Guardrail</span><span>Report</span>
-  </div>
-</header>
+  </header>
 
-<section class="card">
-  <h2>ROI calculator</h2>
-  <p class="section-sub" style="margin-bottom:20px;">See how much your compliance team saves per month.</p>
-  <label for="cases">Monthly case volume</label>
-  <input id="cases" type="number" value="100" min="1" inputmode="numeric">
-  <p id="roi" aria-live="polite">Enter your monthly volume to see savings.</p>
-</section>
+  <section class="ds-card ds-stack ds-stack--md">
+    <h2 class="ds-text-heading-xl">ROI calculator</h2>
+    <p class="ds-text-body-md ds-text-muted">See how much your compliance team saves per month.</p>
+    <label class="ds-text-caption-sm" for="cases">Monthly case volume</label>
+    <input class="ds-input" id="cases" type="number" value="100" min="1" inputmode="numeric">
+    <p class="ds-text-body-md" id="roi" aria-live="polite">Enter your monthly volume to see savings.</p>
+  </section>
 
-<section id="pricing">
-  <h2>Simple, predictable pricing</h2>
-  <p class="section-sub">Every plan includes the full agentic EDD workflow, evidence chains, and AMLD6-aligned reports. 14-day free trial on Starter.</p>
-  <div class="pricing-grid">
-    <div class="plan">
-      <h3>Starter</h3>
-      <div class="price">€99<span>/month</span></div>
-      <ul>
-        <li>50 KYC checks / month</li>
-        <li>Automated EDD dossiers</li>
-        <li>Evidence chains + audit trail</li>
-        <li>AMLD6-aligned reports (PDF)</li>
-        <li>API access</li>
-      </ul>
-      <a class="cta" href="/signup?plan=starter">Start free trial</a>
+  <section id="pricing" class="ds-stack ds-stack--xl">
+    <div class="ds-stack ds-stack--md">
+      <h2 class="ds-text-heading-xl">Simple, predictable pricing</h2>
+      <p class="ds-text-body-md ds-text-muted">Every plan includes the full agentic EDD workflow, evidence chains, and AMLD6-aligned reports. 14-day free trial on Starter.</p>
     </div>
-    <div class="plan featured">
-      <h3>Growth</h3>
-      <div class="price">€499<span>/month</span></div>
-      <ul>
-        <li>500 KYC checks / month</li>
-        <li>Everything in Starter</li>
-        <li>Rescreening + webhooks</li>
-        <li>Up to 10 team members</li>
-        <li>Priority support</li>
-      </ul>
-      <a class="cta" href="/signup?plan=growth">Start free trial</a>
+    <div class="ds-grid ds-grid--3">
+      <article class="ds-card ds-stack ds-stack--md">
+        <h3 class="ds-text-body-md"><strong>Starter</strong></h3>
+        <div class="ds-text-heading-xl">€99<span class="ds-text-caption-sm">/month</span></div>
+        <ul>
+          <li class="ds-text-body-md">50 KYC checks / month</li>
+          <li class="ds-text-body-md">Automated EDD dossiers</li>
+          <li class="ds-text-body-md">Evidence chains + audit trail</li>
+          <li class="ds-text-body-md">AMLD6-aligned reports (PDF)</li>
+          <li class="ds-text-body-md">API access</li>
+        </ul>
+        <a class="ds-btn ds-btn--primary" href="/signup?plan=starter">Start free trial</a>
+      </article>
+      <article class="ds-card ds-stack ds-stack--md is-selected">
+        <h3 class="ds-text-body-md"><strong>Growth</strong></h3>
+        <div class="ds-text-heading-xl">€499<span class="ds-text-caption-sm">/month</span></div>
+        <ul>
+          <li class="ds-text-body-md">500 KYC checks / month</li>
+          <li class="ds-text-body-md">Everything in Starter</li>
+          <li class="ds-text-body-md">Rescreening + webhooks</li>
+          <li class="ds-text-body-md">Up to 10 team members</li>
+          <li class="ds-text-body-md">Priority support</li>
+        </ul>
+        <a class="ds-btn ds-btn--primary" href="/signup?plan=growth">Start free trial</a>
+      </article>
+      <article class="ds-card ds-stack ds-stack--md">
+        <h3 class="ds-text-body-md"><strong>Enterprise</strong></h3>
+        <div class="ds-text-heading-xl">Custom</div>
+        <ul>
+          <li class="ds-text-body-md">Unlimited KYC checks</li>
+          <li class="ds-text-body-md">Everything in Growth</li>
+          <li class="ds-text-body-md">SSO / SAML, dedicated support</li>
+          <li class="ds-text-body-md">Custom integrations + SLA</li>
+          <li class="ds-text-body-md">PKCS#7 digital signatures</li>
+        </ul>
+        <a class="ds-btn ds-btn--secondary" href="mailto:sales@kyc-copilot.example?subject=Enterprise%20inquiry">Contact sales</a>
+      </article>
     </div>
-    <div class="plan">
-      <h3>Enterprise</h3>
-      <div class="price">Custom</div>
-      <ul>
-        <li>Unlimited KYC checks</li>
-        <li>Everything in Growth</li>
-        <li>SSO / SAML, dedicated support</li>
-        <li>Custom integrations + SLA</li>
-        <li>PKCS#7 digital signatures</li>
-      </ul>
-      <a class="cta ghost" href="mailto:sales@kyc-copilot.example?subject=Enterprise%20inquiry">Contact sales</a>
-    </div>
-  </div>
-</section>
+  </section>
 
-<section>
-  <h2 style="text-align:center;">Built for regulated EU payments institutions</h2>
-  <div class="badges">
-    <span class="badge">🛡️ AMLD6-aligned</span>
-    <span class="badge">🇪🇺 GDPR-ready</span>
-    <span class="badge">🔐 AES-256-GCM encryption</span>
-    <span class="badge">📜 Tamper-evident reports</span>
-  </div>
-</section>
+  <section class="ds-stack ds-stack--center ds-stack--lg">
+    <h2 class="ds-text-heading-xl">Built for regulated EU payments institutions</h2>
+    <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--wrap ds-stack--center">
+      <span class="ds-badge ds-badge--neutral">🛡️ AMLD6-aligned</span>
+      <span class="ds-badge ds-badge--neutral">🇪🇺 GDPR-ready</span>
+      <span class="ds-badge ds-badge--neutral">🔐 AES-256-GCM encryption</span>
+      <span class="ds-badge ds-badge--neutral">📜 Tamper-evident reports</span>
+    </div>
+  </section>
 
-<footer>
-  © 2026 KYC-Copilot · Agentic due diligence for EU payments institutions
-</footer>
+  <footer class="ds-stack ds-stack--center ds-stack--sm">
+    <span class="ds-text-caption-sm">© 2026 KYC-Copilot · Agentic due diligence for EU payments institutions</span>
+  </footer>
+</div>
 
 <script>
   const ROI_PER_CASE_EUR = 380;
@@ -172,7 +137,7 @@
     const savedEur = n * ROI_PER_CASE_EUR;
     const hoursSaved = n * (MINUTES_MANUAL - MINUTES_AUTO) / 60;
     out.innerHTML = `Save <strong>€${savedEur.toLocaleString()}</strong>/month`
-      + `<span class="muted">≈ ${hoursSaved.toFixed(0)} analyst hours saved · ${n} dossiers in ~${(n * MINUTES_AUTO / 60).toFixed(0)}h</span>`;
+      + ` <span class="ds-text-caption-sm">≈ ${hoursSaved.toFixed(0)} analyst hours saved · ${n} dossiers in ~${(n * MINUTES_AUTO / 60).toFixed(0)}h</span>`;
   }
 
   document.getElementById('cases').addEventListener('input', computeRoi);

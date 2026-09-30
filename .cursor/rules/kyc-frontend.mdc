@@ -15,6 +15,12 @@ alwaysApply: false
 - Brand: cinematic dark, electric blue trust, emerald approvals
 - Tagline: "Compliance at the speed of intelligence"
 
+## Design system
+- Tokens: `design-system/tokens/tokens.css` (served at `/design-system/tokens.css`)
+- Components: `design-system/css/` · Registry: `design-system/registry.json`
+- Gate: `npm run token-lint` must pass for any design-system change
+- Surface migration to `ds-*` classes is in progress (loop state: `.design-loop/STATE.md`)
+
 ## Preserve in app.html (all 5 UX upgrades)
 1. Toast notifications
 2. Skeleton loaders

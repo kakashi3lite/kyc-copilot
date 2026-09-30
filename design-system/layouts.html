@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design System — Layout Preview</title>
+<link rel="stylesheet" href="/design-system/tokens.css">
+<link rel="stylesheet" href="/design-system/css/text.css">
+<link rel="stylesheet" href="/design-system/css/stack.css">
+<link rel="stylesheet" href="/design-system/css/grid.css">
+<link rel="stylesheet" href="/design-system/css/card.css">
+<link rel="stylesheet" href="/design-system/css/badge.css">
+<link rel="stylesheet" href="/design-system/css/button.css">
+<link rel="stylesheet" href="/design-system/css/input.css">
+<link rel="stylesheet" href="/design-system/css/table.css">
+<link rel="stylesheet" href="/design-system/css/layouts.css">
+<style>
+  body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .preview-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-12); padding: var(--space-16) var(--space-24); background: var(--surface-card); border-bottom: var(--border-width) solid var(--border-subtle); }
+  .preview-spacer { flex: 1; }
+  .preview-search { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+  <header class="preview-toolbar">
+    <span class="ds-text-body-md">Layout preview</span>
+    <nav class="ds-stack ds-stack--row ds-stack--sm ds-stack--center" aria-label="Route">
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="#/dashboard">Dashboard</a>
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="#/case/ACME-001">Case detail</a>
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="#/case/ACME-001/dossier">Dossier</a>
+    </nav>
+    <span class="preview-spacer"></span>
+    <span class="ds-text-caption-sm">route: <span class="ds-text-mono" id="route-label">—</span> · id: <span class="ds-text-mono" id="param-label">—</span></span>
+    <button class="ds-btn ds-btn--secondary ds-btn--sm" id="theme-toggle" type="button">Toggle theme</button>
+  </header>
+
+  <main id="view-dashboard" hidden>
+    <div class="ds-layout-dashboard">
+      <div class="ds-layout-dashboard__metrics">
+        <div class="ds-card">
+          <div class="ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Cases this month</span>
+            <span class="ds-text-heading-xl" id="metric-cases">128</span>
+            <span class="ds-text-caption-sm">12 dossiers in flight</span>
+          </div>
+        </div>
+        <div class="ds-card">
+          <div class="ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Completed</span>
+            <span class="ds-text-heading-xl">104</span>
+            <span class="ds-text-caption-sm">81% of total</span>
+          </div>
+        </div>
+        <div class="ds-card">
+          <div class="ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Pending HITL</span>
+            <span class="ds-text-heading-xl">18</span>
+            <span class="ds-text-caption-sm">awaiting review</span>
+          </div>
+        </div>
+        <div class="ds-card">
+          <div class="ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Blocked</span>
+            <span class="ds-text-heading-xl">6</span>
+            <span class="ds-text-caption-sm">evidence gaps</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-layout-dashboard__filters">
+        <input class="ds-input preview-search" type="text" placeholder="Search company…">
+        <button class="ds-btn ds-btn--primary" type="button">New case</button>
+        <button class="ds-btn ds-btn--secondary" type="button">Filters</button>
+      </div>
+
+      <div class="ds-layout-dashboard__table">
+        <div class="ds-table-shell">
+          <table class="ds-table">
+            <thead>
+              <tr><th>Company</th><th>Registration</th><th>Status</th><th class="ds-table-num">Risk</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Acme Logistics BV</td>
+                <td class="ds-table-mono">NL-88742109</td>
+                <td><span class="ds-badge ds-badge--success">Completed</span></td>
+                <td class="ds-table-num">24</td>
+              </tr>
+              <tr>
+                <td>Volkov Capital Partners</td>
+                <td class="ds-table-mono">CY-HE-392015</td>
+                <td><span class="ds-badge ds-badge--warning">Pending HITL</span></td>
+                <td class="ds-table-num">81</td>
+              </tr>
+              <tr>
+                <td>Meridian Freight GmbH</td>
+                <td class="ds-table-mono">DE-HRB-224118</td>
+                <td><span class="ds-badge ds-badge--danger">Blocked</span></td>
+                <td class="ds-table-num">94</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <main id="view-case-detail" hidden>
+    <div class="ds-layout-case-detail">
+      <aside class="ds-layout-case-detail__sidebar">
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--sm">
+            <h2 class="ds-text-body-md">Acme Logistics BV</h2>
+            <span class="ds-badge ds-badge--success">Completed</span>
+            <span class="ds-text-caption-sm ds-text-mono">Case ACME-001 · NL-88742109</span>
+          </div>
+        </section>
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--xs">
+            <span class="ds-text-caption-sm">Risk score</span>
+            <span class="ds-text-heading-xl">24</span>
+            <span class="ds-text-caption-sm">Low · sanctions clear</span>
+          </div>
+        </section>
+      </aside>
+      <section class="ds-layout-case-detail__main">
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--sm">
+            <h2 class="ds-text-body-md">Summary</h2>
+            <p class="ds-text-body-md ds-text-muted">Registry-confirmed entity with two active directors; screening clear across EU/UN/OFAC lists.</p>
+          </div>
+        </section>
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--sm">
+            <h2 class="ds-text-body-md">Evidence ledger</h2>
+            <div class="ds-table-shell">
+              <table class="ds-table">
+                <thead>
+                  <tr><th>Claim</th><th>Source</th><th>Hash</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Legal form BV</td><td>OpenCorporates</td><td class="ds-table-mono">4c1f…8a2b</td></tr>
+                  <tr><td>Directors: 2 active</td><td>OpenCorporates</td><td class="ds-table-mono">77e0…11cd</td></tr>
+                  <tr><td>Sanctions clear</td><td>ComplyAdvantage</td><td class="ds-table-mono">b93a…44f7</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--row ds-stack--md ds-stack--center">
+            <span class="ds-text-caption-sm">Decision</span>
+            <span class="preview-spacer"></span>
+            <button class="ds-btn ds-btn--secondary" type="button">Reject</button>
+            <button class="ds-btn ds-btn--primary" type="button">Approve case</button>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <main id="view-dossier" hidden>
+    <article class="ds-layout-dossier">
+      <header class="ds-layout-dossier__header">
+        <div class="ds-stack ds-stack--xs">
+          <span class="ds-text-caption-sm">Entity</span>
+          <span class="ds-text-body-md">Volkov Capital Partners</span>
+        </div>
+        <div class="ds-stack ds-stack--xs">
+          <span class="ds-text-caption-sm">Signature (HMAC-SHA256)</span>
+          <span class="ds-text-mono ds-text-caption-sm">9f2c…a41d · verified</span>
+        </div>
+        <div class="ds-stack ds-stack--xs">
+          <span class="ds-text-caption-sm">Generated</span>
+          <span class="ds-text-caption-sm">2026-09-30 · CY-HE-392015</span>
+        </div>
+      </header>
+      <div class="ds-layout-dossier__body">
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--sm">
+            <h2 class="ds-text-body-md">Findings</h2>
+            <p class="ds-text-body-md">Directors confirmed via registry filing (2024-11-02).</p>
+            <p class="ds-text-body-md">Screening returned one PEP-adjacent match, dismissed as false positive.</p>
+          </div>
+        </section>
+        <section class="ds-card">
+          <div class="ds-stack ds-stack--sm">
+            <h2 class="ds-text-body-md">Cited vs uncited claims</h2>
+            <p class="ds-text-body-md">Ultimate owner chain resolved to two natural persons.</p>
+            <p class="ds-text-body-md ds-layout-dossier__uncited-claim">Beneficial owner above 25% identified from secondary press.</p>
+          </div>
+        </section>
+      </div>
+      <footer class="ds-layout-dossier__footer">
+        <span class="ds-text-caption-sm ds-text-mono">evidence ledger · 6 entries · 0 gaps</span>
+        <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+          <button class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Download PDF</button>
+          <button class="ds-btn ds-btn--primary ds-btn--sm" type="button">Approve dossier</button>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script type="module">
+    import { createStore, initTheme, initRouter } from "/design-system/state/store.js";
+
+    const store = createStore({ theme: "dark", route: null, layout: null, params: {} });
+    initTheme(store);
+    initRouter(store);
+
+    const views = {
+      DashboardLayout: "view-dashboard",
+      CaseDetailLayout: "view-case-detail",
+      DossierLayout: "view-dossier",
+    };
+
+    function render() {
+      for (const [layout, id] of Object.entries(views)) {
+        document.getElementById(id).hidden = store.get("layout") !== layout;
+      }
+      document.getElementById("route-label").textContent = store.get("route") ?? "—";
+      document.getElementById("param-label").textContent = store.get("params").id ?? "—";
+    }
+    store.subscribe(render);
+    render();
+
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+      store.set("theme", store.get("theme") === "dark" ? "light" : "dark");
+    });
+  </script>
+</body>
+</html>

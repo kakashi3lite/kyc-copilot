@@ -1,0 +1,152 @@
+/* ==========================================================================
+   ds-btn — Button                                   design-system/css/button.css
+   --------------------------------------------------------------------------
+   Usage:
+     <button class="ds-btn ds-btn--primary" type="button">New Case</button>
+     <button class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Refresh</button>
+     <button class="ds-btn ds-btn--ghost" type="button">Cancel</button>
+     <button class="ds-btn ds-btn--primary is-loading" type="button">Saving…</button>
+
+   Variants : --primary | --secondary | --ghost
+   Size     : --sm (default is md)
+
+   State reference — one example per required state:
+     default : <button class="ds-btn ds-btn--primary" type="button">Save</button>
+     hover   : same markup — CSS :hover → background var(--action-primary-hover)
+     focus   : same markup — keyboard :focus-visible → ring var(--focus-ring)
+     active  : same markup — CSS :active → background var(--action-primary-active)
+     disabled: <button class="ds-btn ds-btn--primary" type="button" disabled>Save</button>
+     loading : <button class="ds-btn ds-btn--primary is-loading" type="button">Save</button>
+     error   : <button class="ds-btn ds-btn--primary is-error" type="button">Save</button>
+     empty   : n/a — collection state; see ds-table-empty (table.css)
+     selected: <button class="ds-btn ds-btn--secondary is-selected" type="button">Growth</button>
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-8);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-14);
+  font-weight: var(--weight-500);
+  line-height: var(--leading-1);
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* --- Variants ------------------------------------------------------------- */
+
+.ds-btn--primary {
+  background: var(--action-primary);
+  border-color: var(--action-primary);
+  color: var(--text-on-action);
+  font-weight: var(--weight-600);
+}
+.ds-btn--primary:hover:not(:disabled):not(.is-loading) {
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
+}
+.ds-btn--primary:active:not(:disabled):not(.is-loading) {
+  background: var(--action-primary-active);
+  border-color: var(--action-primary-active);
+}
+
+.ds-btn--secondary {
+  border-color: var(--border-subtle);
+}
+.ds-btn--secondary:hover:not(:disabled):not(.is-loading) {
+  background: var(--surface-hover);
+}
+.ds-btn--secondary:active:not(:disabled):not(.is-loading) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.ds-btn--ghost {
+  color: var(--action-text);
+}
+.ds-btn--ghost:hover:not(:disabled):not(.is-loading) {
+  background: var(--action-primary-soft);
+}
+.ds-btn--ghost:active:not(:disabled):not(.is-loading) {
+  background: var(--action-primary-soft);
+}
+
+/* --- Size ------------------------------------------------------------------ */
+
+.ds-btn--sm {
+  padding: var(--space-6) var(--space-12);
+  font-size: var(--text-13);
+}
+
+/* --- Focus ------------------------------------------------------------------ */
+
+.ds-btn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--space-2);
+}
+
+/* --- Disabled ---------------------------------------------------------------- */
+
+.ds-btn:disabled,
+.ds-btn[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Loading ----------------------------------------------------------------- */
+
+.ds-btn.is-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+.ds-btn.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1em;
+  height: 1em;
+  border: var(--space-2) solid transparent;
+  border-top-color: var(--text-primary);
+  border-radius: var(--radius-full);
+  animation: ds-btn-spin 0.6s linear infinite;
+}
+.ds-btn--primary.is-loading::after {
+  border-top-color: var(--text-on-action);
+}
+@keyframes ds-btn-spin {
+  to { transform: rotate(1turn); }
+}
+
+/* --- Selected (toggle / segmented contexts) ---------------------------------- */
+
+.ds-btn.is-selected,
+.ds-btn[aria-pressed="true"] {
+  background: var(--action-primary-soft);
+  border-color: var(--action-primary);
+  color: var(--action-text);
+}
+
+/* --- Error -------------------------------------------------------------------- */
+
+.ds-btn.is-error {
+  border-color: var(--status-danger);
+}
+.ds-btn--primary.is-error {
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+}

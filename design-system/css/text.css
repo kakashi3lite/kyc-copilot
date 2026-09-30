@@ -1,0 +1,53 @@
+/* ==========================================================================
+   ds-text — Text                                     design-system/css/text.css
+   --------------------------------------------------------------------------
+   Usage:
+     <h2 class="ds-text-heading-xl">Compliance Overview</h2>
+     <p class="ds-text-body-md">Evidence-backed review …</p>
+     <span class="ds-text-caption-sm ds-text-mono">CASE-2026-0001</span>
+
+   Scale (extend on demand, one class per style):
+     heading-xl → 32 / 600 / snug    (page + section headings)
+     body-md    → 14 / 400 / 1.5     (default body copy)
+     caption-sm → 12 / 500 / muted   (labels, captions, metadata)
+   Modifiers: .ds-text-muted (recolor) · .ds-text-mono (code / ids / hashes)
+   States   : n/a — non-interactive typography primitive.
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-text-heading-xl {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-32);
+  font-weight: var(--weight-600);
+  line-height: var(--leading-1-15);
+  letter-spacing: var(--tracking-snug);
+  color: var(--text-primary);
+}
+
+.ds-text-body-md {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-14);
+  font-weight: var(--weight-400);
+  line-height: var(--leading-1-5);
+  color: var(--text-primary);
+}
+
+.ds-text-caption-sm {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-12);
+  font-weight: var(--weight-500);
+  line-height: var(--leading-1-5);
+  color: var(--text-muted);
+}
+
+.ds-text-muted {
+  color: var(--text-muted);
+}
+
+.ds-text-mono {
+  font-family: var(--font-mono);
+}

@@ -1,0 +1,53 @@
+/* ==========================================================================
+   ds-badge — Badge                                   design-system/css/badge.css
+   --------------------------------------------------------------------------
+   Usage:
+     <span class="ds-badge ds-badge--success">Verified</span>
+     <span class="ds-badge ds-badge--warning">Pending</span>
+     <span class="ds-badge ds-badge--danger">Blocked</span>
+     <span class="ds-badge ds-badge--neutral">Queued</span>
+
+   Status scale (inviolable — DESIGN.md §3):
+     --success → Verified (emerald) · --warning → Pending (orange)
+     --danger  → Blocked  (red)     · --neutral → Neutral (slate)
+   States   : n/a — non-interactive; the variants above ARE its states.
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-12);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: var(--text-12);
+  font-weight: var(--weight-600);
+  line-height: var(--leading-1-5);
+}
+
+.ds-badge--success {
+  background: var(--status-positive-bg);
+  border-color: var(--status-positive-border);
+  color: var(--status-positive);
+}
+
+.ds-badge--warning {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning);
+}
+
+.ds-badge--danger {
+  background: var(--status-danger-bg);
+  border-color: var(--status-danger-border);
+  color: var(--status-danger);
+}
+
+.ds-badge--neutral {
+  background: var(--status-neutral-bg);
+  border-color: var(--status-neutral-border);
+  color: var(--status-neutral);
+}

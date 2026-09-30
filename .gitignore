@@ -12,6 +12,9 @@ dist/
 # Session handoff (per-session, not committed)
 .session-state.yaml
 
+# Design loop working memory (agent loop state, not committed)
+.design-loop/
+
 # Evidence / screenshots
 # Root-level transient captures stay ignored; the product screenshots that
 # ship in the README/docs are committed under docs/screenshots/.
@@ -46,3 +49,54 @@ tests/evaluation/reports/
 
 # Drizzle
 drizzle/meta/
+
+# gitlab-ci-local — local GitLab pipeline validation cache (npx gitlab-ci-local)
+.gitlab-ci-local/
+
+# ── Demo-Canada strategic materials — LOCAL ONLY ─────────────────────────────
+# Market positioning, prospect-specific strategy, and internal demo preparation
+# are not for public repositories. Pattern committed so all contributors apply
+# the same boundary. Content stays local. Do not remove these entries without
+# security review. Mirrored in `.local-only-patterns` (pre-push hook + CI gate).
+
+# Canadian market materials
+docs/CANADIAN_READINESS.md
+docs/MARKET_INTELLIGENCE.md
+docs/PLAN_*.md
+docs/SESSION_REPORT_*.md
+docs/CANADIAN_MARKET_IMPACT_BRIEF.md
+docs/DEMO_PACKAGE_*.md
+
+# Demo package drafts
+demo/
+demo-package/
+*.loom-script.md
+*.canadian-brief.md
+*.demo-runbook.md
+
+# Prospect-specific
+prospects/
+remotive/
+
+# Wiki source (Canadian Impact Brief pages live on the GitLab wiki)
+wiki/
+
+# Local scratch work
+scratch/
+
+# Local security sweep artifacts
+.security-sweep/
+gitleaks-report.json
+trufflehog-*.json
+semgrep-*.json
+npm-audit.json
+
+# Local environment overrides
+.env.local
+.env.*.local
+
+# Design-system VR baselines MUST ship (the CI ds-vr gate needs them) — re-include
+# after the global `*.png` rule, then re-ignore AppleDouble twins of the same files.
+!design-system/visual-regression/baselines/
+!design-system/visual-regression/baselines/*.png
+design-system/visual-regression/baselines/._*

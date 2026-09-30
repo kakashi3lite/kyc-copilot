@@ -1,0 +1,170 @@
+/* ==========================================================================
+   ds-layouts — Page layout patterns             design-system/css/layouts.css
+   --------------------------------------------------------------------------
+   Three structural patterns. Layouts assemble ONLY registered components
+   (ds-grid, ds-stack, ds-card, ds-text, ds-badge, ds-table… ) and tokens.
+
+     DashboardLayout  : .ds-layout-dashboard  (+ __metrics, __filters, __table)
+     CaseDetailLayout : .ds-layout-case-detail (+ __sidebar, __main)
+     DossierLayout    : .ds-layout-dossier    (+ __header, __body, __footer,
+                                                __uncited-claim)
+
+   Usage:
+     <div class="ds-layout-dashboard">
+       <div class="ds-layout-dashboard__metrics"> …4 × .ds-card… </div>
+       <div class="ds-layout-dashboard__filters"> …inputs / buttons… </div>
+       <div class="ds-layout-dashboard__table">   ….ds-table-shell… </div>
+     </div>
+
+     <div class="ds-layout-case-detail">
+       <aside class="ds-layout-case-detail__sidebar"> … </aside>
+       <section class="ds-layout-case-detail__main"> … </section>
+     </div>
+
+     <article class="ds-layout-dossier">
+       <header class="ds-layout-dossier__header"> … </header>
+       <div class="ds-layout-dossier__body"> … </div>
+       <footer class="ds-layout-dossier__footer"> … </footer>
+     </article>
+
+   Breakpoints: @media cannot consume var(). The oracle permits exactly the
+   recorded values of --bp-sm (600px) / --bp-md (860px) / --bp-lg (1200px)
+   inside @media preludes — use those values, never other px values.
+
+   Token-lint: zero raw values outside the sanctioned breakpoint preludes.
+   ========================================================================== */
+
+/* ---- Dashboard ------------------------------------------------------------ */
+
+.ds-layout-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-24);
+  width: 100%;
+  max-width: var(--layout-max-page);
+  margin-inline: auto;
+  padding: var(--space-32);
+}
+
+.ds-layout-dashboard__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-24);
+}
+
+.ds-layout-dashboard__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+}
+
+.ds-layout-dashboard__table {
+  display: block;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .ds-layout-dashboard {
+    padding: var(--space-16);
+  }
+  .ds-layout-dashboard__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ds-layout-dashboard__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Case detail ----------------------------------------------------------- */
+
+.ds-layout-case-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  gap: var(--space-24);
+  width: 100%;
+  max-width: var(--layout-max-page);
+  margin-inline: auto;
+  padding: var(--space-32);
+}
+
+.ds-layout-case-detail__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+.ds-layout-case-detail__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .ds-layout-case-detail {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-16);
+  }
+}
+
+/* ---- Dossier ---------------------------------------------------------------- */
+
+.ds-layout-dossier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  width: 100%;
+  max-width: var(--layout-max-content);
+  margin-inline: auto;
+  padding: var(--space-32);
+}
+
+.ds-layout-dossier__header {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-16);
+  align-items: center;
+  padding: var(--space-24);
+  background: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-16);
+}
+
+.ds-layout-dossier__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+.ds-layout-dossier__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  padding: var(--space-16) var(--space-24);
+  background: var(--surface-sunken);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-16);
+}
+
+.ds-layout-dossier__uncited-claim {
+  padding-left: var(--space-12);
+  border-left: var(--space-4) solid var(--status-danger);
+  text-decoration: line-through;
+}
+
+@media (max-width: 860px) {
+  .ds-layout-dossier {
+    padding: var(--space-16);
+  }
+  .ds-layout-dossier__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

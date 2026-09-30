@@ -216,6 +216,7 @@ Schema source: `src/db/schema.ts`.
 | GET | `/ready` | `src/api/routes/health.ts:L12-L15` |
 | GET | `/` | `src/api/index.ts` → `public/landing.html` |
 | GET | `/app` | `src/api/index.ts` → `public/app.html` |
+| GET | `/design-system/tokens.css` | `src/api/index.ts` → canonical token stylesheet (`text/css`) |
 | GET | `/login`·`/login.html`·`/signup`·`/signup.html`·`/forgot-password.html`·`/reset-password.html` | static auth pages (`public/*.html`) |
 | POST | `/provision` | self-serve tenant + user + Stripe customer/Checkout (D4) |
 | POST | `/auth/login` | JWT access + refresh, sets `last_login_at` / `invite_accepted_at` (🔔7) |
@@ -330,6 +331,10 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 | `src/config/logger.ts` | Pino structured logging | `logger` |
 | `public/landing.html` | Marketing page (7 sections, ROI calc) | static |
 | `public/app.html` | Dashboard (5 UX upgrades) | static |
+| `design-system/tokens/tokens.css` | Canonical design tokens (light/dark themes) | CSS custom properties |
+| `design-system/css/*.css` | CSS component classes (`ds-*`) | class stylesheets |
+| `design-system/registry.json` | Token + component registry | JSON index |
+| `scripts/token-lint.ts` | Design-system oracle — no raw values / undeclared tokens | `npm run token-lint` |
 | `tests/unit/` | Node + encryption unit tests | vitest |
 | `tests/integration/` | API + pipeline integration | vitest + testcontainers |
 | `tests/e2e/` | Full lifecycle e2e | vitest |
@@ -353,9 +358,17 @@ Middleware order: `src/api/index.ts:L21-L29` — onError → requestId → secur
 |---|---|---|
 | `GET /` | `public/landing.html` | Marketing: hero, pipeline animation, ROI calculator, pricing |
 | `GET /app` | `public/app.html` | Dashboard: metrics, cases, reports, settings |
+| `GET /login` · `/signup` · `/forgot-password.html` · `/reset-password.html` | `public/*.html` | Auth surfaces (login, signup, password reset) |
+| `GET /design-system/tokens.css` | `design-system/tokens/tokens.css` | Canonical token stylesheet (dual theme) |
 
 Brand: cinematic dark theme, electric blue trust signal, emerald approvals.
 Tagline: "Compliance at the speed of intelligence".
+
+Design system (ADR-025): canonical tokens in `design-system/tokens/tokens.css`
+(dual theme via `[data-theme="light"|"dark"]`), CSS components in
+`design-system/css/` (registry: `design-system/registry.json`). Surface migration
+to `ds-*` classes is in progress (loop state: `.design-loop/STATE.md`, local).
+Design-system gates: `npm run token-lint` · `node design-system/tokens/contrast-check.mjs` · `npm run registry-check` · `npm run ds-vr` — all CI-enforced (GitHub Actions + GitLab CI `design-system-gates` job).
 
 UX upgrades in `app.html` (preserve all 5):
 1. Toast notifications (`showToast`)

@@ -1,0 +1,76 @@
+/* ==========================================================================
+   ds-input — Input                                   design-system/css/input.css
+   --------------------------------------------------------------------------
+   Usage:
+     <input class="ds-input" type="text" placeholder="Company name">
+     <input class="ds-input" type="email" autocomplete="email">
+     <input class="ds-input" type="password" minlength="12">
+     <input class="ds-input is-error" type="email" aria-invalid="true">
+
+   State reference — one example per required state:
+     default : <input class="ds-input" type="text" placeholder="Company name">
+     hover   : same markup — CSS :hover → border var(--border-strong)
+     focus   : same markup — :focus → ring var(--focus-ring), border var(--action-primary)
+     active  : n/a — text fields activate via :focus (see focus)
+     disabled: <input class="ds-input" type="email" disabled value="locked@company.com">
+     loading : n/a — async validation is form state (ds-btn carries the in-flight affordance)
+     error   : <input class="ds-input is-error" type="email" aria-invalid="true" value="not-an-email">
+     empty   : default example above — placeholder renders whenever the value is empty
+     readonly: <input class="ds-input" type="text" value="CASE-2026-0001" readonly>
+
+   Token-lint: design-system/css/ must contain zero raw values.
+   ========================================================================== */
+
+.ds-input {
+  width: 100%;
+  padding: var(--space-12) var(--space-14);
+  background: var(--surface-field);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-10);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-15);
+  line-height: var(--leading-1-5);
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ds-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* --- Hover ----------------------------------------------------------------- */
+
+.ds-input:hover:not(:disabled):not(:focus) {
+  border-color: var(--border-strong);
+}
+
+/* --- Focus ------------------------------------------------------------------ */
+
+.ds-input:focus {
+  border-color: var(--action-primary);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--space-2);
+}
+
+/* --- Disabled / read-only ------------------------------------------------------ */
+
+.ds-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ds-input:read-only {
+  background: var(--surface-sunken);
+}
+
+/* --- Error --------------------------------------------------------------------- */
+
+.ds-input.is-error,
+.ds-input[aria-invalid="true"] {
+  border-color: var(--status-danger);
+}
+.ds-input.is-error:focus,
+.ds-input[aria-invalid="true"]:focus {
+  outline-color: var(--status-danger);
+}

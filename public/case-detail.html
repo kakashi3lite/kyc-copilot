@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case — KYC Copilot</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link rel="stylesheet" href="/design-system/css/text.css">
+  <link rel="stylesheet" href="/design-system/css/stack.css">
+  <link rel="stylesheet" href="/design-system/css/grid.css">
+  <link rel="stylesheet" href="/design-system/css/card.css">
+  <link rel="stylesheet" href="/design-system/css/badge.css">
+  <link rel="stylesheet" href="/design-system/css/button.css">
+  <link rel="stylesheet" href="/design-system/css/input.css">
+  <link rel="stylesheet" href="/design-system/css/table.css">
+  <link rel="stylesheet" href="/design-system/css/layouts.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "lit": "/vendor/lit/index.js",
+      "lit/": "/vendor/lit/",
+      "lit-html": "/vendor/lit-html/lit-html.js",
+      "lit-html/": "/vendor/lit-html/",
+      "lit-element": "/vendor/lit-element/lit-element.js",
+      "lit-element/": "/vendor/lit-element/",
+      "@lit/reactive-element": "/vendor/@lit/reactive-element/reactive-element.js",
+      "@lit/reactive-element/": "/vendor/@lit/reactive-element/"
+    }
+  }
+  </script>
+  <style>
+    /* Page shell — structural rules only; every value binds to a token. */
+    body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); padding: var(--space-16) var(--space-24); background: var(--surface-card); border-bottom: var(--border-width) solid var(--border-subtle); }
+    header svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: var(--action-primary); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; }
+    [data-skeleton] { display: block; background: linear-gradient(90deg, var(--surface-card) 25%, var(--border-subtle) 50%, var(--surface-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite ease-in-out; border-radius: var(--radius-6); }
+    [data-skeleton="value"] { block-size: var(--space-40); inline-size: 70%; }
+    [data-skeleton="text"] { block-size: var(--space-20); inline-size: 45%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    #toast-container { position: fixed; bottom: var(--space-32); right: var(--space-32); display: flex; flex-direction: column; gap: var(--space-12); z-index: 1000; }
+    [data-toast] { background: var(--surface-card); border: var(--border-width) solid var(--border-subtle); padding: var(--space-16) var(--space-20); border-radius: var(--radius-12); box-shadow: 0 var(--space-10) var(--space-40) var(--surface-sunken); display: flex; align-items: center; gap: var(--space-12); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    [data-toast][data-show] { transform: translateX(0); }
+    [data-toast] svg { width: var(--space-20); height: var(--space-20); }
+    [data-toast="success"] { border-left: var(--space-4) solid var(--status-positive); }
+    [data-toast="success"] svg { color: var(--status-positive); }
+    [data-toast="error"] { border-left: var(--space-4) solid var(--status-danger); }
+    [data-toast="error"] svg { color: var(--status-danger); }
+    [data-ceremony] { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 9999; }
+    [data-ceremony][data-active] { opacity: 1; background: radial-gradient(circle at center, var(--status-positive-bg) 0%, transparent 60%); }
+    [data-ceremony] svg { width: var(--space-80); height: var(--space-80); fill: none; stroke: var(--status-positive); stroke-width: var(--space-2); stroke-linecap: round; stroke-linejoin: round; transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 0 var(--space-32) var(--status-positive-border)); }
+    [data-ceremony][data-active] svg { transform: scale(1); }
+    [data-modal-overlay] { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); backdrop-filter: blur(var(--space-4)); z-index: 2000; }
+    [data-modal-overlay][hidden] { display: none; }
+    [data-modal-overlay] > .ds-card { inline-size: 100%; max-inline-size: 38vw; }
+    @media (max-width: 860px) {
+      [data-modal-overlay] > .ds-card { max-inline-size: 92vw; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--center">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      <span class="ds-text-body-md"><strong>KYC Copilot</strong></span>
+    </div>
+    <div class="ds-stack ds-stack--row ds-stack--md ds-stack--center">
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="/app">← Dashboard</a>
+      <button id="logout-btn" class="ds-btn ds-btn--secondary ds-btn--sm" type="button">Log out</button>
+    </div>
+  </header>
+
+  <main class="ds-layout-case-detail">
+    <aside class="ds-layout-case-detail__sidebar">
+      <section class="ds-card ds-stack ds-stack--md" id="case-summary">
+        <span data-skeleton="value"></span>
+        <span data-skeleton="text"></span>
+      </section>
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">Actions</span>
+        <button id="approve-btn" class="ds-btn ds-btn--primary" type="button" hidden>Approve case</button>
+        <button id="download-pdf" class="ds-btn ds-btn--secondary" type="button">Download PDF</button>
+        <button id="download-json" class="ds-btn ds-btn--secondary" type="button">Download JSON</button>
+        <button id="export-gdpr" class="ds-btn ds-btn--secondary" type="button">Export (GDPR)</button>
+        <a id="dossier-link" class="ds-btn ds-btn--ghost" href="/app">View dossier →</a>
+      </section>
+    </aside>
+
+    <section class="ds-layout-case-detail__main">
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-body-md">Case timeline</span>
+        <ds-case-timeline id="timeline"></ds-case-timeline>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-body-md">Evidence chain</span>
+        <div class="ds-table-shell">
+          <table class="ds-table">
+            <thead>
+              <tr><th>Key</th><th>Summary</th><th>Hash</th></tr>
+            </thead>
+            <tbody id="evidence-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="reason-wrap" hidden>
+        <ds-reason-code-panel id="reason"></ds-reason-code-panel>
+      </section>
+
+      <section id="four-eyes-wrap" hidden>
+        <ds-four-eyes-approval id="four-eyes"></ds-four-eyes-approval>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <div id="app-modal" data-modal-overlay hidden>
+    <div class="ds-card ds-stack ds-stack--md">
+      <h2 id="app-modal-title" class="ds-text-heading-xl"></h2>
+      <p id="app-modal-sub" class="ds-text-body-md ds-text-muted" hidden></p>
+      <div id="app-modal-body" class="ds-stack ds-stack--sm"></div>
+      <button id="app-modal-submit" class="ds-btn ds-btn--primary" type="button">Submit</button>
+      <button id="app-modal-cancel" class="ds-btn ds-btn--ghost" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <div id="ceremony" data-ceremony aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  </div>
+
+  <script type="module">
+    import "/design-system/components/ds-case-timeline.js";
+    import "/design-system/components/ds-reason-code-panel.js";
+    import "/design-system/components/ds-four-eyes-approval.js";
+
+    // ── Minimal auth bootstrap (same contract as the dashboard surface) ────
+    const TOKEN_KEY = 'kyc_access_token';
+    const REFRESH_KEY = 'kyc_refresh_token';
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY); }
+
+    function setTokens(access, refresh) {
+      localStorage.setItem(TOKEN_KEY, access);
+      localStorage.setItem(REFRESH_KEY, refresh);
+    }
+
+    function clearTokens() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+    }
+
+    function redirectToLogin() {
+      clearTokens();
+      window.location.href = '/login.html';
+    }
+
+    function decodeToken(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); }
+      catch { return null; }
+    }
+
+    function isLoggedIn() {
+      const t = getToken();
+      if (!t) return false;
+      const p = decodeToken(t);
+      return p !== null && p.exp * 1000 > Date.now();
+    }
+
+    async function tryRefresh() {
+      const rt = localStorage.getItem(REFRESH_KEY);
+      if (!rt) return false;
+      try {
+        const res = await fetch('/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt })
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setTokens(data.accessToken, data.refreshToken);
+        return true;
+      } catch { return false; }
+    }
+
+    async function fetchWithAuth(url, opts = {}) {
+      const token = getToken();
+      if (!token) { redirectToLogin(); throw new Error('Not authenticated'); }
+      const headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${token}` };
+      let res = await fetch(url, { ...opts, headers });
+      if (res.status === 401) {
+        if (!(await tryRefresh())) { redirectToLogin(); throw new Error('Session expired'); }
+        headers.Authorization = `Bearer ${getToken()}`;
+        res = await fetch(url, { ...opts, headers });
+        if (res.status === 401) { redirectToLogin(); throw new Error('Session expired'); }
+      }
+      return res;
+    }
+
+    // ── Toasts / ceremony / modal (shared presentation plumbing) ───────────
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.dataset.toast = type;
+      const icon = type === 'success'
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+      toast.innerHTML = `${icon}<span class="ds-text-body-md">${message}</span>`;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.setAttribute('data-show', '');
+        setTimeout(() => {
+          toast.removeAttribute('data-show');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      });
+    }
+
+    function showCeremony() {
+      const el = document.getElementById('ceremony');
+      el.setAttribute('data-active', '');
+      setTimeout(() => el.removeAttribute('data-active'), 1500);
+    }
+
+    let appModalSubmitHandler = null;
+
+    function openAppModal({ title, sub = '', fields = [], submitLabel = 'Submit', onSubmit }) {
+      const overlay = document.getElementById('app-modal');
+      document.getElementById('app-modal-title').textContent = title;
+      const subEl = document.getElementById('app-modal-sub');
+      subEl.textContent = sub;
+      subEl.hidden = !sub;
+      document.getElementById('app-modal-body').innerHTML = fields.map(f => `
+        <p class="ds-text-caption-sm ds-text-muted">${f.label}</p>
+        <input id="app-field-${f.id}" class="ds-input" type="${f.type || 'text'}" placeholder="${f.placeholder || ''}" autocomplete="off">
+      `).join('');
+      document.getElementById('app-modal-submit').textContent = submitLabel;
+      appModalSubmitHandler = onSubmit;
+      overlay.hidden = false;
+      const first = overlay.querySelector('input');
+      if (first) first.focus();
+    }
+
+    function closeAppModal() {
+      document.getElementById('app-modal').hidden = true;
+      appModalSubmitHandler = null;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !document.getElementById('app-modal').hidden) closeAppModal();
+    });
+
+    // ── Case loading + rendering ───────────────────────────────────────────
+    const CASE_ID = decodeURIComponent(window.location.pathname.split('/').filter(Boolean)[1] || '');
+    const STATUS_VARIANT = { completed: 'success', pending_hitl: 'warning', failed: 'danger', processing: 'neutral', queued: 'neutral' };
+    const RISK_VARIANT = { Low: 'success', Medium: 'warning', High: 'danger', Pending: 'neutral' };
+    const ACTION_LABEL = {
+      'case.created': 'Case created',
+      'case.pending_hitl': 'Routed to analyst review (HITL)',
+      'case.completed': 'Screening pipeline completed',
+      'case.approved': 'Approved by analyst',
+      'case.erased': 'Data erased (GDPR)'
+    };
+    const FLAG_LABEL = {
+      pep_adjacent: 'PEP-adjacent UBO',
+      adverse_media: 'Adverse media hits',
+      complex_ownership: 'Complex ownership structure'
+    };
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
+    }
+
+    function buildTimeline(c) {
+      const audit = (c.audit || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      let steps;
+      if (audit.length > 0) {
+        steps = audit.map(a => ({
+          id: (a.hash || a.action).slice(0, 8),
+          label: ACTION_LABEL[a.action] || a.action,
+          status: 'done',
+          duration: fmtTime(a.createdAt)
+        }));
+      } else {
+        const pipelineDone = c.status !== 'processing';
+        steps = [
+          { id: 'created', label: 'Case created', status: 'done' },
+          { id: 'screen', label: 'Sanctions screening', status: c.status === 'processing' ? 'in-progress' : 'done' },
+          { id: 'score', label: 'Risk scoring', status: pipelineDone ? 'done' : 'pending' },
+          { id: 'report', label: 'Dossier drafted', status: pipelineDone ? 'done' : 'pending' }
+        ];
+      }
+      if (c.status === 'pending_hitl') {
+        steps.push({ id: 'hitl', label: 'Analyst review (HITL)', status: 'in-progress' });
+      }
+      return steps;
+    }
+
+    function renderCase(c) {
+      document.title = `${c.companyName} — KYC Copilot`;
+
+      const status = c.status || 'queued';
+      document.getElementById('case-summary').innerHTML = `
+        <span class="ds-text-heading-xl">${c.companyName}</span>
+        <div class="ds-stack ds-stack--row ds-stack--sm ds-stack--wrap">
+          <span class="ds-badge ds-badge--${STATUS_VARIANT[status] || 'neutral'}">${status.replace('_', ' ')}</span>
+          <span class="ds-badge ds-badge--${RISK_VARIANT[c.riskScore] || 'neutral'}">Risk: ${c.riskScore || 'Pending'}</span>
+        </div>
+        <span class="ds-text-caption-sm">${c.jurisdiction || '—'} · ${c.registrationNumber || '—'}</span>
+      `;
+
+      document.getElementById('timeline').steps = buildTimeline(c);
+
+      const rows = (c.evidence || []).map(e => `
+        <tr>
+          <td class="ds-table-mono">${e.key}</td>
+          <td>${e.summary || ''}</td>
+          <td class="ds-table-mono">${(e.hash || '').slice(0, 12)}…</td>
+        </tr>`).join('');
+      document.getElementById('evidence-rows').innerHTML = rows
+        || '<tr><td colspan="3" class="ds-table-empty">No evidence recorded.</td></tr>';
+
+      const dossierLink = document.getElementById('dossier-link');
+      dossierLink.href = `/case/${encodeURIComponent(CASE_ID)}/dossier`;
+
+      const isPending = status === 'pending_hitl';
+      document.getElementById('approve-btn').hidden = !isPending;
+
+      const reasonWrap = document.getElementById('reason-wrap');
+      const eyesWrap = document.getElementById('four-eyes-wrap');
+      reasonWrap.hidden = !isPending;
+      eyesWrap.hidden = !isPending;
+
+      if (isPending) {
+        const gs = c.graphState || {};
+        const ad = gs.apiData;
+        const flags = (gs.flags || []).map(f => FLAG_LABEL[f] || f);
+
+        const reason = document.getElementById('reason');
+        if (ad) {
+          reason.matchField = 'Legal name';
+          reason.watchlist = (ad.sanctions?.length ? `Sanctions: ${ad.sanctions[0].list}` : ad.pep ? 'PEP list' : 'No watchlist match');
+        } else {
+          reason.matchField = 'Beneficial owner';
+          reason.watchlist = flags.join(' · ') || 'HITL policy';
+        }
+        reason.isResolved = false;
+
+        const four = document.getElementById('four-eyes');
+        four.stage = 'approver';
+        four.reviewerName = 'Automated screening pipeline';
+        four.reviewerDecision = flags.length ? 'flag' : 'approve';
+        four.reviewerNotes = flags.length
+          ? `Flags: ${flags.join(' · ')}.`
+          : 'No blocking findings — routed per HITL policy.';
+        four.evidenceReliedOn = (c.evidence || []).map(e => `${e.key} — ${e.summary || ''}`);
+      }
+    }
+
+    async function loadCase() {
+      try {
+        const res = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}`);
+        if (!res.ok) throw new Error('Failed to load case');
+        const data = await res.json();
+        renderCase(data.case || data);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Approval flow (the demo's HITL gate) ───────────────────────────────
+    function runApproval() {
+      openAppModal({
+        title: 'Approve Case',
+        sub: 'Confirm approval of this case for the audit record.',
+        fields: [{ id: 'notes', label: 'Approval notes (optional)', placeholder: 'e.g. Evidence reviewed and verified' }],
+        submitLabel: 'Approve Case',
+        onSubmit: async () => {
+          const notes = document.getElementById('app-field-notes').value.trim();
+          closeAppModal();
+          try {
+            const res = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/approve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notes })
+            });
+            if (!res.ok) {
+              const problem = await res.json().catch(() => null);
+              throw new Error(problem?.detail || 'Approval failed');
+            }
+            showCeremony();
+            showToast('Case approved successfully');
+            loadCase();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        }
+      });
+    }
+
+    // ── Report downloads (unchanged contract from the legacy dashboard) ────
+    let reportDownloads = 0;
+    async function downloadReport(format) {
+      try {
+        const res = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/report?format=${format}`);
+        if (!res.ok) throw new Error('Report generation failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kyc-report-${CASE_ID}.${format === 'pdf' ? 'pdf' : 'json'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        reportDownloads += 1;
+        showToast(reportDownloads === 1
+          ? 'Report downloaded. Evidence chain is verifiable.'
+          : 'Report downloaded.');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function exportCase() {
+      try {
+        const res = await fetchWithAuth(`/cases/${encodeURIComponent(CASE_ID)}/report?format=json`);
+        if (!res.ok) throw new Error('Export failed');
+        const json = await res.json();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kyc-gdpr-export-${CASE_ID}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('GDPR export downloaded');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Wiring ─────────────────────────────────────────────────────────────
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      clearTokens();
+      window.location.href = '/login.html';
+    });
+    document.getElementById('approve-btn').addEventListener('click', runApproval);
+    document.getElementById('download-pdf').addEventListener('click', () => downloadReport('pdf'));
+    document.getElementById('download-json').addEventListener('click', () => downloadReport('json'));
+    document.getElementById('export-gdpr').addEventListener('click', exportCase);
+    document.getElementById('app-modal-submit').addEventListener('click', () => { if (appModalSubmitHandler) appModalSubmitHandler(); });
+    document.getElementById('app-modal-cancel').addEventListener('click', closeAppModal);
+    document.getElementById('reason').addEventListener('reason-approve', runApproval);
+    document.getElementById('four-eyes').addEventListener('approve', runApproval);
+
+    if (!isLoggedIn()) {
+      redirectToLogin();
+    } else {
+      const p = decodeToken(getToken());
+      if (p && p.exp * 1000 < Date.now() + 60000) { tryRefresh(); }
+      loadCase();
+    }
+  </script>
+</body>
+</html>

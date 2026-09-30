@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#
+# Pre-push hook: block pushes containing demo-Canada strategic materials.
+# These files are local-only by design. See .gitignore + .local-only-patterns.
+#
+# NOTE (2026-09-30): the update case uses `--diff-filter=ACMR` so DELETING a
+# legacy tracked file is allowed (removal is the remediation), while adding or
+# modifying a forbidden path still blocks the push.
+
+set -euo pipefail
+
+FORBIDDEN_PATTERNS=(
+  '^\.design-loop/'
+  '^docs/CANADIAN_READINESS\.md$'
+  '^docs/MARKET_INTELLIGENCE\.md$'
+  '^docs/PLAN_.*\.md$'
+  '^docs/SESSION_REPORT_.*\.md$'
+  '^docs/CANADIAN_MARKET_IMPACT_BRIEF\.md$'
+  '^docs/DEMO_PACKAGE_.*\.md$'
+  '^demo/'
+  '^demo-package/'
+  '^prospects/'
+  '^wiki/'
+  '^scratch/'
+  '^\.security-sweep/'
+  '.*\.loom-script\.md$'
+  '.*\.canadian-brief\.md$'
+  '.*\.demo-runbook\.md$'
+)
+
+# Collect files in the push
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Skip deletes
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+  # Files changed in this push (adds/copies/mods/renames only — deleting a
+  # legacy tracked file is the remediation, not a violation)
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    files=$(git ls-tree -r --name-only "$local_sha")
+  else
+    files=$(git diff --name-only --diff-filter=ACMR "$remote_sha" "$local_sha")
+  fi
+
+  for file in $files; do
+    for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+      if [[ "$file" =~ $pattern ]]; then
+        echo ""
+        echo "╔═══════════════════════════════════════════════════════════════════╗"
+        echo "║  PUSH BLOCKED — local-only file detected                          ║"
+        echo "╚═══════════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "  File:     $file"
+        echo "  Pattern:  $pattern"
+        echo "  Remote:   $remote_ref"
+        echo ""
+        echo "  These files are local-only by design. See .gitignore."
+        echo "  If this file must be pushed, escalate to the security owner."
+        echo ""
+        exit 1
+      fi
+    done
+  done
+done
+
+exit 0

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design System — Component Preview</title>
+<link rel="stylesheet" href="/design-system/tokens.css">
+<link rel="stylesheet" href="/design-system/css/text.css">
+<link rel="stylesheet" href="/design-system/css/stack.css">
+<link rel="stylesheet" href="/design-system/css/card.css">
+<link rel="stylesheet" href="/design-system/css/badge.css">
+<link rel="stylesheet" href="/design-system/css/button.css">
+<link rel="stylesheet" href="/design-system/css/input.css">
+<link rel="stylesheet" href="/design-system/css/table.css">
+<script type="importmap">
+{
+  "imports": {
+    "lit": "/vendor/lit/index.js",
+    "lit/": "/vendor/lit/",
+    "lit-html": "/vendor/lit-html/lit-html.js",
+    "lit-html/": "/vendor/lit-html/",
+    "lit-element": "/vendor/lit-element/lit-element.js",
+    "lit-element/": "/vendor/lit-element/",
+    "@lit/reactive-element": "/vendor/@lit/reactive-element/reactive-element.js",
+    "@lit/reactive-element/": "/vendor/@lit/reactive-element/"
+  }
+}
+</script>
+<style>
+  body { margin: 0; background: var(--surface-page); color: var(--text-primary); font-family: var(--font-sans); }
+  .preview-wrap { display: flex; flex-direction: column; gap: var(--space-24); padding: var(--space-32); max-width: var(--layout-max-page); margin-inline: auto; }
+  .preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-24); }
+</style>
+</head>
+<body>
+  <div class="preview-wrap">
+    <div class="ds-stack ds-stack--row ds-stack--between ds-stack--center">
+      <h1 class="ds-text-heading-xl">Component preview</h1>
+      <a class="ds-btn ds-btn--ghost ds-btn--sm" href="/design-system/layouts.html">← Layouts</a>
+    </div>
+
+    <div class="preview-grid">
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-data-table</span>
+        <ds-data-table id="table"></ds-data-table>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-case-timeline</span>
+        <ds-case-timeline id="timeline"></ds-case-timeline>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-reason-code-panel</span>
+        <ds-reason-code-panel id="reason"></ds-reason-code-panel>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-evidence-ledger</span>
+        <ds-evidence-ledger id="ledger"></ds-evidence-ledger>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-dossier-viewer</span>
+        <ds-dossier-viewer id="dossier"></ds-dossier-viewer>
+      </section>
+
+      <section class="ds-card ds-stack ds-stack--md">
+        <span class="ds-text-caption-sm">ds-four-eyes-approval</span>
+        <ds-four-eyes-approval id="four-eyes"></ds-four-eyes-approval>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import "/design-system/components/ds-data-table.js";
+    import "/design-system/components/ds-case-timeline.js";
+    import "/design-system/components/ds-reason-code-panel.js";
+    import "/design-system/components/ds-evidence-ledger.js";
+    import "/design-system/components/ds-dossier-viewer.js";
+    import "/design-system/components/ds-four-eyes-approval.js";
+
+    // Zero-key demo ground truth (Acme → completed, Volkov → pending_hitl).
+    const cases = [
+      { id: "ACME-001", name: "Acme Logistics BV", reg: "NL-88742109", status: { variant: "success", label: "Completed" }, risk: 24 },
+      { id: "VOLKOV-001", name: "Volkov Capital Partners", reg: "CY-HE-392015", status: { variant: "warning", label: "Pending HITL" }, risk: 81 },
+    ];
+
+    const table = document.getElementById("table");
+    table.columns = [
+      { key: "name", label: "Company" },
+      { key: "reg", label: "Registration" },
+      { key: "status", label: "Status", type: "badge" },
+      { key: "risk", label: "Risk", align: "right" },
+    ];
+    table.data = cases;
+
+    document.getElementById("timeline").steps = [
+      { id: "1", label: "Entity resolved", status: "done", duration: "12s", model: "t0" },
+      { id: "2", label: "Registry lookup", status: "done", duration: "8s", model: "t0" },
+      { id: "3", label: "Screening", status: "in-progress", model: "t1" },
+      { id: "4", label: "Dossier draft", status: "pending" },
+    ];
+
+    const reason = document.getElementById("reason");
+    reason.matchField = "Full name";
+    reason.watchlist = "EU PEP list";
+    reason.confidence = 92;
+
+    const ledgerItems = [
+      { id: "e1", claim: "Legal form BV", hash: "4c1f8a2b77e011cd", timestamp: "2026-09-30 09:12", source: "OpenCorporates", isCited: true },
+      { id: "e2", claim: "Beneficial owner above 25%", hash: "", timestamp: "2026-09-30 09:14", source: "press scan", isCited: false },
+    ];
+    document.getElementById("ledger").items = ledgerItems;
+
+    const dossier = document.getElementById("dossier");
+    dossier.entityName = "Volkov Capital Partners";
+    dossier.signature = "9f2ca41d5b8e0000";
+    dossier.isSignatureValid = true;
+    dossier.claims = ledgerItems;
+
+    const four = document.getElementById("four-eyes");
+    four.stage = "approver";
+    four.reviewerName = "J. Doe";
+    four.reviewerDecision = "approve";
+    four.reviewerNotes = "Registry and screening clear; recommend approval.";
+    four.evidenceReliedOn = ["Registry filing 2024-11-02", "Sanctions clear (EU/UN/OFAC)"];
+  </script>
+</body>
+</html>

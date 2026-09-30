@@ -11,7 +11,7 @@ function keyBuffer(): Buffer {
 
 export function encryptPii(plaintext: string): string {
   const iv = randomBytes(12);
-  const cipher = createCipheriv(algorithm, keyBuffer(), iv);
+  const cipher = createCipheriv(algorithm, keyBuffer(), iv, { authTagLength: 16 });
   const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return `v1:${iv.toString("base64")}:${tag.toString("base64")}:${ciphertext.toString("base64")}`;
@@ -22,7 +22,7 @@ export function decryptPii(payload: string): string {
   if (version !== "v1" || ivPart === undefined || tagPart === undefined || ciphertextPart === undefined) {
     throw new Error("Invalid encrypted payload");
   }
-  const decipher = createDecipheriv(algorithm, keyBuffer(), Buffer.from(ivPart, "base64"));
+  const decipher = createDecipheriv(algorithm, keyBuffer(), Buffer.from(ivPart, "base64"), { authTagLength: 16 });
   decipher.setAuthTag(Buffer.from(tagPart, "base64"));
   return Buffer.concat([decipher.update(Buffer.from(ciphertextPart, "base64")), decipher.final()]).toString("utf8");
 }

@@ -4,11 +4,15 @@
 # Chronology = maximum productivity (fail fast, cheapest jobs first):
 #
 #   validate ──► test ──► security ──► integration ──► build ──► deploy
-#   (typecheck)  (unit+eval) (audit/SAST) (full DB gate) (tsc+docker) (manual)
+#   (typecheck)  (unit+eval+ds-gates) (audit/SAST) (full DB gate) (tsc+docker) (manual)
 #
 # Fast-feedback loop: typecheck (~10s) and unit+eval (~10s) run on every MR
 # before anything heavy. The authoritative gate is `full-gate`, which mirrors
 # `docker compose run --rm test` against real Postgres + Redis.
+#
+# Design-system drift gates (token lint · contrast · registry · visual
+# regression) run as `design-system-gates` in the test stage — fail-fast order,
+# artifacts on always (contrast report + VR diff screenshots). See job below.
 #
 # NOTE: `npm install` in this repo requires `--legacy-peer-deps`
 # (@langchain/* peer resolution — see Dockerfile). Never "fix" that with
@@ -114,6 +118,7 @@ variables:
         - "docker-compose.yml"
         - "fly.toml"
         - ".env.example"
+        - "design-system/**/*"
         - ".gitlab-ci.yml"
     # Default-branch push with no code changes (docs-only): skip.
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -149,6 +154,53 @@ eval-golden:
     paths:
       - tests/evaluation/reports/latest.json
       - tests/evaluation/BASELINES.md
+  rules: !reference [.default-rules, rules]
+
+# ── 2b. design-system gates — the four gates (token lint · contrast · registry · VR) ──
+
+# Fast gates first (no DB, no browser); the VR gate boots the real app and needs
+# Postgres + Redis + Chromium. Fails the pipeline on any drift; uploads the
+# contrast report and diff screenshots as artifacts.
+# NOTE: substitutes the design-loop commands — `npm run token-lint` (no such
+# npx package) · `npm run registry-check` · `npm run ds-vr` (playwright library,
+# no @playwright/test dependency).
+design-system-gates:
+  stage: test
+  extends: [.install, .db-services]
+  script:
+    - mkdir -p design-system-artifacts
+    - npm run token-lint
+    - npm run token-lint -- design-system/layouts.html
+    - npm run token-lint -- design-system/components.html
+    - 'node design-system/tokens/contrast-check.mjs > design-system-artifacts/contrast-report.txt 2>&1 || { cat design-system-artifacts/contrast-report.txt; exit 1; }'
+    - cat design-system-artifacts/contrast-report.txt
+    - npm run registry-check
+    - npm run db:migrate
+    - npm run db:seed
+    - npx playwright install --with-deps chromium
+    - npm run ds-vr
+  artifacts:
+    name: "design-system-gates"
+    when: always
+    expire_in: 7 days
+    paths:
+      - design-system-artifacts/
+      - design-system/visual-regression/current/
+  rules: !reference [.default-rules, rules]
+
+# ── local-only verification — strategic materials must never land on remotes ──
+local-only-verification:
+  stage: test
+  script:
+    - |
+      FORBIDDEN_PATTERNS="^(\.design-loop/|docs/CANADIAN_READINESS\.md$|docs/MARKET_INTELLIGENCE\.md$|docs/PLAN_.*\.md$|docs/SESSION_REPORT_.*\.md$|docs/CANADIAN_MARKET_IMPACT_BRIEF\.md$|docs/DEMO_PACKAGE_.*\.md$|demo/|demo-package/|prospects/|wiki/|scratch/|\.security-sweep/|.*\.loom-script\.md$|.*\.canadian-brief\.md$|.*\.demo-runbook\.md$)"
+      VIOLATIONS=$(git ls-files | grep -E "$FORBIDDEN_PATTERNS" || true)
+      if [ -n "$VIOLATIONS" ]; then
+        echo "BLOCKED: local-only files present on remote:"
+        echo "$VIOLATIONS"
+        exit 1
+      fi
+      echo "OK: no local-only files present"
   rules: !reference [.default-rules, rules]
 
 # ── 3. security (supply-chain + SAST + secrets, parallel) ────────────────────
@@ -256,6 +308,7 @@ deploy-production:
         - "docker-compose.yml"
         - "fly.toml"
         - ".env.example"
+        - "design-system/**/*"
         - ".gitlab-ci.yml"
       when: manual
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
