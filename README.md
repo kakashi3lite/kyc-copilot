@@ -25,7 +25,7 @@ dossier in **14 minutes**.
 ## 📈 Business Impact
 
 > **Automated a previously manual, error-prone KYC compliance review process.
-> Reduced manual document verification time by 60% while generating structured,
+> Reduced manual document verification time by 93% while generating structured,
 > auditable trails for regulatory accuracy.**
 
 - **~3.5 h → ~14 min per corporate EDD review** — registry screening, sanctions
